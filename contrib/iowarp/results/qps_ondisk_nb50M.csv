@@ -1,0 +1,10 @@
+timestamp,volume,backend,pass,nq,k,nprobe,threads,elapsed_s,qps,majflt,majflt_per_q,read_bytes,notes
+1783978717,ondisk_nb50M,chimod,cold,500,10,128,8,46.3124,10.8,0,0.000,0,mode=1;inflight=1
+1783978757,ondisk_nb50M,chimod,warm0,500,10,128,8,40.3469,12.4,0,0.000,0,mode=1;inflight=1
+1783978796,ondisk_nb50M,chimod,warm1,500,10,128,8,38.9215,12.8,0,0.000,0,mode=1;inflight=1
+1783979658,ondisk_nb50M,chimod,cold,500,10,128,8,23.7152,21.1,0,0.000,0,mode=1;inflight=1
+1783979677,ondisk_nb50M,chimod,warm0,500,10,128,8,18.3282,27.3,0,0.000,0,mode=1;inflight=1
+1783979693,ondisk_nb50M,chimod,warm1,500,10,128,8,16.8189,29.7,0,0.000,0,mode=1;inflight=1
+1784046100,ondisk_nb50M,chimod,cold,500,10,128,8,24.0627,20.8,0,0.000,0,mode=1;inflight=1
+1784046123,ondisk_nb50M,chimod,warm0,500,10,128,8,22.7986,21.9,0,0.000,0,mode=1;inflight=1
+1784046142,ondisk_nb50M,chimod,warm1,500,10,128,8,19.2029,26.0,0,0.000,0,mode=1;inflight=1

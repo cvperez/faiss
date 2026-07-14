@@ -1,0 +1,4 @@
+timestamp,volume,backend,pass,nq,k,nprobe,threads,elapsed_s,qps,majflt,majflt_per_q,read_bytes,notes
+1783980255,ondisk_step3_nb44M,chimod,cold,500,10,128,8,24.6297,20.3,0,0.000,0,mode=1;inflight=1
+1783980271,ondisk_step3_nb44M,chimod,warm0,500,10,128,8,15.3775,32.5,0,0.000,0,mode=1;inflight=1
+1783980288,ondisk_step3_nb44M,chimod,warm1,500,10,128,8,17.1205,29.2,0,0.000,0,mode=1;inflight=1

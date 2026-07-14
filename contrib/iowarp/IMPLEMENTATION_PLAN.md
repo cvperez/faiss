@@ -2,10 +2,77 @@
 
 **Status:** ready to execute (written on the dev machine; execution happens on Ares)
 **Repos involved:** this faiss fork (`cvperez/faiss`, upstream v1.14.3) and
-`iowarp/clio-core` (built from source).
+`iowarp/clio-core`, consumed as the **`iowarp-core` pip wheel** (native
+shared libraries + `clio_run`; user requirement — no source build), with
+matching-version headers fetched from the clio-core source tree (headers
+only, never compiled).
 **Full design rationale:** `IVF_ONDISK_IOWARP_PROPOSAL.md` at the TFM workspace
 root (`TFM-RAG-INFRASTRUCTURE/`). This file is self-contained: everything
 needed to implement and run is here.
+
+---
+
+## Progress log (2026-07-11, Ares login node)
+
+- [x] **Phase 0** — faiss built (`FAISS_OPT_LEVEL=generic`, shared, no python) →
+  `~/faiss-install`; iowarp-core wheel 2.1.0 installed; headers from the
+  `~/clio-core-v2.1.0` worktree. Deviations: (a) explicit
+  `-DBLAS_LIBRARIES=/lib/x86_64-linux-gnu/libblas.so.3` (no dev symlinks on
+  the node), (b) `zmq.h` v4.3.5 vendored under `third_party/zmq/` (wheel
+  statically links+exports libzmq but ships no header), (c) the in-tree CTP
+  compile definitions are replicated in `CMakeLists.txt`
+  (`IOWARP_COMPILE_DEFS`, StdThread model). `cte_smoke` put/get round-trip
+  **PASS** against the wheel runtime.
+- [x] **Phase 1 (Level 0)** — `IOWarpInvertedLists` + `ivf_to_iowarp` +
+  `bench_ivf_qps` build clean; `--selftest` **PASS**: bitwise-identical
+  `(D, I)` vs `ArrayInvertedLists` for METRIC_L2 and METRIC_INNER_PRODUCT.
+- [x] Gate 3: `ivf_to_iowarp --verify 64` on the real `ondisk_nb10M` pair —
+  **PASS** (4.84 GiB compact, 64 random lists byte-identical).
+- [x] **Phase 3 (chimod)** — `libclio_faiss_ivf_{client,runtime}.so` build
+  against wheel libs + pinned headers; the wheel runtime dlopens the
+  out-of-tree module and composes pool 600.0. `--selftest-chimod` **PASS**:
+  v0 and v1 both bitwise-identical `(D, I)` to stock FAISS. Key fix: never
+  call `CLIO_CTE_CLIENT_INIT()` inside a handler (its blocking
+  `create_task.Wait()` deadlocks the cooperative worker and wedges the
+  whole runtime); the runtime binds a CTE client directly to
+  `kCtePoolId` (512.0). Additional vendored headers: msgpack-c 6.1.0
+  (+ generated `sysdep.h`/`pack_template.h`), cereal 1.3.2.
+- [x] **Phase 4 (2026-07-12/13)** — campaign iterations:
+  (a) First chain failed: compute-partition images have no BLAS (bundled
+  real copies into `~/faiss-install/lib`; env script no longer relinks on
+  compute nodes); `sudo drop_caches` unavailable in batch — switched to the
+  baseline's own `posix_fadvise(DONTNEED)` mechanism. mmap re-runs removed
+  per user (baseline numbers already exist).
+  (b) Pilot delivered first data: **L0 iowarp on nb10M = 14.5–16.3 QPS flat
+  (cold==warm, 0 majflt, 0 disk)** — fetch-RTT-bound at ~32k per-probe
+  round-trips/pass; quantifies the client-boundary cost.
+  (c) chimod pass hung: Search issued all 4096 GetBlobs at once →
+  runtime-queue livelock (queue_depth 1024). Fixed with windowed issuance
+  (128 in flight) in v0/v1; v1 now frees each list right after scanning
+  (peak shm O(window) — scales past the allocator size); OpenIndex now
+  replaces state when path/tag change. Local validation on real nb10M:
+  selftest v0/v1 PASS, **chimod v1 = 73–75 QPS** (~5× L0) on the login
+  node.
+  (d) Pilot 21894 completed the full matrix on nb10M (exclusive node):
+  **L0 = 14.5–15.1 QPS** (flat, 0 majflt); **chimod v1 single-task =
+  62–66 QPS**; task-split sweep monotonically WORSE (inflight 2/4/8 =
+  53/42/34 QPS — splitting sacrifices cross-task fetch dedup; workload is
+  fetch-bound at this scale). User decision: L0 not run at larger volumes
+  (its client-boundary cost is quantified; would cost hours at 178M).
+  (e) **Intra-task parallel scan** (2026-07-13): each arrived list's
+  (query, probe) pairs now scan across 8 per-thread scanners inside the
+  one task — full fetch dedup AND the baseline's 8-thread CPU budget.
+  (OMP region hoisted to a plain function: gcc 11 ICEs on OMP inside
+  C++20 coroutines.) Correctness: v0/v1/split all bitwise-identical.
+  Login-node validation on real nb10M: **125–162 QPS** (vs 65 before;
+  vs L0 15; step2 mmap warm reference ~81–93 at 50M). kStats: fetch-wait
+  still ≥ scan time → remaining headroom is the GetBlob copy (zero-copy
+  peek API = future upstream CTE proposal). Campaign paused for analysis
+  per user; comparability config is now inflight=1 (8 scan threads inside
+  the task == baseline's 8 OMP threads).
+- Experiment note: pre-built volumes from the user's step2/step3 campaigns
+  are reused (no §5.1 index builds); the comparability protocol against
+  those baselines is pinned in `README.md`/plan file.
 
 ---
 
@@ -33,7 +100,7 @@ cache — improves QPS in the index ≫ RAM regime. Two levels:
 QPS, plot systems side by side.
 
 This is written as a contribution to FAISS: everything lives in this
-top-level `iowarp/` folder, self-contained, styled after `demos/rocksdb_ivf/`
+`contrib/iowarp/` folder, self-contained, styled after `demos/rocksdb_ivf/`
 (the existing precedent for an external-dependency `InvertedLists` backend).
 
 ### Assumptions — confirm with the user before running
@@ -58,13 +125,14 @@ top-level `iowarp/` folder, self-contained, styled after `demos/rocksdb_ivf/`
 
 ---
 
-## 1. Target layout of `iowarp/`
+## 1. Target layout of `contrib/iowarp/`
 
-Standalone CMake project (`find_package(faiss)` + `find_package(clio-core)`),
-mirroring `demos/rocksdb_ivf/`:
+Standalone CMake project (`find_package(faiss)` + pip-wheel discovery for
+iowarp-core — the wheel exports no CMake package, see §3), mirroring
+`demos/rocksdb_ivf/`:
 
 ```
-iowarp/
+contrib/iowarp/
 ├── README.md                     # contribution-facing: design, build, usage
 ├── IMPLEMENTATION_PLAN.md        # this file
 ├── CMakeLists.txt                # level0 lib + tools; add_subdirectory(chimod) if clio runtime found
@@ -84,7 +152,7 @@ iowarp/
 │       ├── faiss_ivf_runtime.cc
 │       └── autogen/faiss_ivf_lib_exec.cc
 ├── scripts/
-│   ├── 00_env_ares.sh            # discovery + builds (clio-core, faiss, iowarp/)
+│   ├── 00_env_ares.sh            # discovery + builds (clio-core, faiss, contrib/iowarp/)
 │   ├── 10_gen_and_build_index.py # synthetic data, shards, merge_ondisk -> .ivfdata
 │   ├── 20_ingest_cte.sh          # start clio_run + run ivf_to_iowarp
 │   ├── 30_run_bench.sh           # per-backend runs, drop_caches, CSV out
@@ -124,28 +192,54 @@ Run on a compute node (`salloc -N 1 --exclusive`, then ssh to it).
 **Discovery checklist:**
 
 ```bash
-which clio_run                       # clio-core CLI installed?
-ls ~/*/lib/cmake 2>/dev/null | grep -i -E "clio|iowarp"   # CMake package?
-ls ~/faiss ~/clio-core 2>/dev/null   # repos cloned?
+which clio_run                       # iowarp-core wheel on PATH?
+python3 -c "import iowarp_core; print(iowarp_core.__version__)"   # wheel + version
+ls ~/faiss ~/clio-core-headers 2>/dev/null   # repos cloned?
 module avail 2>&1 | grep -i -E "cmake|gcc|python|user-scripts"
 python3 -c "import faiss"            # python bindings available?
 df -h /mnt/nvme/$USER                # NVMe free space (need ~200 GB for the 96 GB run)
+ldd --version | head -1              # wheel is manylinux_2_34: needs glibc >= 2.34
 ```
 
-**If clio-core is missing** (pip wheel is NOT sufficient — the chimod needs
-C++ headers and the exported CMake package):
+**clio-core via the pip wheel (required path — the native libraries come
+from pip, no source build):**
 
 ```bash
-git clone --recurse-submodules https://github.com/iowarp/clio-core.git ~/clio-core
-cd ~/clio-core
-cmake --preset release -DCMAKE_INSTALL_PREFIX=$HOME/iowarp-install
-cmake --build build/release -j 20
-cmake --install build/release
-export PATH=$HOME/iowarp-install/bin:$PATH
-export CMAKE_PREFIX_PATH=$HOME/iowarp-install:$CMAKE_PREFIX_PATH
-export LD_LIBRARY_PATH=$HOME/iowarp-install/lib:$LD_LIBRARY_PATH
-clio_run --help    # verify; seeds ~/.clio/clio.yaml on first use
+pip install iowarp-core              # v2.1.0 at time of writing
+PKG=$(python3 -c "import iowarp_core, os; print(os.path.dirname(iowarp_core.__file__))")
+export PATH="$PKG/bin:$PATH"                       # clio_run, clio_cte_bench
+export LD_LIBRARY_PATH="$PKG/lib:$LD_LIBRARY_PATH" # libclio_*.so
+clio_run --help    # verify; ~/.clio/clio.yaml is seeded on first import
 ```
+
+Wheel contents (verified against iowarp_core-2.1.0, manylinux_2_34):
+`bin/` has `clio_run` + both benches; `lib/` has every native library we
+link — `libclio_cte_core_client.so` (exports `clio::cte::core::
+CLIO_CTE_CLIENT_INIT`, `AsyncPutBlob`, ...), `libclio_run_cxx.so`,
+admin/bdev clients, and even the compiled `MOD_NAME` template module;
+`ext/` has the `clio_cte_core_ext` / `clio_cee` Python modules; `data/`
+has the default config. Built with GCC 14 (Red Hat, manylinux_2_34).
+What the wheel does NOT ship: the C++ header tree (only one umbrella
+`clio_runtime.h` whose includes are absent) and any CMake package.
+
+**Headers therefore come from a matching-version source checkout — cloned
+for its `include/` trees only, never built:**
+
+```bash
+git clone --depth 1 --branch v2.1.0 https://github.com/iowarp/clio-core.git ~/clio-core-headers
+# The tag MUST match the wheel version above; if the tag name differs,
+# find the commit whose version metadata says 2.1.0. ABI compatibility
+# between our objects (compiled from these headers) and the wheel's .so
+# files depends on this pin.
+```
+
+`contrib/iowarp/CMakeLists.txt` discovers both halves itself (no
+`find_package(clio-core)`): the wheel's `lib/` dir via the Python import
+above, and the checkout's include dirs (`context-runtime/include`,
+`context-transfer-engine/core/include`, `context-transport-primitives/
+include`, ...). Fallback ONLY if an ABI mismatch surfaces on Ares: full
+source build per clio-core's INSTALL.md, which restores the exported
+CMake package path.
 
 **If the faiss fork is missing or not built:**
 
@@ -169,9 +263,12 @@ Python bindings are needed by `10_gen_and_build_index.py` (it uses
 **Build this folder:**
 
 ```bash
-cd ~/faiss/iowarp
+cd ~/faiss/contrib/iowarp
 cmake -B build . -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_PREFIX_PATH="$HOME/faiss-install;$HOME/iowarp-install"
+  -DCMAKE_PREFIX_PATH="$HOME/faiss-install" \
+  -DIOWARP_HEADERS_DIR="$HOME/clio-core-headers"
+# The iowarp-core wheel (libs/bins) is discovered automatically through
+# `python3 -c "import iowarp_core"`; override with -DIOWARP_WHEEL_DIR=...
 cmake --build build -j 20
 ```
 
@@ -400,15 +497,22 @@ Expected story: parity (or mild L0 overhead) at 24 GB; divergence at 96 GB.
 
 ## 6. Phase 3 — Level 1: the `faiss_ivf` ChiMod
 
-Out-of-tree chimod builds are supported: the installed clio-core CMake
-package exports `ClioCoreCommon.cmake`, which provides
-`add_clio_module_client` / `add_clio_module_runtime` (verified in
-`clio-core/CMakeLists.txt:1592-1604` and `cmake/ClioCoreConfig.cmake.in:41`).
+With the pip wheel there is no exported CMake package, so
+`chimod/CMakeLists.txt` writes the two shared-library targets by hand
+(client + runtime `.so`), compiled against the fetched v2.1.0 headers and
+linked against the wheel's `lib/` — replicating what
+`add_clio_module_client` / `add_clio_module_runtime` do in-tree (crib the
+exact compile flags and link sets from `cmake/ClioCoreCommon.cmake` in the
+header checkout). Loading is plausible by construction: the wheel itself
+ships the compiled template module (`libchimaera_MOD_NAME_{client,
+runtime}.so`), confirming `clio_run` dlopens module libraries by name — our
+runtime `.so` just has to be on `LD_LIBRARY_PATH` when `clio_run` starts.
+Verify early in Phase 3 that the wheel runtime accepts an out-of-tree
+module; if it hard-fails, the fallback is the source-build path (§3).
 Start from the template `clio-core/context-runtime/modules/MOD_NAME/` — copy
 its structure including `autogen/MOD_NAME_lib_exec.cc` and adapt (rename
-MOD_NAME→faiss_ivf, keep the switch-case dispatch pattern; regenerate with
-`clio_run repo refresh` if a repo yaml is set up, else adapt by hand — the
-template's exec file is small and mechanical).
+MOD_NAME→faiss_ivf, keep the switch-case dispatch pattern; the template's
+exec file is small and mechanical).
 
 ### 6.1 `clio_mod.yaml`
 
@@ -499,7 +603,7 @@ bytes-returned, and fetch-wait vs scan time as evidence of overlap).
 
 **Verification checklist (run in this order, each gates the next):**
 
-1. `iowarp/` builds clean against installed faiss + clio-core.
+1. `contrib/iowarp/` builds clean against installed faiss + clio-core.
 2. `ivf_to_iowarp --verify 64` passes (byte-identical lists in CTE).
 3. `bench_ivf_qps --selftest` passes (identical `(D,I)` Array vs IOWarp L0).
 4. Optional harness cross-check: one short `--backend mmap` run at 24 GB
@@ -516,7 +620,7 @@ bytes-returned, and fetch-wait vs scan time as evidence of overlap).
 
 ## 8. Documentation requirements (user: "document everything")
 
-- `iowarp/README.md` — the contribution-facing doc: motivation (2 paragraphs),
+- `contrib/iowarp/README.md` — the contribution-facing doc: motivation (2 paragraphs),
   architecture diagram (levels), blob layout, build instructions (with and
   without the chimod), CLI reference for the three binaries, script-by-script
   experiment reproduction guide, CSV schema, and the Ares-specific notes.

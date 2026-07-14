@@ -1,0 +1,96 @@
+[97m/project/context-runtime/src/config_manager.cc:58 INFO 1071657 ClientInit Config at: /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/results/ares_cte_rendered_20260713_165121.yaml[0m
+[97m/project/context-runtime/src/ipc_manager.cc:2089 INFO 1071657 ClearUserIpcs ClearUserIpcs: Removed 3 memfd symlinks from previous runs[0m
+[97m/project/context-runtime/src/ipc_manager.cc:627 INFO 1071657 ServerInitShm Initializing main shared memory segment: 1073741824 bytes (1024 MB)[0m
+[97m/project/context-runtime/src/ipc_manager.cc:648 INFO 1071657 ServerInitShm Initializing queue shared memory segment: 5820128 bytes (5683 KB)[0m
+[97m/project/context-runtime/src/ipc_manager.cc:733 INFO 1071657 ServerInitQueues Initializing 8 worker queues with depth 1024 (last worker serves dual role)[0m
+[97m/project/context-runtime/src/ipc_manager.cc:1356 INFO 1071657 IdentifyThisHost SUCCESS: Main server started on 0.0.0.0:9413 (advertised as 0.0.0.0, node=0)[0m
+[97m/project/context-runtime/src/ipc_manager.cc:438 INFO 1071657 ServerInit IpcManager: TCP ROUTER transport bound on 0.0.0.0:9416[0m
+[97m/project/context-runtime/src/ipc_manager.cc:456 INFO 1071657 ServerInit IpcManager: IPC lightbeam server bound on /tmp/chimaera_cvazquezperezdelacru/chimaera_9413.ipc[0m
+[97m/project/context-runtime/src/module_manager.cc:137 INFO 1071657 LoadChiMod Loaded ChiMod: chimaera_MOD_NAME from /mnt/common/cvazquezperezdelacru/.local/lib/python3.10/site-packages/iowarp_core/lib/libchimaera_MOD_NAME_runtime.so[0m
+[97m/project/context-runtime/src/module_manager.cc:137 INFO 1071657 LoadChiMod Loaded ChiMod: clio_admin from /mnt/common/cvazquezperezdelacru/.local/lib/python3.10/site-packages/iowarp_core/lib/libclio_admin_runtime.so[0m
+[97m/project/context-runtime/src/module_manager.cc:137 INFO 1071657 LoadChiMod Loaded ChiMod: clio_cte_core from /mnt/common/cvazquezperezdelacru/.local/lib/python3.10/site-packages/iowarp_core/lib/libclio_cte_core_runtime.so[0m
+[97m/project/context-runtime/src/module_manager.cc:137 INFO 1071657 LoadChiMod Loaded ChiMod: clio_bdev from /mnt/common/cvazquezperezdelacru/.local/lib/python3.10/site-packages/iowarp_core/lib/libclio_bdev_runtime.so[0m
+[97m/project/context-runtime/src/module_manager.cc:137 INFO 1071657 LoadChiMod Loaded ChiMod: clio_cae_core from /mnt/common/cvazquezperezdelacru/.local/lib/python3.10/site-packages/iowarp_core/lib/libclio_cae_core_runtime.so[0m
+[97m/project/context-runtime/src/module_manager.cc:137 INFO 1071657 LoadChiMod Loaded ChiMod: clio_faiss_ivf from /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/build/chimod/libclio_faiss_ivf_runtime.so[0m
+[97m/project/context-runtime/src/work_orchestrator.cc:94 INFO 1071657 Init Creating 8 workers (7 task + 1 dedicated network)[0m
+[97m/project/context-runtime/src/ipc_manager.cc:575 INFO 1071657 SetNumSchedQueues IpcManager: Updated num_sched_queues to 1[0m
+[97m/project/context-runtime/src/scheduler/default_sched.cc:123 INFO 1071657 DivideWorkers DefaultScheduler: 1 scheduler worker (0), 4 I/O workers, net_send_worker=6, net_recv_worker=7, gpu_worker=5[0m
+[97m/project/context-runtime/src/work_orchestrator.cc:240 INFO 1071657 SpawnWorkerThreads WorkOrchestrator: num_workers=8, num_lanes=8[0m
+[97m/project/context-runtime/src/work_orchestrator.cc:263 INFO 1071657 SpawnWorkerThreads WorkOrchestrator: Mapped worker 0 (ID 0) to lane 0[0m
+[97m/project/context-runtime/src/work_orchestrator.cc:263 INFO 1071657 SpawnWorkerThreads WorkOrchestrator: Mapped worker 1 (ID 1) to lane 1[0m
+[97m/project/context-runtime/src/work_orchestrator.cc:263 INFO 1071657 SpawnWorkerThreads WorkOrchestrator: Mapped worker 2 (ID 2) to lane 2[0m
+[97m/project/context-runtime/src/work_orchestrator.cc:263 INFO 1071657 SpawnWorkerThreads WorkOrchestrator: Mapped worker 3 (ID 3) to lane 3[0m
+[97m/project/context-runtime/src/work_orchestrator.cc:263 INFO 1071657 SpawnWorkerThreads WorkOrchestrator: Mapped worker 4 (ID 4) to lane 4[0m
+[97m/project/context-runtime/src/work_orchestrator.cc:263 INFO 1071657 SpawnWorkerThreads WorkOrchestrator: Mapped worker 5 (ID 5) to lane 5[0m
+[97m/project/context-runtime/src/work_orchestrator.cc:263 INFO 1071657 SpawnWorkerThreads WorkOrchestrator: Mapped worker 6 (ID 6) to lane 6[0m
+[97m/project/context-runtime/src/work_orchestrator.cc:263 INFO 1071657 SpawnWorkerThreads WorkOrchestrator: Mapped worker 7 (ID 7) to lane 7[0m
+[97m/project/context-runtime/src/pool_manager.cc:456 INFO 1071657 CreatePool PoolManager: Creating pool 'admin' with 1 containers (one per node)[0m
+[33m/project/context-runtime/modules/admin/include/clio_runtime/admin/admin_client.h:59 WARNING 1071657 Client AdminClient: Default constructor called - pool_id_ will be PoolId(0,0)[0m
+[97m/project/context-runtime/src/pool_manager.cc:537 INFO 1071657 CreatePool Creating container for pool PoolId(major:1, minor:0) on node 0 with container_id=0[0m
+[97m/project/context-runtime/src/pool_manager.cc:557 INFO 1071657 CreatePool Container initialized with pool ID PoolId(major:1, minor:0), name admin, and container ID 0[0m
+[97m/project/context-runtime/src/pool_manager.cc:575 INFO 1071657 CreatePool CreatePool: Running Create method for pool PoolId(major:1, minor:0)[0m
+[97m/project/context-runtime/src/ipc/ipc_run2run.cc:887 INFO 1071686 operator() [PeerRecvThread] started[0m
+[97m/project/context-runtime/src/ipc/ipc_run2run.cc:927 INFO 1071687 operator() [ClientRecvThread] started[0m
+[97m/project/context-runtime/src/pool_manager.cc:577 INFO 1071657 CreatePool CreatePool: Create method completed for pool PoolId(major:1, minor:0)[0m
+[97m/project/context-runtime/src/pool_manager.cc:610 INFO 1071657 CreatePool PoolManager: Created complete pool PoolId(major:1, minor:0) with ChiMod clio_admin (1 containers)[0m
+[97m/project/context-runtime/src/pool_manager.cc:119 INFO 1071657 ServerInit PoolManager: Admin chimod pool created successfully with PoolId PoolId(major:1, minor:0)[0m
+[97m/project/context-runtime/src/manager.cc:247 INFO 1071657 ServerInit Processing compose configuration with 3 pools[0m
+[33m/project/context-runtime/src/../modules/admin/include/clio_runtime/admin/admin_client.h:59 WARNING 1071657 Client AdminClient: Default constructor called - pool_id_ will be PoolId(0,0)[0m
+[97m/project/context-runtime/src/manager.cc:265 INFO 1071657 ServerInit Compose: Creating pool ram::chi_default_bdev (module: clio_bdev, restart: 0)[0m
+[97m/project/context-runtime/src/pool_manager.cc:456 INFO 1071678 CreatePool PoolManager: Creating pool 'ram::chi_default_bdev' with 1 containers (one per node)[0m
+[97m/project/context-runtime/src/pool_manager.cc:537 INFO 1071678 CreatePool Creating container for pool PoolId(major:301, minor:0) on node 0 with container_id=0[0m
+[97m/project/context-runtime/src/pool_manager.cc:557 INFO 1071678 CreatePool Container initialized with pool ID PoolId(major:301, minor:0), name ram::chi_default_bdev, and container ID 0[0m
+[97m/project/context-runtime/src/pool_manager.cc:575 INFO 1071678 CreatePool CreatePool: Running Create method for pool PoolId(major:301, minor:0)[0m
+[97m/project/context-runtime/modules/bdev/src/bdev_runtime.cc:519 INFO 1071678 Create RAM bdev 'ram::chi_default_bdev' capacity: configured=38654705664 -> using 38654705664 bytes (80% of 50079719424 total DRAM when configured as 0/0g)[0m
+[97m/project/context-runtime/src/pool_manager.cc:577 INFO 1071678 CreatePool CreatePool: Create method completed for pool PoolId(major:301, minor:0)[0m
+[97m/project/context-runtime/src/pool_manager.cc:610 INFO 1071678 CreatePool PoolManager: Created complete pool PoolId(major:301, minor:0) with ChiMod clio_bdev (1 containers)[0m
+[97m/project/context-runtime/src/manager.cc:281 INFO 1071657 ServerInit Compose: Successfully created pool ram::chi_default_bdev (module: clio_bdev)[0m
+[97m/project/context-runtime/src/manager.cc:265 INFO 1071657 ServerInit Compose: Creating pool cte_main (module: clio_cte_core, restart: 0)[0m
+[97m/project/context-runtime/src/pool_manager.cc:456 INFO 1071678 CreatePool PoolManager: Creating pool 'cte_main' with 1 containers (one per node)[0m
+[97m/project/context-runtime/src/pool_manager.cc:537 INFO 1071678 CreatePool Creating container for pool PoolId(major:512, minor:0) on node 0 with container_id=0[0m
+[97m/project/context-runtime/src/pool_manager.cc:557 INFO 1071678 CreatePool Container initialized with pool ID PoolId(major:512, minor:0), name cte_main, and container ID 0[0m
+[97m/project/context-runtime/src/pool_manager.cc:575 INFO 1071678 CreatePool CreatePool: Running Create method for pool PoolId(major:512, minor:0)[0m
+[97m/project/context-transfer-engine/core/src/core_config.cc:530 INFO 1071678 ParseStorageConfig Parsed 2 storage devices[0m
+[97m/project/context-transfer-engine/core/src/core_config.cc:548 INFO 1071678 ParseDpeConfig Parsed DPE configuration: type=max_bw[0m
+[97m/project/context-transfer-engine/core/src/core_config.cc:111 INFO 1071678 LoadFromString Configuration loaded successfully from YAML string[0m
+[97m/project/context-runtime/src/pool_manager.cc:456 INFO 1071678 CreatePool PoolManager: Creating pool 'ram::cte_ram_tier_node0' with 1 containers (one per node)[0m
+[97m/project/context-runtime/src/pool_manager.cc:537 INFO 1071678 CreatePool Creating container for pool PoolId(major:512, minor:1) on node 0 with container_id=0[0m
+[97m/project/context-runtime/src/pool_manager.cc:557 INFO 1071678 CreatePool Container initialized with pool ID PoolId(major:512, minor:1), name ram::cte_ram_tier_node0, and container ID 0[0m
+[97m/project/context-runtime/src/pool_manager.cc:575 INFO 1071678 CreatePool CreatePool: Running Create method for pool PoolId(major:512, minor:1)[0m
+[97m/project/context-runtime/modules/bdev/src/bdev_runtime.cc:519 INFO 1071678 Create RAM bdev 'ram::cte_ram_tier_node0' capacity: configured=32212254720 -> using 32212254720 bytes (80% of 50079719424 total DRAM when configured as 0/0g)[0m
+[97m/project/context-runtime/src/pool_manager.cc:577 INFO 1071678 CreatePool CreatePool: Create method completed for pool PoolId(major:512, minor:1)[0m
+[97m/project/context-runtime/src/pool_manager.cc:610 INFO 1071678 CreatePool PoolManager: Created complete pool PoolId(major:512, minor:1) with ChiMod clio_bdev (1 containers)[0m
+[97m/project/context-runtime/src/pool_manager.cc:456 INFO 1071678 CreatePool PoolManager: Creating pool '/mnt/nvme/cvazquezperezdelacru/cte_tier_node0' with 1 containers (one per node)[0m
+[97m/project/context-runtime/src/pool_manager.cc:537 INFO 1071678 CreatePool Creating container for pool PoolId(major:513, minor:1) on node 0 with container_id=0[0m
+[97m/project/context-runtime/src/pool_manager.cc:557 INFO 1071678 CreatePool Container initialized with pool ID PoolId(major:513, minor:1), name /mnt/nvme/cvazquezperezdelacru/cte_tier_node0, and container ID 0[0m
+[97m/project/context-runtime/src/pool_manager.cc:575 INFO 1071678 CreatePool CreatePool: Running Create method for pool PoolId(major:513, minor:1)[0m
+[97m/project/context-runtime/src/pool_manager.cc:577 INFO 1071678 CreatePool CreatePool: Create method completed for pool PoolId(major:513, minor:1)[0m
+[97m/project/context-runtime/src/pool_manager.cc:610 INFO 1071678 CreatePool PoolManager: Created complete pool PoolId(major:513, minor:1) with ChiMod clio_bdev (1 containers)[0m
+[97m/project/context-transfer-engine/core/src/core_runtime.cc:297 INFO 1071678 Create CTE Core container created and initialized for pool: cte_main (ID: PoolId(major:512, minor:0))[0m
+[97m/project/context-transfer-engine/core/src/core_runtime.cc:301 INFO 1071678 Create Configuration: neighborhood=1, poll_period_ms=5000, stat_targets_period_ms=5000[0m
+[97m/project/context-transfer-engine/core/src/core_runtime.cc:339 INFO 1071678 Create Starting periodic StatTargets task with period 5000 ms[0m
+[97m/project/context-runtime/src/pool_manager.cc:577 INFO 1071678 CreatePool CreatePool: Create method completed for pool PoolId(major:512, minor:0)[0m
+[97m/project/context-runtime/src/pool_manager.cc:610 INFO 1071678 CreatePool PoolManager: Created complete pool PoolId(major:512, minor:0) with ChiMod clio_cte_core (1 containers)[0m
+[97m/project/context-runtime/src/manager.cc:281 INFO 1071657 ServerInit Compose: Successfully created pool cte_main (module: clio_cte_core)[0m
+[97m/project/context-runtime/src/manager.cc:265 INFO 1071657 ServerInit Compose: Creating pool faiss_ivf_main (module: clio_faiss_ivf, restart: 0)[0m
+[97m/project/context-runtime/src/pool_manager.cc:456 INFO 1071678 CreatePool PoolManager: Creating pool 'faiss_ivf_main' with 1 containers (one per node)[0m
+[97m/project/context-runtime/src/pool_manager.cc:537 INFO 1071678 CreatePool Creating container for pool PoolId(major:600, minor:0) on node 0 with container_id=0[0m
+[97m/project/context-runtime/src/pool_manager.cc:557 INFO 1071678 CreatePool Container initialized with pool ID PoolId(major:600, minor:0), name faiss_ivf_main, and container ID 0[0m
+[97m/project/context-runtime/src/pool_manager.cc:575 INFO 1071678 CreatePool CreatePool: Running Create method for pool PoolId(major:600, minor:0)[0m
+[97m/project/context-runtime/src/pool_manager.cc:577 INFO 1071678 CreatePool CreatePool: Create method completed for pool PoolId(major:600, minor:0)[0m
+[97m/project/context-runtime/src/pool_manager.cc:610 INFO 1071678 CreatePool PoolManager: Created complete pool PoolId(major:600, minor:0) with ChiMod clio_faiss_ivf (1 containers)[0m
+[97m/project/context-runtime/src/manager.cc:281 INFO 1071657 ServerInit Compose: Successfully created pool faiss_ivf_main (module: clio_faiss_ivf)[0m
+[97m/project/context-runtime/src/manager.cc:287 INFO 1071657 ServerInit Compose: All 3 pools created successfully[0m
+[32m/project/context-runtime/src/ipc_manager.cc:832 SUCCESS 1071657 StartLocalServer Successfully started local server at 127.0.0.1:9414[0m
+[97m/project/context-runtime/src/manager.cc:128 INFO 1071657 ClientInit RuntimeManager::ClientInit[0m
+[97m/project/context-runtime/src/manager.cc:172 INFO 1071657 ClientInit ClientInit: g_admin already exists, pool_id_=PoolId(major:0, minor:0)[0m
+[97m/project/context-runtime/src/pool_manager.cc:456 INFO 1071678 CreatePool PoolManager: Creating pool 'clio_cte_core' with 1 containers (one per node)[0m
+[97m/project/context-runtime/src/pool_manager.cc:497 INFO 1071678 CreatePool PoolManager: Pool PoolId(major:512, minor:0) already exists by ID, returning existing pool[0m
+[97m/project/context-runtime/src/pool_manager.cc:456 INFO 1071678 CreatePool PoolManager: Creating pool 'clio_cte_core' with 1 containers (one per node)[0m
+[97m/project/context-runtime/src/pool_manager.cc:497 INFO 1071678 CreatePool PoolManager: Pool PoolId(major:512, minor:0) already exists by ID, returning existing pool[0m
+[97m/project/context-runtime/src/pool_manager.cc:456 INFO 1071678 CreatePool PoolManager: Creating pool 'faiss_ivf_bench' with 1 containers (one per node)[0m
+[97m/project/context-runtime/src/pool_manager.cc:497 INFO 1071678 CreatePool PoolManager: Pool PoolId(major:600, minor:0) already exists by ID, returning existing pool[0m
+[97m/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/chimod/src/faiss_ivf_runtime.cc:276 INFO 1071678 OpenIndex faiss_ivf: opened '/mnt/common/cvazquezperezdelacru/faiss/slurm_bench/work/ondisk_nb50M.index' (d=128, nlist=8192, ntotal=50000000, tag='faiss_ivf::ondisk_nb50M')[0m
+[97m/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/chimod/src/faiss_ivf_runtime.cc:362 INFO 1071678 Search faiss_ivf: Search nq=500 k=10 nprobe=128 mode=1 unique_lists=8154[0m
+[97m/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/chimod/src/faiss_ivf_runtime.cc:362 INFO 1071678 Search faiss_ivf: Search nq=500 k=10 nprobe=128 mode=1 unique_lists=8154[0m
+[97m/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/chimod/src/faiss_ivf_runtime.cc:362 INFO 1071678 Search faiss_ivf: Search nq=500 k=10 nprobe=128 mode=1 unique_lists=8154[0m

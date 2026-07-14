@@ -1,0 +1,23 @@
+[ingest] reading /mnt/common/cvazquezperezdelacru/faiss/slurm_bench/work/ondisk_step3_nb44M.index (mmap)
+[ingest] nlist=8192 code_size=512 ntotal=44000000
+[97m/project/context-runtime/src/manager.cc:128 INFO 1074575 ClientInit RuntimeManager::ClientInit[0m
+[97m/project/context-runtime/src/config_manager.cc:58 INFO 1074575 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/project/context-runtime/src/ipc_manager.cc:141 INFO 1074575 ClientInit IpcManager::ClientInit: IPC mode = TCP[0m
+[97m/project/context-runtime/src/ipc_manager.cc:152 INFO 1074575 ClientInit IpcManager::ClientInit: retry_timeout = 60s[0m
+[97m/project/context-runtime/src/ipc_manager.cc:160 INFO 1074575 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/project/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:139 INFO 1074575 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/project/context-runtime/src/ipc_manager.cc:218 INFO 1074575 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 1074575 WaitForLocalServer Waiting for runtime via lightbeam (timeout=30s)[0m
+[97m/project/context-runtime/src/ipc_manager.cc:944 INFO 1074575 WaitForLocalServer Successfully connected to runtime (generation=3421491410026995, server_pid=1074490)[0m
+[97m/project/context-runtime/src/manager.cc:166 INFO 1074575 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/project/context-runtime/src/manager.cc:169 INFO 1074575 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[ingest] 1024 lists, 2.67 GiB
+[ingest] 2048 lists, 5.38 GiB
+[ingest] 3072 lists, 7.99 GiB
+[ingest] 4096 lists, 10.68 GiB
+[ingest] 5120 lists, 13.37 GiB
+[ingest] 6144 lists, 15.98 GiB
+[ingest] 7168 lists, 18.59 GiB
+[ingest] 8192 lists, 21.31 GiB
+[ingest] done: 8192 non-empty lists, 21.31 GiB compact (tag faiss_ivf::ondisk_step3_nb44M)
+[verify] PASS — 16 lists byte-identical

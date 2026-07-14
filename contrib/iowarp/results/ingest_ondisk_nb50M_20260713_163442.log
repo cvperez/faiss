@@ -1,0 +1,13 @@
+[ingest] reading /mnt/common/cvazquezperezdelacru/faiss/slurm_bench/work/ondisk_nb50M.index (mmap)
+[ingest] nlist=8192 code_size=512 ntotal=50000000
+[97m/project/context-runtime/src/manager.cc:128 INFO 1068056 ClientInit RuntimeManager::ClientInit[0m
+[97m/project/context-runtime/src/config_manager.cc:58 INFO 1068056 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/project/context-runtime/src/ipc_manager.cc:141 INFO 1068056 ClientInit IpcManager::ClientInit: IPC mode = TCP[0m
+[97m/project/context-runtime/src/ipc_manager.cc:152 INFO 1068056 ClientInit IpcManager::ClientInit: retry_timeout = 60s[0m
+[97m/project/context-runtime/src/ipc_manager.cc:160 INFO 1068056 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/project/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:139 INFO 1068056 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/project/context-runtime/src/ipc_manager.cc:218 INFO 1068056 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 1068056 WaitForLocalServer Waiting for runtime via lightbeam (timeout=30s)[0m
+[97m/project/context-runtime/src/ipc_manager.cc:944 INFO 1068056 WaitForLocalServer Successfully connected to runtime (generation=3419846058841154, server_pid=1067975)[0m
+[97m/project/context-runtime/src/manager.cc:166 INFO 1068056 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/project/context-runtime/src/manager.cc:169 INFO 1068056 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m

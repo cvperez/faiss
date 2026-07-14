@@ -1,0 +1,27 @@
+[97m/project/context-runtime/src/manager.cc:128 INFO 1068913 ClientInit RuntimeManager::ClientInit[0m
+[97m/project/context-runtime/src/config_manager.cc:58 INFO 1068913 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/project/context-runtime/src/ipc_manager.cc:141 INFO 1068913 ClientInit IpcManager::ClientInit: IPC mode = TCP[0m
+[97m/project/context-runtime/src/ipc_manager.cc:152 INFO 1068913 ClientInit IpcManager::ClientInit: retry_timeout = 60s[0m
+[97m/project/context-runtime/src/ipc_manager.cc:160 INFO 1068913 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/project/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:139 INFO 1068913 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/project/context-runtime/src/ipc_manager.cc:218 INFO 1068913 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 1068913 WaitForLocalServer Waiting for runtime via lightbeam (timeout=30s)[0m
+[97m/project/context-runtime/src/ipc_manager.cc:944 INFO 1068913 WaitForLocalServer Successfully connected to runtime (generation=3419904937820502, server_pid=1068546)[0m
+[97m/project/context-runtime/src/manager.cc:166 INFO 1068913 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/project/context-runtime/src/manager.cc:169 INFO 1068913 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[bench] backend=chimod volume=ondisk_nb50M nlist=8192 nprobe=128 nq=500 k=10 threads=8 ntotal=50000000
+  cold   qps=     10.8  elapsed=  46.312s  majflt/q=     0.0  read_MB=     0.0
+  warm0  qps=     12.4  elapsed=  40.347s  majflt/q=     0.0  read_MB=     0.0
+  warm1  qps=     12.8  elapsed=  38.922s  majflt/q=     0.0  read_MB=     0.0
+[97m/project/context-runtime/src/manager.cc:128 INFO 1069205 ClientInit RuntimeManager::ClientInit[0m
+[97m/project/context-runtime/src/config_manager.cc:58 INFO 1069205 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/project/context-runtime/src/ipc_manager.cc:141 INFO 1069205 ClientInit IpcManager::ClientInit: IPC mode = TCP[0m
+[97m/project/context-runtime/src/ipc_manager.cc:152 INFO 1069205 ClientInit IpcManager::ClientInit: retry_timeout = 60s[0m
+[97m/project/context-runtime/src/ipc_manager.cc:160 INFO 1069205 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/project/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:139 INFO 1069205 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/project/context-runtime/src/ipc_manager.cc:218 INFO 1069205 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 1069205 WaitForLocalServer Waiting for runtime via lightbeam (timeout=30s)[0m
+[97m/project/context-runtime/src/ipc_manager.cc:944 INFO 1069205 WaitForLocalServer Successfully connected to runtime (generation=3419904937820502, server_pid=1068546)[0m
+[97m/project/context-runtime/src/manager.cc:166 INFO 1069205 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/project/context-runtime/src/manager.cc:169 INFO 1069205 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[bench] backend=chimod volume=ondisk_nb50M nlist=8192 nprobe=128 nq=500 k=10 threads=8 ntotal=50000000

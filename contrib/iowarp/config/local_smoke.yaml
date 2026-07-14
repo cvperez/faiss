@@ -1,0 +1,49 @@
+# CLIO runtime config for login-node correctness testing ONLY.
+# Deliberately tiny capacities: never grab real memory on a shared login node.
+# Usage: CLIO_SERVER_CONF=$PWD/config/local_smoke.yaml clio_run start &
+networking:
+  port: 9413
+  neighborhood_size: 32
+
+runtime:
+  num_threads: 4
+  queue_depth: 1024
+  local_sched: "default"
+
+compose:
+  # Required DRAM allocator (small).
+  - mod_name: clio_bdev
+    pool_name: "ram::chi_default_bdev"
+    pool_query: local
+    pool_id: "301.0"
+    bdev_type: ram
+    capacity: "4g"
+
+  # CTE core with a small RAM tier — enough for the tiny selftest indexes
+  # and the 4.9 GB nb10M ingest test spills nothing (verify uses subsets).
+  - mod_name: clio_cte_core
+    pool_name: cte_main
+    pool_query: local
+    pool_id: "512.0"
+    storage:
+      - path: "ram::cte_ram_tier1"
+        bdev_type: "ram"
+        capacity_limit: "2g"
+        score: 1.0
+      - path: "/tmp/cte_file_tier"
+        bdev_type: "file"
+        capacity_limit: "16g"
+        score: 0.3
+    dpe:
+      dpe_type: "max_bw"
+    targets:
+      neighborhood: 1
+      default_target_timeout_ms: 30000
+      poll_period_ms: 5000
+
+  # faiss_ivf ChiMod (Level 1). Requires libclio_faiss_ivf_runtime.so on
+  # the module scan path (CHI_REPO_PATH or LD_LIBRARY_PATH).
+  - mod_name: clio_faiss_ivf
+    pool_name: faiss_ivf_main
+    pool_query: local
+    pool_id: "600.0"

@@ -1,0 +1,75 @@
+=== IOWarp QPS  volume=ondisk_nb10M  backends=mmap iowarp chimod
+=== job=21849  host=ares-comp-27  started=Sun Jul 12 12:12:53 PM CDT 2026
+MemTotal:     46.64 GiB
+MemAvailable: 39.06 GiB
+
+
+== iowarp-core wheel ==
+iowarp_core 2.1.0 at /home/cvazquezperezdelacru/.local/lib/python3.10/site-packages/iowarp_core
+clio_run: /home/cvazquezperezdelacru/.local/lib/python3.10/site-packages/iowarp_core/bin/clio_run
+
+== clio-core headers (/home/cvazquezperezdelacru/clio-core-v2.1.0) ==
+
+== faiss install (/home/cvazquezperezdelacru/faiss-install) ==
+already installed — skipping build
+
+== contrib/iowarp build (/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/build) ==
+-- iowarp-core wheel libs: /home/cvazquezperezdelacru/.local/lib/python3.10/site-packages/iowarp_core/lib
+-- Configuring done (1.7s)
+-- Generating done (0.4s)
+-- Build files have been written to: /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/build
+[  7%] Building CXX object CMakeFiles/cte_smoke.dir/cte_smoke.cpp.o
+[ 23%] Building CXX object CMakeFiles/iowarp_invlists.dir/IOWarpInvertedLists.cpp.o
+[ 23%] Building CXX object chimod/CMakeFiles/clio_faiss_ivf_client.dir/src/faiss_ivf_client.cc.o
+[ 30%] Linking CXX shared library libclio_faiss_ivf_client.so
+[ 30%] Built target clio_faiss_ivf_client
+[ 38%] Building CXX object chimod/CMakeFiles/clio_faiss_ivf_runtime.dir/src/faiss_ivf_runtime.cc.o
+[ 46%] Building CXX object chimod/CMakeFiles/clio_faiss_ivf_runtime.dir/src/autogen/faiss_ivf_lib_exec.cc.o
+[ 53%] Linking CXX executable cte_smoke
+[ 53%] Built target cte_smoke
+[ 61%] Linking CXX static library libiowarp_invlists.a
+[ 61%] Built target iowarp_invlists
+[ 76%] Building CXX object CMakeFiles/bench_ivf_qps.dir/bench_ivf_qps.cpp.o
+[ 76%] Building CXX object CMakeFiles/ivf_to_iowarp.dir/ivf_to_iowarp.cpp.o
+[ 84%] Linking CXX shared library libclio_faiss_ivf_runtime.so
+[ 84%] Built target clio_faiss_ivf_runtime
+[ 92%] Linking CXX executable ivf_to_iowarp
+/usr/bin/ld: warning: libblas.so.3, needed by /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so, not found (try using -rpath or -rpath-link)
+/usr/bin/ld: warning: liblapack.so.3, needed by /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so, not found (try using -rpath or -rpath-link)
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `dgemm_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `dgetri_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `dgetrf_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `ssyrk_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sgetrf_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sgelsd_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sgemm_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `dgesvd_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `dsyev_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sgeqrf_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sorgqr_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sgesvd_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sgetri_'
+collect2: error: ld returned 1 exit status
+gmake[2]: *** [CMakeFiles/ivf_to_iowarp.dir/build.make:112: ivf_to_iowarp] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:185: CMakeFiles/ivf_to_iowarp.dir/all] Error 2
+gmake[1]: *** Waiting for unfinished jobs....
+[100%] Linking CXX executable bench_ivf_qps
+/usr/bin/ld: warning: libblas.so.3, needed by /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so, not found (try using -rpath or -rpath-link)
+/usr/bin/ld: warning: liblapack.so.3, needed by /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so, not found (try using -rpath or -rpath-link)
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `dgemm_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `dgetri_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `dgetrf_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `ssyrk_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sgetrf_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sgelsd_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sgemm_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `dgesvd_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `dsyev_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sgeqrf_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sorgqr_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sgesvd_'
+/usr/bin/ld: /home/cvazquezperezdelacru/faiss-install/lib/libfaiss.so: undefined reference to `sgetri_'
+collect2: error: ld returned 1 exit status
+gmake[2]: *** [CMakeFiles/bench_ivf_qps.dir/build.make:115: bench_ivf_qps] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:218: CMakeFiles/bench_ivf_qps.dir/all] Error 2
+gmake: *** [Makefile:91: all] Error 2
