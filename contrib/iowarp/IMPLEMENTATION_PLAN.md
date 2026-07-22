@@ -1,4 +1,4 @@
-# FAISS × IOWarp — implementation reference
+# FAISS × IOWarp
 
 What is implemented in `contrib/iowarp/`: FAISS IVF search hosted inside the
 CLIO runtime as a ChiMod, with inverted lists stored in CTE. For the design
