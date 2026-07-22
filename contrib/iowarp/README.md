@@ -2,21 +2,13 @@
 
 This folder hosts FAISS IVF vector search inside the [IOWarp](https://github.com/iowarp)
 CLIO runtime as a module (a "ChiMod"), with the inverted lists stored in the
-Context Transfer Engine (CTE) — one blob per list, tiered across a capped RAM
+Context Transfer Engine (CTE). One blob per list, tiered across a capped RAM
 tier and node-local NVMe.
 
-For the design narrative — what happens during a search, the copy problem it
-exposes, and the proposed clio-core fix — read
-[DESIGN_AND_SOLUTION.md](DESIGN_AND_SOLUTION.md). The clio-core change is
-written up for upstream in [UPSTREAM_PROPOSAL_IOWARP.md](UPSTREAM_PROPOSAL_IOWARP.md).
 
 ## Motivation
 
-FAISS's `OnDiskInvertedLists` keeps the inverted lists in a mmapped `.ivfdata`
-file and delegates all placement to the OS page cache. That works while the
-index fits in RAM, but once the index is a multiple of RAM the page cache — which
-is reactive and per-4KiB-page, blind to the inverted list as a unit — thrashes:
-every query's list fetches compete for residency and throughput collapses.
+FAISS's `OnDiskInvertedLists` stores the inverted lists in a memory-mapped (`.ivfdata`) file, relying entirely on the operating system's page cache to decide which data remains in memory. This approach works well when the index fits in RAM. However, as the index grows to several times the available memory, performance degrades significantly. Because the page cache manages memory at the granularity of individual 4 KiB pages rather than complete inverted lists, frequently accessed lists are repeatedly evicted and reloaded. As a result, the system experiences a large increase in page-ins, meaning data has to be fetched from disk much more often. This additional disk I/O leads to page cache thrashing, higher query latency, and a substantial drop in throughput.
 
 CTE manages placement explicitly instead: each inverted list is a named blob,
 placed and migrated on its own across RAM and NVMe tiers. The unit CTE moves is
@@ -41,8 +33,7 @@ storage, inside the runtime.
   inside the runtime; a `SearchTask` carries queries in and top-k out.
   `OpenIndex` binds the CTE tag and records the list sizes; `Search`
   coarse-quantizes, then for each probed list reads it from CTE, scans it, and
-  frees the buffer. The per-list read copies the bytes out of the tier — the
-  cost the clio-core zero-copy proposal removes.
+  frees the buffer. The per-list read copies the bytes out of the tier. 
 
 ## Blob data model
 
@@ -127,42 +118,7 @@ non-empty list into blob `list/<i>` under `<tag_name>` (pipelined puts), and
 writes the `"sizes"` blob last. `--verify N` reads back N random lists and
 byte-compares them against the mmap pointers. Requires a running `clio_run`.
 
-### `bench_ivf_qps` — correctness selftest + QPS harness
 
-```
-bench_ivf_qps --selftest-chimod
-bench_ivf_qps --protocol step3 --index <populated.index> --tag faiss_ivf::<vol>
-              --queries <bigann_query.bvecs> [--csv out.csv] [--label <vol>]
-              [--nq 500] [--threads 8] [--k 10] [--passes 3]
-              [--nprobe N] [--inflight N]
-```
 
-- `--selftest-chimod` builds a tiny index, ingests it into CTE, opens it in the
-  ChiMod, and asserts the ChiMod's `(D, I)` is bitwise-identical to stock FAISS
-  (single-batch and split-batch). Run once after every build.
-- `--protocol step3` decodes the first `--nq` bvecs queries to float32 and runs
-  1 cold + 2 warm passes, one batched search per pass, appending one CSV row per
-  pass.
 
-### Helper scripts
 
-`scripts/` automates the environment and runs on an Ares compute node (never the
-login node):
-
-- **`00_env_ares.sh`** — idempotent discovery + builds (wheel, pinned headers,
-  faiss install, this folder).
-- **`20_ingest_cte.sh <volume> [tag]`** — start a fresh `clio_run` with the
-  rendered `config/ares_cte.yaml` and ingest the volume with `--verify 16`.
-- **`30_run_bench.sh <volume>`** — fresh runtime + ingest, evict the volume's
-  file pages, then `bench_ivf_qps --protocol step3` appending to
-  `results/qps_<volume>.csv`.
-
-## Ares notes
-
-- **Never run on the login node.** Use `salloc -N 1 --exclusive` or `sbatch`.
-- **One compute node at a time; jobs run serially.** Submit one job, wait for it
-  to finish, then submit the next.
-- Compute node: 2× Xeon Silver 4114 (skylake-avx512), NVMe at `/mnt/nvme/$USER`
-  (CTE file tier lives at `/mnt/nvme/$USER/cte_tier`), NFS home at
-  `/mnt/common/$USER`. Indexes and queries are read from NFS; the CTE NVMe tier
-  is node-local. Clean up `/mnt/nvme/$USER` after use.
