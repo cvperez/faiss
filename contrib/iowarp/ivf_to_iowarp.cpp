@@ -7,9 +7,8 @@
  * Reads the index with the stock OnDiskInvertedLists mmap hook (the
  * .ivfdata path is recorded inside the .index file), then puts one CTE
  * blob "list/<i>" per non-empty list (codes ++ ids, compact) plus the
- * "sizes" blob, pipelining up to B puts in flight (default 64).
- * Lists are copied through get_codes()/get_ids(), which is what makes
- * capacity-doubled (size < capacity) files come out compact.
+ * "sizes" blob. Lists are copied through get_codes()/get_ids(), which is
+ * what makes capacity-doubled (size < capacity) files come out compact.
  *
  * --verify N: after ingestion, read back N random non-empty lists from
  * CTE and byte-compare against the mmap pointers; exits non-zero on any
@@ -21,7 +20,6 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
-#include <deque>
 #include <random>
 #include <string>
 #include <vector>
@@ -31,27 +29,10 @@
 #include <faiss/index_io.h>
 #include <faiss/invlists/InvertedLists.h>
 
-#include "IOWarpInvertedLists.h"
+#include "cte_client.h"
+#include "ivf_cte_ingest.h"
 
 using faiss::idx_t;
-
-namespace {
-
-struct InFlightPut {
-    ctp::ipc::FullPtr<char> buf;
-    chi::Future<clio::cte::core::PutBlobTask> fut;
-};
-
-void drain_one(std::deque<InFlightPut>& q) {
-    auto& front = q.front();
-    front.fut.Wait();
-    FAISS_THROW_IF_NOT_MSG(
-            front.fut->return_code_.load() == 0, "PutBlob failed");
-    CLIO_IPC->FreeBuffer(front.buf);
-    q.pop_front();
-}
-
-} // namespace
 
 int main(int argc, char** argv) {
     if (argc < 3) {
@@ -91,76 +72,18 @@ int main(int argc, char** argv) {
             code_size,
             ivf->ntotal);
 
-    FAISS_THROW_IF_NOT_MSG(
-            faiss_iowarp::EnsureIOWarpClient(), "IOWarp client init failed");
-    auto* cte = CLIO_CTE_CLIENT;
-    auto tag_fut = cte->AsyncGetOrCreateTag(tag_name);
-    tag_fut.Wait();
-    auto tag_id = tag_fut->tag_id_;
-
-    std::deque<InFlightPut> inflight;
-    size_t put_lists = 0;
-    size_t put_bytes = 0;
-    for (size_t l = 0; l < nlist; ++l) {
-        size_t sz = src->list_size(l);
-        if (sz == 0) {
-            continue;
-        }
-        size_t bytes = sz * (code_size + sizeof(idx_t));
-        InFlightPut p;
-        p.buf = CLIO_IPC->AllocateBuffer(bytes);
-        {
-            faiss::InvertedLists::ScopedCodes codes(src, l);
-            faiss::InvertedLists::ScopedIds ids(src, l);
-            std::memcpy(p.buf.ptr_, codes.get(), sz * code_size);
-            std::memcpy(
-                    p.buf.ptr_ + sz * code_size,
-                    ids.get(),
-                    sz * sizeof(idx_t));
-        }
-        ctp::ipc::ShmPtr<> sp = p.buf.shm_.template Cast<void>();
-        std::string name = "list/" + std::to_string(l);
-        p.fut = cte->AsyncPutBlob(tag_id, name, 0, bytes, sp);
-        inflight.push_back(std::move(p));
-        if (inflight.size() >= batch) {
-            drain_one(inflight);
-        }
-        put_lists++;
-        put_bytes += bytes;
-        if (put_lists % 1024 == 0) {
-            std::printf(
-                    "[ingest] %zu lists, %.2f GiB\n",
-                    put_lists,
-                    put_bytes / (1024.0 * 1024 * 1024));
-        }
-    }
-    while (!inflight.empty()) {
-        drain_one(inflight);
-    }
-
-    // sizes blob
-    {
-        size_t bytes = nlist * sizeof(idx_t);
-        auto buf = CLIO_IPC->AllocateBuffer(bytes);
-        auto* dst = reinterpret_cast<idx_t*>(buf.ptr_);
-        for (size_t l = 0; l < nlist; ++l) {
-            dst[l] = static_cast<idx_t>(src->list_size(l));
-        }
-        ctp::ipc::ShmPtr<> sp = buf.shm_.template Cast<void>();
-        auto f = cte->AsyncPutBlob(tag_id, "sizes", 0, bytes, sp);
-        f.Wait();
-        FAISS_THROW_IF_NOT_MSG(
-                f->return_code_.load() == 0, "PutBlob(sizes) failed");
-        CLIO_IPC->FreeBuffer(buf);
-    }
+    size_t put_bytes = faiss_iowarp::IngestIvfToCte(src, tag_name, batch);
     std::printf(
-            "[ingest] done: %zu non-empty lists, %.2f GiB compact "
-            "(tag %s)\n",
-            put_lists,
+            "[ingest] done: %.2f GiB compact (tag %s)\n",
             put_bytes / (1024.0 * 1024 * 1024),
             tag_name.c_str());
 
     if (verify_n > 0) {
+        auto* cte = CLIO_CTE_CLIENT;
+        auto tag_fut = cte->AsyncGetOrCreateTag(tag_name);
+        tag_fut.Wait();
+        auto tag_id = tag_fut->tag_id_;
+
         std::vector<size_t> nonempty;
         for (size_t l = 0; l < nlist; ++l) {
             if (src->list_size(l) > 0) {

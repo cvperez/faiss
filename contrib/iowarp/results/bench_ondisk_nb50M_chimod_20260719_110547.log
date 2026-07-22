@@ -1,0 +1,73 @@
+[97m/project/context-runtime/src/manager.cc:128 INFO 3738780 ClientInit RuntimeManager::ClientInit[0m
+[97m/project/context-runtime/src/config_manager.cc:58 INFO 3738780 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/project/context-runtime/src/ipc_manager.cc:141 INFO 3738780 ClientInit IpcManager::ClientInit: IPC mode = TCP[0m
+[97m/project/context-runtime/src/ipc_manager.cc:152 INFO 3738780 ClientInit IpcManager::ClientInit: retry_timeout = 60s[0m
+[97m/project/context-runtime/src/ipc_manager.cc:160 INFO 3738780 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/project/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:139 INFO 3738780 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/project/context-runtime/src/ipc_manager.cc:218 INFO 3738780 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 3738780 WaitForLocalServer Waiting for runtime via lightbeam (timeout=30s)[0m
+[97m/project/context-runtime/src/ipc_manager.cc:944 INFO 3738780 WaitForLocalServer Successfully connected to runtime (generation=10394415620629457, server_pid=3738596)[0m
+[97m/project/context-runtime/src/manager.cc:166 INFO 3738780 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/project/context-runtime/src/manager.cc:169 INFO 3738780 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[bench] backend=chimod volume=ondisk_nb50M nlist=8192 nprobe=128 nq=500 k=10 threads=8 ntotal=50000000
+[33m/mnt/common/cvazquezperezdelacru/clio-core-v2.1.0/context-runtime/include/clio_runtime/ipc/ipc_cpu2cpu_zmq_impl.h:97 WARNING 3738780 ClientRecv Recv: Server unreachable, reconnecting...[0m
+[97m/project/context-runtime/src/ipc_manager.cc:2135 INFO 3738780 ReconnectToOriginalHost ReconnectToOriginalHost: Attempting to reconnect to restarted server[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 3738780 WaitForLocalServer Waiting for runtime via lightbeam (timeout=3s)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:890 ERROR 3738780 WaitForLocalServer Timeout waiting for runtime after 3 seconds (1 attempts)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:892 ERROR 3738780 WaitForLocalServer This usually means:[0m
+[31m/project/context-runtime/src/ipc_manager.cc:893 ERROR 3738780 WaitForLocalServer 1. Chimaera runtime is not running[0m
+[31m/project/context-runtime/src/ipc_manager.cc:894 ERROR 3738780 WaitForLocalServer 2. Runtime failed to start[0m
+[31m/project/context-runtime/src/ipc_manager.cc:895 ERROR 3738780 WaitForLocalServer 3. Network connectivity issues[0m
+[97m/project/context-runtime/src/ipc_manager.cc:2135 INFO 3738780 ReconnectToOriginalHost ReconnectToOriginalHost: Attempting to reconnect to restarted server[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 3738780 WaitForLocalServer Waiting for runtime via lightbeam (timeout=3s)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:890 ERROR 3738780 WaitForLocalServer Timeout waiting for runtime after 3 seconds (1 attempts)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:892 ERROR 3738780 WaitForLocalServer This usually means:[0m
+[31m/project/context-runtime/src/ipc_manager.cc:893 ERROR 3738780 WaitForLocalServer 1. Chimaera runtime is not running[0m
+[31m/project/context-runtime/src/ipc_manager.cc:894 ERROR 3738780 WaitForLocalServer 2. Runtime failed to start[0m
+[31m/project/context-runtime/src/ipc_manager.cc:895 ERROR 3738780 WaitForLocalServer 3. Network connectivity issues[0m
+[97m/project/context-runtime/src/ipc_manager.cc:2135 INFO 3738780 ReconnectToOriginalHost ReconnectToOriginalHost: Attempting to reconnect to restarted server[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 3738780 WaitForLocalServer Waiting for runtime via lightbeam (timeout=3s)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:890 ERROR 3738780 WaitForLocalServer Timeout waiting for runtime after 3 seconds (1 attempts)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:892 ERROR 3738780 WaitForLocalServer This usually means:[0m
+[31m/project/context-runtime/src/ipc_manager.cc:893 ERROR 3738780 WaitForLocalServer 1. Chimaera runtime is not running[0m
+[31m/project/context-runtime/src/ipc_manager.cc:894 ERROR 3738780 WaitForLocalServer 2. Runtime failed to start[0m
+[31m/project/context-runtime/src/ipc_manager.cc:895 ERROR 3738780 WaitForLocalServer 3. Network connectivity issues[0m
+[97m/project/context-runtime/src/ipc_manager.cc:2135 INFO 3738780 ReconnectToOriginalHost ReconnectToOriginalHost: Attempting to reconnect to restarted server[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 3738780 WaitForLocalServer Waiting for runtime via lightbeam (timeout=3s)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:890 ERROR 3738780 WaitForLocalServer Timeout waiting for runtime after 3 seconds (1 attempts)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:892 ERROR 3738780 WaitForLocalServer This usually means:[0m
+[31m/project/context-runtime/src/ipc_manager.cc:893 ERROR 3738780 WaitForLocalServer 1. Chimaera runtime is not running[0m
+[31m/project/context-runtime/src/ipc_manager.cc:894 ERROR 3738780 WaitForLocalServer 2. Runtime failed to start[0m
+[31m/project/context-runtime/src/ipc_manager.cc:895 ERROR 3738780 WaitForLocalServer 3. Network connectivity issues[0m
+[97m/project/context-runtime/src/ipc_manager.cc:2135 INFO 3738780 ReconnectToOriginalHost ReconnectToOriginalHost: Attempting to reconnect to restarted server[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 3738780 WaitForLocalServer Waiting for runtime via lightbeam (timeout=3s)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:890 ERROR 3738780 WaitForLocalServer Timeout waiting for runtime after 3 seconds (1 attempts)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:892 ERROR 3738780 WaitForLocalServer This usually means:[0m
+[31m/project/context-runtime/src/ipc_manager.cc:893 ERROR 3738780 WaitForLocalServer 1. Chimaera runtime is not running[0m
+[31m/project/context-runtime/src/ipc_manager.cc:894 ERROR 3738780 WaitForLocalServer 2. Runtime failed to start[0m
+[31m/project/context-runtime/src/ipc_manager.cc:895 ERROR 3738780 WaitForLocalServer 3. Network connectivity issues[0m
+[97m/project/context-runtime/src/ipc_manager.cc:2135 INFO 3738780 ReconnectToOriginalHost ReconnectToOriginalHost: Attempting to reconnect to restarted server[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 3738780 WaitForLocalServer Waiting for runtime via lightbeam (timeout=3s)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:890 ERROR 3738780 WaitForLocalServer Timeout waiting for runtime after 3 seconds (1 attempts)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:892 ERROR 3738780 WaitForLocalServer This usually means:[0m
+[31m/project/context-runtime/src/ipc_manager.cc:893 ERROR 3738780 WaitForLocalServer 1. Chimaera runtime is not running[0m
+[31m/project/context-runtime/src/ipc_manager.cc:894 ERROR 3738780 WaitForLocalServer 2. Runtime failed to start[0m
+[31m/project/context-runtime/src/ipc_manager.cc:895 ERROR 3738780 WaitForLocalServer 3. Network connectivity issues[0m
+[97m/project/context-runtime/src/ipc_manager.cc:2135 INFO 3738780 ReconnectToOriginalHost ReconnectToOriginalHost: Attempting to reconnect to restarted server[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 3738780 WaitForLocalServer Waiting for runtime via lightbeam (timeout=3s)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:890 ERROR 3738780 WaitForLocalServer Timeout waiting for runtime after 3 seconds (1 attempts)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:892 ERROR 3738780 WaitForLocalServer This usually means:[0m
+[31m/project/context-runtime/src/ipc_manager.cc:893 ERROR 3738780 WaitForLocalServer 1. Chimaera runtime is not running[0m
+[31m/project/context-runtime/src/ipc_manager.cc:894 ERROR 3738780 WaitForLocalServer 2. Runtime failed to start[0m
+[31m/project/context-runtime/src/ipc_manager.cc:895 ERROR 3738780 WaitForLocalServer 3. Network connectivity issues[0m
+[97m/project/context-runtime/src/ipc_manager.cc:2135 INFO 3738780 ReconnectToOriginalHost ReconnectToOriginalHost: Attempting to reconnect to restarted server[0m
+[97m/project/context-runtime/src/ipc_manager.cc:852 INFO 3738780 WaitForLocalServer Waiting for runtime via lightbeam (timeout=3s)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:890 ERROR 3738780 WaitForLocalServer Timeout waiting for runtime after 3 seconds (1 attempts)[0m
+[31m/project/context-runtime/src/ipc_manager.cc:892 ERROR 3738780 WaitForLocalServer This usually means:[0m
+[31m/project/context-runtime/src/ipc_manager.cc:893 ERROR 3738780 WaitForLocalServer 1. Chimaera runtime is not running[0m
+[31m/project/context-runtime/src/ipc_manager.cc:894 ERROR 3738780 WaitForLocalServer 2. Runtime failed to start[0m
+[31m/project/context-runtime/src/ipc_manager.cc:895 ERROR 3738780 WaitForLocalServer 3. Network connectivity issues[0m
+[33m/project/context-runtime/src/ipc_manager.cc:2287 WARNING 3738780 WaitForServerAndReconnect WaitForServerAndReconnect: Original server timed out after 63.3172.1f}s[0m
+chimod subtask rc=4294967295
+terminate called after throwing an instance of 'faiss::FaissException'
+  what():  Error in int {anonymous}::run_timed(const {anonymous}::Args&) at /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/bench_ivf_qps.cpp:535: Error: '!(chimod_search_parallel( *chimod_client, a.nq, a.k, nprobe, d, a.chimod_mode, a.inflight > 0 ? a.inflight : a.threads, xq.data(), D.data(), I.data()))' failed: chimod search failed

@@ -1,9 +1,13 @@
 /*
  * faiss_ivf ChiMod — runtime implementation.
  *
- * Contains the server-side task processing logic: opens a FAISS IndexIVF
- * (metadata only), serves batched k-NN searches by fetching probed
- * inverted lists from CTE in the same address space, and reports stats.
+ * Server-side task processing: OpenIndex loads a FAISS IndexIVF (metadata
+ * only) and binds the CTE tag holding the inverted lists; Search coarse-
+ * quantizes the queries, then for each probed list reads it from CTE,
+ * scans it, and frees the buffer. The per-list read copies the bytes out
+ * of the tier — the cost the zero-copy read API proposed to clio-core
+ * would remove (see UPSTREAM_PROPOSAL_IOWARP.md), letting the module scan
+ * the RAM tier's own bytes in place.
  */
 
 #include "../include/clio_runtime/faiss_ivf/faiss_ivf_runtime.h"
@@ -38,58 +42,6 @@ inline chi::u64 NowUs() {
           std::chrono::steady_clock::now().time_since_epoch())
           .count());
 }
-
-/**
- * PtrInvertedLists - read-only InvertedLists view over CTE-fetched
- * buffers. get_codes/get_ids return the fetched pointers; list_size comes
- * from the "sizes" blob for fetched lists and 0 otherwise (lists that were
- * not probed are never scanned). All mutation entry points throw.
- * release_codes/release_ids inherit the base-class no-op defaults.
- */
-struct PtrInvertedLists : faiss::InvertedLists {
-  std::vector<const uint8_t*> codes_;
-  std::vector<const faiss::idx_t*> ids_;
-  std::vector<size_t> sizes_;
-
-  PtrInvertedLists(size_t nlist_in, size_t code_size_in)
-      : faiss::InvertedLists(nlist_in, code_size_in),
-        codes_(nlist_in, nullptr),
-        ids_(nlist_in, nullptr),
-        sizes_(nlist_in, 0) {}
-
-  void set_list(size_t list_no, size_t size, const uint8_t* codes,
-                const faiss::idx_t* ids) {
-    codes_[list_no] = codes;
-    ids_[list_no] = ids;
-    sizes_[list_no] = size;
-  }
-
-  size_t list_size(size_t list_no) const override {
-    return sizes_[list_no];
-  }
-
-  const uint8_t* get_codes(size_t list_no) const override {
-    return codes_[list_no];
-  }
-
-  const faiss::idx_t* get_ids(size_t list_no) const override {
-    return ids_[list_no];
-  }
-
-  size_t add_entries(size_t, size_t, const faiss::idx_t*,
-                     const uint8_t*) override {
-    FAISS_THROW_MSG("PtrInvertedLists is read-only");
-  }
-
-  void update_entries(size_t, size_t, size_t, const faiss::idx_t*,
-                      const uint8_t*) override {
-    FAISS_THROW_MSG("PtrInvertedLists is read-only");
-  }
-
-  void resize(size_t, size_t) override {
-    FAISS_THROW_MSG("PtrInvertedLists is read-only");
-  }
-};
 
 // Scan one fetched list for all (query, coarse_dis) pairs touching it,
 // in parallel across per-thread scanners. Plain function on purpose:
@@ -146,12 +98,14 @@ chi::TaskResume Runtime::Create(ctp::ipc::FullPtr<CreateTask> task,
   CLIO_TASK_BODY_BEGIN
   HLOG(kDebug, "faiss_ivf: Executing Create task for pool {}", task->pool_id_);
 
-  // Container is already initialized via Init() before Create is called
+  // Container is already initialized via Init() before Create is called.
+  // CreateParams::pipeline_mode_ is accepted for client compatibility but
+  // ignored: there is a single search path (read each probed list from CTE
+  // on demand, scan, free).
   CreateParams params = task->GetParams();
-  pipeline_mode_ = params.pipeline_mode_;
+  (void)params;
 
-  HLOG(kDebug, "faiss_ivf: Container created for pool: {} (pipeline_mode: {})",
-       pool_name_, pipeline_mode_);
+  HLOG(kDebug, "faiss_ivf: Container created for pool: {}", pool_name_);
   (void)rctx;
   CLIO_CO_RETURN;
   CLIO_TASK_BODY_END
@@ -260,6 +214,9 @@ chi::TaskResume Runtime::OpenIndex(ctp::ipc::FullPtr<OpenIndexTask> task,
   }
   ivf->ntotal = static_cast<faiss::idx_t>(ntotal);
 
+  // The inverted lists stay in CTE; Search reads each probed list on
+  // demand. OpenIndex only binds the tag and records the list sizes.
+
   // Commit state.
   index_owner_ = std::move(owner);
   ivf_ = ivf;
@@ -299,9 +256,6 @@ chi::TaskResume Runtime::Search(ctp::ipc::FullPtr<SearchTask> task,
   if (nprobe > ivf_->nlist) {
     nprobe = static_cast<chi::u32>(ivf_->nlist);
   }
-  const chi::u32 mode =
-      (task->mode_ == kSearchModeDefault) ? pipeline_mode_ : task->mode_;
-
   auto* ipc = CLIO_IPC;
   // NOTE: ShmPtr -> raw pointer via CLIO_IPC->ToFullPtr, as done for
   // blob_data_ in clio-core's compressor_runtime.cc.
@@ -329,7 +283,7 @@ chi::TaskResume Runtime::Search(ctp::ipc::FullPtr<SearchTask> task,
   }
 
   // Unique sorted set of non-empty probed lists, plus per-list probe map
-  // (query, coarse distance) for the pipelined path.
+  // (query, coarse distance).
   std::unordered_map<int64_t, std::vector<std::pair<chi::u32, float>>> probes;
   std::vector<int64_t> lists;
   for (chi::u32 qi = 0; qi < nq; ++qi) {
@@ -347,247 +301,129 @@ chi::TaskResume Runtime::Search(ctp::ipc::FullPtr<SearchTask> task,
   }
   std::sort(lists.begin(), lists.end());
 
-  // Fetch the probed lists from CTE with a BOUNDED window of in-flight
-  // AsyncGetBlob tasks. Never issue thousands of tasks at once from a
-  // handler: the runtime queues (queue_depth per worker) are shared with
-  // the CTE handlers consuming them, and unbounded issuance livelocks the
-  // whole runtime (observed with 4096 lists on ondisk_nb10M).
-  // Blob "list/<i>" layout: uint8_t codes[size*code_size] ++ int64 ids[size].
-  // Sized so that even `runtime.num_threads` concurrent SearchTasks stay
-  // well under the per-worker queue_depth (1024): 8 tasks x 64 = 512.
-  constexpr size_t kMaxInflight = 64;
-  auto* cte = &cte_;
   const size_t code_size = ivf_->code_size;
-  const size_t ntofetch = lists.size();
-  HLOG(kInfo,
-       "faiss_ivf: Search nq={} k={} nprobe={} mode={} unique_lists={}", nq,
-       k, nprobe, mode, ntofetch);
-  std::vector<ctp::ipc::FullPtr<char>> bufs(ntofetch);
-  std::vector<chi::u64> nbytes(ntofetch, 0);
-  std::vector<chi::Future<clio::cte::core::GetBlobTask>> futs(ntofetch);
-
-  auto issue_one = [&](size_t i) -> bool {
-    const int64_t l = lists[i];
-    const chi::u64 bytes = static_cast<chi::u64>(sizes_[l]) * code_size +
-                           static_cast<chi::u64>(sizes_[l]) * sizeof(int64_t);
-    bufs[i] = ipc->AllocateBuffer(bytes);
-    if (bufs[i].IsNull()) {
-      HLOG(kError, "faiss_ivf: AllocateBuffer({}) failed for list {}", bytes,
-           l);
-      return false;
-    }
-    nbytes[i] = bytes;
-    futs[i] = cte->AsyncGetBlob(tag_id_,
-                                std::string("list/") + std::to_string(l), 0,
-                                bytes, 0, bufs[i].shm_.template Cast<void>());
-    return true;
-  };
-
+  const size_t ntoscan = lists.size();
+  HLOG(kInfo, "faiss_ivf: Search nq={} k={} nprobe={} unique_lists={}", nq,
+       k, nprobe, ntoscan);
   task->SetReturnCode(0);
   const bool is_l2 = (ivf_->metric_type == faiss::METRIC_L2);
-  chi::u64 bytes_fetched = 0;
-  size_t nfetched = 0;
 
-  if (mode == 0) {
-    //=======================================================================
-    // v0: fetch ALL probed lists (windowed issuance, all buffers stay
-    // resident), then run search_preassigned over a pointer view.
-    // NOTE: whole-probed-set residency — only viable when the probed set
-    // fits the runtime allocator; v1 is the scalable path.
-    //=======================================================================
-    const size_t nfetch = ntofetch;
-    chi::u64 t_wait0 = NowUs();
-    bool fetch_failed = false;
-    size_t issued = 0;
-    size_t completed = 0;
-    while (completed < issued || (!fetch_failed && issued < nfetch)) {
-      while (!fetch_failed && issued < nfetch &&
-             issued - completed < kMaxInflight) {
-        if (!issue_one(issued)) {
-          fetch_failed = true;
-          break;
-        }
-        ++issued;
-      }
-      if (completed < issued) {
-        CLIO_CO_AWAIT(futs[completed]);
-        if (futs[completed]->GetReturnCode() != 0) {
-          HLOG(kError, "faiss_ivf: GetBlob('list/{}') failed (rc={})",
-               lists[completed], futs[completed]->GetReturnCode());
-          fetch_failed = true;
-        }
-        ++completed;
-      }
+  // Per-query result heaps live directly in the output buffers.
+  const float init_dis = is_l2 ? std::numeric_limits<float>::max()
+                               : std::numeric_limits<float>::lowest();
+  for (size_t i = 0; i < static_cast<size_t>(nq) * k; ++i) {
+    D_out[i] = init_dis;
+    I_out[i] = -1;
+  }
+
+  // One scanner per scan thread: set_query/set_list mutate scanner state,
+  // so threads must not share one. kScanThreads is the 8-thread scan
+  // budget; the OMP region in ScanListParallel contains no co_await, so it
+  // never suspends mid-parallelism.
+  constexpr int kScanThreads = 8;
+  std::vector<std::unique_ptr<faiss::InvertedListScanner>> scanners;
+  try {
+    for (int t = 0; t < kScanThreads; ++t) {
+      scanners.emplace_back(ivf_->get_InvertedListScanner(false));
     }
-    stat_fetch_wait_us_ += NowUs() - t_wait0;
-    nfetched = completed;
+  } catch (const std::exception& e) {
+    HLOG(kError, "faiss_ivf: get_InvertedListScanner failed: {}", e.what());
+    task->SetReturnCode(5);
+    CLIO_CO_RETURN;
+  }
 
-    if (fetch_failed) {
-      for (size_t i = 0; i < nfetch; ++i) {
-        if (!bufs[i].IsNull()) {
-          ipc->FreeBuffer(bufs[i]);
-          bufs[i] = ctp::ipc::FullPtr<char>();
-        }
+  // Read each probed list from CTE, scan it, free it. The copy out of the
+  // tier is the per-search cost the proposed zero-copy read API would
+  // remove (scan the RAM tier's own bytes in place). Keep up to
+  // kMaxInflight AsyncGetBlobs outstanding — never issue unbounded tasks
+  // from a handler, the runtime queues are shared with the CTE handlers.
+  // Poll-then-finalize: only CLIO_CO_AWAIT a future that IsComplete() (the
+  // await returns immediately), scan on arrival, free the buffer, and
+  // yield only while fetches are outstanding — awaiting a still-pending
+  // future with more sub-tasks in flight can resume a destroyed coroutine
+  // frame (SIGSEGV in ResumeCoroutine).
+  constexpr size_t kMaxInflight = 64;
+  std::vector<ctp::ipc::FullPtr<char>> bufs(ntoscan);
+  std::vector<chi::Future<clio::cte::core::GetBlobTask>> futs(ntoscan);
+  std::vector<bool> done(ntoscan, false);
+  const chi::u64 t_loop0 = NowUs();
+  chi::u64 scan_us = 0;
+  bool stop_issue = false;  // alloc failure: issue no more, drain the rest
+  size_t issued = 0;
+  size_t completed = 0;
+  while (completed < issued || (!stop_issue && issued < ntoscan)) {
+    while (!stop_issue && issued < ntoscan &&
+           issued - completed < kMaxInflight) {
+      const int64_t l = lists[issued];
+      const size_t sz = static_cast<size_t>(sizes_[l]);
+      const chi::u64 bytes =
+          static_cast<chi::u64>(sz) * (code_size + sizeof(int64_t));
+      bufs[issued] = ipc->AllocateBuffer(bytes);
+      if (bufs[issued].IsNull()) {
+        HLOG(kError, "faiss_ivf: AllocateBuffer({}) failed during search",
+             bytes);
+        task->SetReturnCode(5);
+        stop_issue = true;
+        break;
       }
-      task->SetReturnCode(4);
-      CLIO_CO_RETURN;
+      futs[issued] = cte_.AsyncGetBlob(
+          tag_id_, std::string("list/") + std::to_string(l), 0, bytes, 0,
+          bufs[issued].shm_.template Cast<void>());
+      ++issued;
     }
-
-    // Build the pointer view. Construct with ivf_'s nlist/code_size so
-    // replace_invlists' compatibility asserts pass.
-    PtrInvertedLists view(ivf_->nlist, code_size);
-    for (size_t i = 0; i < ntofetch; ++i) {
+    bool progressed = false;
+    for (size_t i = 0; i < issued; ++i) {
+      if (done[i] || !futs[i].IsComplete()) {
+        continue;
+      }
+      CLIO_CO_AWAIT(futs[i]);  // completed: returns immediately
+      done[i] = true;
+      ++completed;
+      progressed = true;
       const int64_t l = lists[i];
       const size_t sz = static_cast<size_t>(sizes_[l]);
-      const uint8_t* codes = reinterpret_cast<const uint8_t*>(bufs[i].ptr_);
-      const faiss::idx_t* ids = reinterpret_cast<const faiss::idx_t*>(
-          bufs[i].ptr_ + sz * code_size);
-      view.set_list(l, sz, codes, ids);
-    }
-
-    // Temporarily swap the view in; restore the previous invlists after
-    // the search. own_invlists is cleared first so neither swap deletes.
-    // v0_mu_ serializes the swap: concurrent v0 tasks on other workers
-    // must not see each other's views on the shared ivf_.
-    chi::ScopedCoMutex v0_lock(v0_mu_);
-    faiss::InvertedLists* saved = ivf_->invlists;
-    const bool saved_own = ivf_->own_invlists;
-    ivf_->own_invlists = false;
-    try {
-      ivf_->replace_invlists(&view, false);
-      ivf_->nprobe = nprobe;
-      chi::u64 t_scan0 = NowUs();
-      ivf_->search_preassigned(nq, q, k, assign.data(), coarse_dis.data(),
-                               D_out, I_out, false);
-      stat_scan_us_ += NowUs() - t_scan0;
-    } catch (const std::exception& e) {
-      HLOG(kError, "faiss_ivf: search_preassigned failed: {}", e.what());
-      task->SetReturnCode(5);
-    }
-    ivf_->replace_invlists(saved, false);
-    ivf_->own_invlists = saved_own;
-  } else {
-    //=======================================================================
-    // v1: pipelined — scan each list as soon as its fetch completes,
-    // maintaining per-query result heaps directly in the output buffers.
-    //=======================================================================
-    const float init_dis = is_l2 ? std::numeric_limits<float>::max()
-                                 : std::numeric_limits<float>::lowest();
-    for (size_t i = 0; i < static_cast<size_t>(nq) * k; ++i) {
-      D_out[i] = init_dis;
-      I_out[i] = -1;
-    }
-
-    // One scanner per scan thread: set_query/set_list mutate scanner
-    // state, so threads must not share one. Scanning one list's touching
-    // queries in parallel is safe — each (query, probe) pair updates a
-    // distinct per-query heap. kScanThreads matches the baseline's 8 OMP
-    // scan threads (the comparability budget); the OMP region contains no
-    // co_await, so it never suspends mid-parallelism.
-    constexpr int kScanThreads = 8;
-    std::vector<std::unique_ptr<faiss::InvertedListScanner>> scanners;
-    bool scanners_ok = true;
-    try {
-      for (int t = 0; t < kScanThreads; ++t) {
-        scanners.emplace_back(ivf_->get_InvertedListScanner(false));
-      }
-    } catch (const std::exception& e) {
-      HLOG(kError, "faiss_ivf: get_InvertedListScanner failed: {}", e.what());
-      task->SetReturnCode(5);
-      scanners_ok = false;
-    }
-
-    // Windowed streaming: keep at most kMaxInflight fetches outstanding,
-    // scan each list the moment it lands, and FREE its buffer right after
-    // scanning — peak shm residency is O(window), so this path scales to
-    // volumes far larger than the runtime allocator.
-    std::vector<bool> done(ntofetch, false);
-    size_t issued = 0;
-    size_t completed = 0;
-    bool stop_issuing = false;
-    while (completed < issued || (!stop_issuing && issued < ntofetch)) {
-      while (!stop_issuing && issued < ntofetch &&
-             issued - completed < kMaxInflight) {
-        if (!issue_one(issued)) {
-          task->SetReturnCode(3);
-          stop_issuing = true;
-          break;
-        }
-        ++issued;
-      }
-      bool progressed = false;
-      for (size_t i = 0; i < issued; ++i) {
-        if (done[i] || !futs[i].IsComplete()) {
-          continue;
-        }
-        // Completed: the await returns immediately and finalizes the
-        // future.
-        CLIO_CO_AWAIT(futs[i]);
-        done[i] = true;
-        ++completed;
-        ++nfetched;
-        progressed = true;
-
-        if (futs[i]->GetReturnCode() != 0) {
-          HLOG(kError, "faiss_ivf: GetBlob('list/{}') failed (rc={})",
-               lists[i], futs[i]->GetReturnCode());
-          task->SetReturnCode(4);
-        } else if (scanners_ok) {
-          const int64_t l = lists[i];
-          const size_t sz = static_cast<size_t>(sizes_[l]);
-          const uint8_t* codes =
-              reinterpret_cast<const uint8_t*>(bufs[i].ptr_);
-          const faiss::idx_t* ids = reinterpret_cast<const faiss::idx_t*>(
-              bufs[i].ptr_ + sz * code_size);
-          const auto& plist = probes[l];
-
-          chi::u64 t_scan0 = NowUs();
-          // OMP region lives in a plain function: gcc 11 ICEs on OpenMP
-          // pragmas inside C++20 coroutine bodies.
-          if (!ScanListParallel(plist, scanners, q, ivf_->d, l, sz, codes,
-                                ids, D_out, I_out, k)) {
-            HLOG(kError, "faiss_ivf: scan failed on list {}", l);
-            task->SetReturnCode(5);
-          }
-          stat_scan_us_ += NowUs() - t_scan0;
-        }
-        // Scanned (or failed): release the buffer immediately.
-        bytes_fetched += nbytes[i];
-        ipc->FreeBuffer(bufs[i]);
-        bufs[i] = ctp::ipc::FullPtr<char>();
-      }
-      if (!progressed && completed < issued) {
-        // Nothing ready: yield cooperatively and account the wait.
-        chi::u64 t_wait0 = NowUs();
-        CLIO_CO_AWAIT(chi::yield());
-        stat_fetch_wait_us_ += NowUs() - t_wait0;
-      }
-    }
-
-    // Sort each query's heap into ascending (L2) / descending (IP) order.
-    for (chi::u32 qi = 0; qi < nq; ++qi) {
-      if (is_l2) {
-        faiss::maxheap_reorder(k, D_out + static_cast<size_t>(qi) * k,
-                               I_out + static_cast<size_t>(qi) * k);
+      if (futs[i]->GetReturnCode() != 0) {
+        HLOG(kError, "faiss_ivf: GetBlob('list/{}') failed (rc={})", l,
+             futs[i]->GetReturnCode());
+        task->SetReturnCode(5);
       } else {
-        faiss::minheap_reorder(k, D_out + static_cast<size_t>(qi) * k,
-                               I_out + static_cast<size_t>(qi) * k);
+        stat_lists_fetched_ += 1;
+        stat_bytes_fetched_ +=
+            static_cast<chi::u64>(sz) * (code_size + sizeof(int64_t));
+        const char* base = bufs[i].ptr_;
+        const uint8_t* codes = reinterpret_cast<const uint8_t*>(base);
+        const faiss::idx_t* ids =
+            reinterpret_cast<const faiss::idx_t*>(base + sz * code_size);
+        const chi::u64 s0 = NowUs();
+        if (!ScanListParallel(probes[l], scanners, q, ivf_->d, l, sz, codes,
+                              ids, D_out, I_out, k)) {
+          HLOG(kError, "faiss_ivf: scan failed on list {}", l);
+          task->SetReturnCode(5);
+        }
+        scan_us += NowUs() - s0;
       }
+      ipc->FreeBuffer(bufs[i]);
+    }
+    if (!progressed && completed < issued) {
+      CLIO_CO_AWAIT(chi::yield());
+    }
+  }
+  const chi::u64 loop_us = NowUs() - t_loop0;
+  stat_scan_us_ += scan_us;
+  stat_fetch_wait_us_ += (loop_us > scan_us ? loop_us - scan_us : 0);
+
+  // Sort each query's heap into ascending (L2) / descending (IP) order.
+  for (chi::u32 qi = 0; qi < nq; ++qi) {
+    if (is_l2) {
+      faiss::maxheap_reorder(k, D_out + static_cast<size_t>(qi) * k,
+                             I_out + static_cast<size_t>(qi) * k);
+    } else {
+      faiss::minheap_reorder(k, D_out + static_cast<size_t>(qi) * k,
+                             I_out + static_cast<size_t>(qi) * k);
     }
   }
 
-  // Release any still-held list buffers (v0: all of them; v1: none — freed
-  // inline after scanning) and update statistics.
-  for (size_t i = 0; i < bufs.size(); ++i) {
-    if (!bufs[i].IsNull()) {
-      bytes_fetched += nbytes[i];
-      ipc->FreeBuffer(bufs[i]);
-      bufs[i] = ctp::ipc::FullPtr<char>();
-    }
-  }
   stat_searches_ += nq;
-  stat_lists_fetched_ += nfetched;
-  stat_bytes_fetched_ += bytes_fetched;
   CLIO_CO_RETURN;
   CLIO_TASK_BODY_END
 }
@@ -620,11 +456,9 @@ chi::TaskResume Runtime::Monitor(ctp::ipc::FullPtr<MonitorTask> task,
   msgpack::sbuffer sbuf;
   msgpack::packer<msgpack::sbuffer> pk(sbuf);
 
-  pk.pack_map(7);
+  pk.pack_map(6);
   pk.pack("opened");
   pk.pack(opened_);
-  pk.pack("pipeline_mode");
-  pk.pack(static_cast<uint32_t>(pipeline_mode_));
   pk.pack("searches");
   pk.pack(static_cast<uint64_t>(stat_searches_));
   pk.pack("lists_fetched");

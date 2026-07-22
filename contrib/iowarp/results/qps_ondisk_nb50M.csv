@@ -8,3 +8,12 @@ timestamp,volume,backend,pass,nq,k,nprobe,threads,elapsed_s,qps,majflt,majflt_pe
 1784046100,ondisk_nb50M,chimod,cold,500,10,128,8,24.0627,20.8,0,0.000,0,mode=1;inflight=1
 1784046123,ondisk_nb50M,chimod,warm0,500,10,128,8,22.7986,21.9,0,0.000,0,mode=1;inflight=1
 1784046142,ondisk_nb50M,chimod,warm1,500,10,128,8,19.2029,26.0,0,0.000,0,mode=1;inflight=1
+1784477132,ondisk_nb50M,mmap,cold,500,10,128,8,87.9401,5.7,213482,426.964,25915670528,dihash=32085d09bb65391b
+1784477139,ondisk_nb50M,mmap,warm0,500,10,128,8,7.0920,70.5,311,0.622,655360,dihash=32085d09bb65391b
+1784477146,ondisk_nb50M,mmap,warm1,500,10,128,8,6.9567,71.9,317,0.634,0,dihash=32085d09bb65391b
+1784480191,ondisk_nb50M,chimod,cold,500,10,128,8,27.9880,17.9,0,0.000,0,dihash=32085d09bb65391b;nobuffer;inflight=1
+1784480220,ondisk_nb50M,chimod,warm0,500,10,128,8,29.6293,16.9,0,0.000,0,dihash=32085d09bb65391b;nobuffer;inflight=1
+1784480250,ondisk_nb50M,chimod,warm1,500,10,128,8,29.2876,17.1,0,0.000,0,dihash=32085d09bb65391b;nobuffer;inflight=1
+1784480636,ondisk_nb50M,chimod,cold,500,10,128,8,7.7679,64.4,0,0.000,0,dihash=32085d09bb65391b;nobuffer;inflight=1
+1784480643,ondisk_nb50M,chimod,warm0,500,10,128,8,6.6969,74.7,0,0.000,0,dihash=32085d09bb65391b;nobuffer;inflight=1
+1784480649,ondisk_nb50M,chimod,warm1,500,10,128,8,6.6589,75.1,0,0.000,0,dihash=32085d09bb65391b;nobuffer;inflight=1

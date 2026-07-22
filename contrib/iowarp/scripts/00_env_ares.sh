@@ -126,9 +126,9 @@ for bin in ivf_to_iowarp bench_ivf_qps; do
     fi
 done
 if ls "$ROOT"/build/chimod/libclio_faiss_ivf_runtime.so >/dev/null 2>&1; then
-    echo "OK    chimod runtime lib (Level 1 available)"
+    echo "OK    chimod runtime lib built"
 else
-    echo "NOTE  chimod runtime lib not built — Level 1 (backend=chimod) unavailable"
+    echo "NOTE  chimod runtime lib not built — search harness unavailable"
 fi
 echo
 echo "Data volumes under $IOWARP_WORK_DIR:"

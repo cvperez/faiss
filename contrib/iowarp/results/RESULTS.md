@@ -1,5 +1,75 @@
 # FAISS × IOWarp — Findings log
 
+## 9. No-buffer Level 1 (2026-07-19) — the GetBlob copy tax, measured directly
+
+**What changed.** Per user direction, the chimod's per-search buffer
+machinery (v0 fetch-all and v1 windowed fetch+free) was deleted outright:
+`OpenIndex` reads every inverted list out of CTE exactly once, directly
+into a module-resident arena (raw-pointer GetBlob destinations — no
+staging buffer, no memcpy), and `Search` scans that arena in place with
+zero `AllocateBuffer`/`GetBlob`/`FreeBuffer`. This makes search behave
+exactly as it would under the proposed CTE zero-copy view API — except it
+costs a second resident copy of the volume, which is the argument for
+upstreaming the API instead ([UPSTREAM_PROPOSAL_IOWARP.md]).
+
+**Correctness.** New per-pass FNV-1a `di_hash` over the full (D, I)
+output: chimod == mmap == L0 bitwise at nb10M and nb50M on the real
+volumes (plus the existing selftests, incl. repeat-search and split4).
+
+**QPS (exclusive Ares node, step3 protocol: 500 BigANN queries, k=10,
+nprobe=nlist/64, 8 scan threads, cold + 2 warm):**
+
+| volume | chimod WITH buffer (07-14) | chimod NO buffer | mmap same node | speedup |
+|---|---|---|---|---|
+| nb10M (4.84 GB) | 125–152 QPS | **330 / 341 / 342** | 28 cold / 238–360 warm | ~2.4× |
+| nb50M (24.2 GB) | 21–30 QPS | **64 / 75 / 75** | 5.7 cold / 70.5–71.9 warm | ~2.7× |
+
+- nb50M scan time is now 6.7 s/pass == mmap's warm scan (7.0 s): with the
+  per-search copies deleted, Level 1 search is memory-bandwidth-bound like
+  mmap, and cold == warm with zero major faults (placement explicit).
+- One-time open load: 4.84 GB in ~5 s (nb10M), 24.2 GB in ~22 s from the
+  NVMe file tier (nb50M) — the only data movement left; per-pass CTE
+  bytes fetched is 0.
+- Volumes ≥ node RAM (nb100M 49 GB, nb178M 87 GB) cannot run this design:
+  the resident arena must fit RAM. That is precisely the limitation the
+  zero-copy view API removes (scan the tier's own bytes; tiering keeps
+  working out-of-core, where chimod already won 20×).
+
+**Run configuration notes (fairness):** nb50M ran CTE file-tier-only
+(`CTE_RAM_TIER_GB=0`) because wheel v2.1.0 corrupts its heap when blobs
+overflow a RAM tier smaller than the volume (§9.1); the RAM budget is
+consumed by the resident arena instead (24 GB arena vs the baseline's
+~44 GB page cache — state both next to plots).
+
+### 9.1 Wheel findings hit while getting here (all reproduced, documented for upstream)
+
+1. **Mixed-tier overflow corrupts the runtime heap** (glibc "corrupted
+   double-linked list" / garbage pool-ids in routing): any config where
+   the ingested volume exceeds the RAM tier and spills to the file tier.
+   RAM-only-that-fits and file-tier-only are both stable. Workaround:
+   `CTE_RAM_TIER_GB=0` for big volumes; stale `<path>_node<i>` tier files
+   now removed by `20_ingest_cte.sh`.
+2. **Awaiting a still-pending future with more sub-tasks in flight** can
+   let a straggler completion resume the destroyed coroutine frame →
+   SIGSEGV in `Worker::ResumeCoroutine` (gdb backtrace captured, hit at
+   8192-fetch scale). Safe discipline: poll `IsComplete()`, await only
+   completed futures, `chi::yield()` while fetches are outstanding — and
+   never yield with nothing in flight (no wake-up ever arrives: hang).
+3. **Raw-pointer GetBlob destinations work in-process** (null-allocator
+   FullPtr): fetches land directly in module memory — used to delete the
+   staging copy from the open-time load as well.
+4. **NUMA:** a single-threaded first touch of the arena put 24 GB on one
+   socket and quartered scan bandwidth (29 s vs 7 s per pass);
+   `FirstTouchParallel` (8 threads, static chunks) restores mmap-class
+   page distribution. mmap gets this for free from parallel page faults.
+
+**Provenance:** jobs 22065/22069 (nb10M), 22068 (nb50M mmap reference +
+crash), 22071 (NUMA-slow), 22072 (final nb50M); with-buffer comparison
+rows in `qps_ondisk_{nb10M,nb50M}.csv` from the 07-14 AVX-512 campaign;
+`results/logs/<job>_qps.out`, `clio_run_*.log`, `telemetry_*_2206*.csv`.
+
+---
+
 **Campaign status:** in progress (2026-07-13). Volumes nb100M / nb44M /
 nb178M running (jobs 21908–21910, chimod inflight=1, telemetry on).
 This file consolidates everything established so far; final tables and

@@ -1,0 +1,4 @@
+[bench] backend=mmap volume=ondisk_nb50M nlist=8192 nprobe=128 nq=500 k=10 threads=8 ntotal=50000000
+  cold   qps=      5.7  elapsed=  87.940s  majflt/q=   427.0  read_MB= 24715.1  di_hash=32085d09bb65391b
+  warm0  qps=     70.5  elapsed=   7.092s  majflt/q=     0.6  read_MB=     0.6  di_hash=32085d09bb65391b
+  warm1  qps=     71.9  elapsed=   6.957s  majflt/q=     0.6  read_MB=     0.0  di_hash=32085d09bb65391b

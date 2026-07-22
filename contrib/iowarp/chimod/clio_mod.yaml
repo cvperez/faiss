@@ -17,5 +17,5 @@ kMonitor: 9       # 9 - Monitor container state
 
 # Custom Methods (start from 10)
 kOpenIndex: 10    # Open a FAISS IndexIVF (metadata only) + CTE tag
-kSearch: 11       # Batched k-NN search over CTE-resident inverted lists
+kSearch: 11       # Batched k-NN search over inverted lists stored in CTE
 kStats: 12        # Report / reset fetch+scan statistics

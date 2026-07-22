@@ -1,0 +1,83 @@
+# =============================================================================
+# CLIO runtime config for the FAISS x IOWarp experiments on one Ares node
+# (48 GiB RAM, local NVMe at /mnt/nvme/$USER).
+#
+# Schema follows the seeded ~/.clio/clio.yaml of the iowarp-core wheel
+# (v2.1.0) — only keys the wheel accepts. Differences from the default:
+#   * runtime.num_threads: 8   — comparability: the mmap baseline used
+#     8 search threads, so the runtime gets the same worker budget.
+#   * clio_bdev capacity 36g   — explicit, leaves headroom out of 48g.
+#   * CTE gets a capped RAM tier (30g, score 1.0) + an NVMe file tier
+#     (120g, score 0.3); placement by the max_bw DPE. The 30g RAM tier is
+#     the system's explicit "RAM budget" — state it next to any plot that
+#     compares against the page-cache baseline (~44 GiB free RAM).
+#   * clio_faiss_ivf (Level 1 ChiMod) composed at pool 600.0.
+#   * No CAE entry — pure CTE data path.
+#
+# NOT used directly: scripts/20_ingest_cte.sh renders this file, expanding
+# cvazquezperezdelacru and stripping the clio_faiss_ivf block when the chimod libs are
+# not built (keep the BEGIN/END marker comments intact).
+#
+# Usage (manual):
+#   CLIO_SERVER_CONF=<rendered.yaml> clio_run start &
+# =============================================================================
+
+# -- Networking ---------------------------------------------------------------
+networking:
+  port: 9413                           # RPC listener port
+  neighborhood_size: 32                # Max nodes queried when splitting range queries
+  wait_for_restart: 30                 # Seconds to wait for peer nodes on startup
+  wait_for_restart_poll_period: 1      # Seconds between connection retries
+
+# -- Runtime ------------------------------------------------------------------
+runtime:
+  num_threads: 8                       # Worker threads == baseline's 8 search threads
+  queue_depth: 1024                    # Task queue depth per worker
+  local_sched: "default"               # Local task scheduler algorithm
+  first_busy_wait: 10000               # Microseconds to busy-wait before sleeping (10ms)
+  learning_rate: 0.2                   # SGD learning rate for task load prediction model
+
+# -- Compose ------------------------------------------------------------------
+compose:
+
+  # === Block Device (DRAM) ===
+  # Required: provides the shared memory allocator used by other modules.
+  - mod_name: clio_bdev
+    pool_name: "ram::chi_default_bdev"
+    pool_query: local
+    pool_id: "301.0"
+    bdev_type: ram
+    capacity: "36g"                    # headroom out of the node's 48g
+
+  # === Context Transfer Engine (CTE) ===
+  # Canonical CTE entrypoint at pool 512.0 (clio::cte::core::kCtePoolId).
+  - mod_name: clio_cte_core
+    pool_name: cte_main
+    pool_query: local
+    pool_id: "512.0"
+
+    # Storage tiers ---------------------------------------------------------
+    # score: 0.0 = slowest/cheapest, 1.0 = fastest/most expensive
+    storage:
+      - path: "/mnt/nvme/cvazquezperezdelacru/cte_tier"
+        bdev_type: "file"
+        capacity_limit: "120g"
+        score: 0.3
+
+    # Data Placement Engine ------------------------------------------------
+    dpe:
+      dpe_type: "max_bw"               # "max_bw", "round_robin", or "random"
+
+    # Target management ----------------------------------------------------
+    targets:
+      neighborhood: 1                  # Storage nodes CTE can buffer to
+      default_target_timeout_ms: 30000 # Timeout for target operations (ms)
+      poll_period_ms: 5000             # Target statistics re-scan interval (ms)
+
+  # === FAISS IVF search module (Level 1) ===
+  # BEGIN clio_faiss_ivf
+  - mod_name: clio_faiss_ivf
+    pool_name: faiss_ivf_main
+    pool_query: local
+    pool_id: "600.0"
+  # END clio_faiss_ivf

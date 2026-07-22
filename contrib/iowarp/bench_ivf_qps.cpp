@@ -1,23 +1,21 @@
 /*
- * bench_ivf_qps — correctness selftest + step3-protocol QPS harness.
+ * bench_ivf_qps — correctness selftest + QPS harness for the faiss_ivf
+ * ChiMod (FAISS IVF search inside the CLIO runtime, inverted lists in CTE).
  *
- * Selftest (no runtime files needed, CLIO runtime must be running):
- *   bench_ivf_qps --selftest
- *     Builds small IVF,Flat indexes (L2 and IP), searches with stock
- *     ArrayInvertedLists, re-runs the exact same searches with
- *     IOWarpInvertedLists, and requires bitwise-identical (D, I).
+ * Selftest (CLIO runtime must be running):
+ *   bench_ivf_qps --selftest-chimod
+ *     Builds a small IVF,Flat index, ingests its lists into CTE, opens it
+ *     in the ChiMod, and requires the ChiMod's (D, I) to be bitwise-
+ *     identical to stock FAISS (single-batch and split-batch searches).
  *
- * Timed mode (replicates the ondisk_step2/step3 baseline protocol):
- *   bench_ivf_qps --protocol step3 --backend {mmap|iowarp|chimod}
- *                 --index populated.index --queries bigann_query.bvecs
- *                 [--tag faiss_ivf::vol] [--csv out.csv] [--label vol]
+ * Timed mode:
+ *   bench_ivf_qps --protocol step3 --index populated.index --tag faiss_ivf::vol
+ *                 --queries bigann_query.bvecs [--csv out.csv] [--label vol]
  *                 [--nq 500] [--threads 8] [--k 10] [--passes 3]
- *     One single batched index.search(xq, k) per pass; passes are labeled
- *     cold, warm0, warm1... (page-cache dropping is the caller's job,
- *     matching the baseline scripts). Per pass: QPS, majflt delta,
- *     /proc/self/io read_bytes delta. Appends CSV rows:
- *       timestamp,volume,backend,pass,nq,k,nprobe,threads,elapsed_s,qps,
- *       majflt,majflt_per_q,read_bytes,notes
+ *                 [--nprobe N] [--inflight N]
+ *     Drives the ChiMod with one batched search per pass; passes are
+ *     labeled cold, warm0, warm1... Per pass: QPS, majflt delta,
+ *     /proc/self/io read_bytes delta, and an FNV-1a hash of (D, I).
  */
 
 #include <sys/resource.h>
@@ -25,7 +23,6 @@
 #include <unistd.h>
 
 #include <cinttypes>
-#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -37,11 +34,13 @@
 #include <omp.h>
 
 #include <faiss/IndexFlat.h>
+#include <faiss/IndexIVF.h>
 #include <faiss/IndexIVFFlat.h>
 #include <faiss/impl/FaissAssert.h>
 #include <faiss/index_io.h>
 
-#include "IOWarpInvertedLists.h"
+#include "cte_client.h"
+#include "ivf_cte_ingest.h"
 
 #ifdef HAVE_FAISS_IVF_CHIMOD
 #include <clio_runtime/faiss_ivf/faiss_ivf_client.h>
@@ -108,79 +107,9 @@ std::vector<float> load_bvecs_queries(const std::string& path, size_t nq,
     return out;
 }
 
-/*** ------------------------- selftest --------------------------------- ***/
-
-// Copy all lists of `src` into a fresh IOWarpInvertedLists under `tag`.
-faiss_iowarp::IOWarpInvertedLists* mirror_to_cte(
-        const faiss::InvertedLists* src, const std::string& tag) {
-    auto* il = new faiss_iowarp::IOWarpInvertedLists(
-            src->nlist, src->code_size, tag);
-    for (size_t l = 0; l < src->nlist; ++l) {
-        size_t sz = src->list_size(l);
-        if (sz == 0) {
-            continue;
-        }
-        faiss::InvertedLists::ScopedCodes codes(src, l);
-        faiss::InvertedLists::ScopedIds ids(src, l);
-        il->add_entries(l, sz, ids.get(), codes.get());
-    }
-    il->persist_sizes();
-    return il;
-}
-
-bool selftest_one(faiss::MetricType metric, const char* name) {
-    const int d = 32, nlist = 64, k = 10;
-    const size_t nb = 100000, nt = 20000, nq = 200;
-    std::mt19937 rng(42);
-    std::normal_distribution<float> nd(0.f, 1.f);
-    std::vector<float> xb(nb * d), xt(nt * d), xq(nq * d);
-    for (auto& v : xb) v = nd(rng);
-    for (auto& v : xt) v = nd(rng);
-    for (auto& v : xq) v = nd(rng);
-
-    std::unique_ptr<faiss::IndexFlat> quantizer(
-            metric == faiss::METRIC_L2
-                    ? (faiss::IndexFlat*)new faiss::IndexFlatL2(d)
-                    : (faiss::IndexFlat*)new faiss::IndexFlatIP(d));
-    faiss::IndexIVFFlat index(quantizer.get(), d, nlist, metric);
-    index.own_fields = false;
-    index.train(nt, xt.data());
-    index.add(nb, xb.data());
-    index.nprobe = 8;
-
-    std::vector<float> D_ref(nq * k), D_new(nq * k);
-    std::vector<idx_t> I_ref(nq * k), I_new(nq * k);
-    omp_set_num_threads(8);
-    index.search(nq, xq.data(), k, D_ref.data(), I_ref.data());
-
-    std::string tag = std::string("faiss_ivf::selftest_") + name + "_" +
-            std::to_string(getpid());
-    auto* il = mirror_to_cte(index.invlists, tag);
-    index.replace_invlists(il, true);
-    index.search(nq, xq.data(), k, D_new.data(), I_new.data());
-
-    bool d_ok = !std::memcmp(
-            D_ref.data(), D_new.data(), D_ref.size() * sizeof(float));
-    bool i_ok = !std::memcmp(
-            I_ref.data(), I_new.data(), I_ref.size() * sizeof(idx_t));
-    std::printf(
-            "[selftest %s] D %s, I %s\n",
-            name,
-            d_ok ? "identical" : "MISMATCH",
-            i_ok ? "identical" : "MISMATCH");
-    return d_ok && i_ok;
-}
-
-int run_selftest() {
-    FAISS_THROW_IF_NOT_MSG(
-            faiss_iowarp::EnsureIOWarpClient(), "IOWarp client init failed");
-    bool ok = selftest_one(faiss::METRIC_L2, "L2");
-    ok = selftest_one(faiss::METRIC_INNER_PRODUCT, "IP") && ok;
-    std::printf("[selftest] %s\n", ok ? "PASS" : "FAIL");
-    return ok ? 0 : 1;
-}
-
 #ifdef HAVE_FAISS_IVF_CHIMOD
+
+/*** ------------------------- chimod drivers --------------------------- ***/
 
 // One batched search through the chimod; D/I sized nq*k by the caller.
 bool chimod_search(
@@ -189,7 +118,6 @@ bool chimod_search(
         int k,
         int nprobe,
         int d,
-        uint32_t mode,
         const float* xq,
         float* D,
         idx_t* I) {
@@ -203,7 +131,7 @@ bool chimod_search(
             static_cast<chi::u32>(k),
             static_cast<chi::u32>(nprobe),
             static_cast<chi::u32>(d),
-            mode,
+            0,
             qbuf.shm_.template Cast<void>(),
             dbuf.shm_.template Cast<void>(),
             ibuf.shm_.template Cast<void>());
@@ -222,18 +150,15 @@ bool chimod_search(
     return ok;
 }
 
-// Split a query batch into `nsplit` concurrently in-flight SearchTasks.
-// This is the comparability knob: the mmap baseline scanned with 8 OMP
-// threads, so the chimod gets the same CPU budget as 8 parallel tasks
-// across the runtime's 8 workers (per-query results are independent, so
-// the split cannot change any output).
+// Split a query batch into `nsplit` concurrently in-flight SearchTasks —
+// the CPU-budget knob (nsplit tasks across the runtime's workers). Per-query
+// results are independent, so the split cannot change any output.
 bool chimod_search_parallel(
         clio::run::faiss_ivf::Client& client,
         size_t nq,
         int k,
         int nprobe,
         int d,
-        uint32_t mode,
         int nsplit,
         const float* xq,
         float* D,
@@ -264,7 +189,7 @@ bool chimod_search_parallel(
                 static_cast<chi::u32>(k),
                 static_cast<chi::u32>(nprobe),
                 static_cast<chi::u32>(d),
-                mode,
+                0,
                 s.q.shm_.template Cast<void>(),
                 s.dd.shm_.template Cast<void>(),
                 s.ii.shm_.template Cast<void>());
@@ -289,8 +214,10 @@ bool chimod_search_parallel(
     return ok;
 }
 
-// Full chimod equivalence test: tiny L2 index, reference (D,I) from stock
-// FAISS, then v0 and v1 chimod searches must match bitwise.
+/*** ------------------------- selftest --------------------------------- ***/
+
+// Equivalence test: tiny L2 index, reference (D,I) from stock FAISS, then
+// the ChiMod's search (single-batch and split-batch) must match bitwise.
 int run_selftest_chimod() {
     FAISS_THROW_IF_NOT_MSG(
             faiss_iowarp::EnsureIOWarpClient(), "IOWarp client init failed");
@@ -316,8 +243,7 @@ int run_selftest_chimod() {
     index.search(nq, xq.data(), k, D_ref.data(), I_ref.data());
 
     std::string tag = "faiss_ivf::selftest_chimod_" + std::to_string(getpid());
-    std::unique_ptr<faiss_iowarp::IOWarpInvertedLists> il(
-            mirror_to_cte(index.invlists, tag));
+    faiss_iowarp::IngestIvfToCte(index.invlists, tag);
     std::string index_file =
             "/tmp/faiss_ivf_selftest_" + std::to_string(getpid()) + ".index";
     faiss::write_index(&index, index_file.c_str());
@@ -345,16 +271,11 @@ int run_selftest_chimod() {
             open_fut->nlist_);
 
     bool all_ok = true;
-    for (uint32_t mode = 0; mode <= 1; ++mode) {
+    // Two consecutive searches: each reads its lists from CTE fresh, so
+    // both must be bitwise-identical to stock FAISS.
+    for (int rep = 0; rep < 2; ++rep) {
         bool ok = chimod_search(
-                client,
-                nq,
-                k,
-                nprobe,
-                d,
-                mode,
-                xq.data(),
-                D_new.data(),
+                client, nq, k, nprobe, d, xq.data(), D_new.data(),
                 I_new.data());
         bool d_ok = ok &&
                 !std::memcmp(
@@ -367,24 +288,16 @@ int run_selftest_chimod() {
                         I_new.data(),
                         I_ref.size() * sizeof(idx_t));
         std::printf(
-                "[selftest chimod v%u] D %s, I %s\n",
-                mode,
+                "[selftest chimod rep%d] D %s, I %s\n",
+                rep,
                 d_ok ? "identical" : "MISMATCH",
                 i_ok ? "identical" : "MISMATCH");
         all_ok = all_ok && d_ok && i_ok;
     }
-    // Split-batch path (4 concurrent subtasks, v1) must also be identical.
+    // Split-batch path (4 concurrent subtasks) must also be identical.
     {
         bool ok = chimod_search_parallel(
-                client,
-                nq,
-                k,
-                nprobe,
-                d,
-                1,
-                4,
-                xq.data(),
-                D_new.data(),
+                client, nq, k, nprobe, d, 4, xq.data(), D_new.data(),
                 I_new.data());
         bool eq = ok &&
                 !std::memcmp(
@@ -396,7 +309,7 @@ int run_selftest_chimod() {
                         I_new.data(),
                         I_ref.size() * sizeof(idx_t));
         std::printf(
-                "[selftest chimod v1-split4] %s\n",
+                "[selftest chimod split4] %s\n",
                 eq ? "D and I identical" : "MISMATCH");
         all_ok = all_ok && eq;
     }
@@ -405,12 +318,9 @@ int run_selftest_chimod() {
     return all_ok ? 0 : 1;
 }
 
-#endif // HAVE_FAISS_IVF_CHIMOD
-
-/*** ------------------------- timed protocol --------------------------- ***/
+/*** ------------------------- timed harness ---------------------------- ***/
 
 struct Args {
-    std::string backend = "mmap";
     std::string index_path;
     std::string queries_path;
     std::string tag;
@@ -421,69 +331,38 @@ struct Args {
     int k = 10;
     int passes = 3;
     int nprobe_override = 0;
-    // chimod execution strategy for timed runs: 1 = v1 pipelined (default,
-    // the scalable path), 0 = v0 fetch-all (ablation; whole probed set must
-    // fit the runtime allocator).
-    uint32_t chimod_mode = 1;
-    // Concurrent SearchTasks per pass (0 = match --threads; comparability
-    // with the baseline's 8 OMP scan threads).
+    // Concurrent SearchTasks per pass (0 = match --threads).
     int inflight = 0;
 };
 
 int run_timed(const Args& a) {
     FAISS_THROW_IF_NOT_MSG(!a.index_path.empty(), "--index required");
     FAISS_THROW_IF_NOT_MSG(!a.queries_path.empty(), "--queries required");
+    FAISS_THROW_IF_NOT_MSG(!a.tag.empty(), "--tag required");
 
-    std::unique_ptr<faiss::Index> owner;
-    if (a.backend == "mmap") {
-        owner.reset(faiss::read_index(a.index_path.c_str()));
-    } else if (a.backend == "iowarp" || a.backend == "chimod") {
-        FAISS_THROW_IF_NOT_MSG(
-                !a.tag.empty(), "--tag required for iowarp/chimod");
-        owner.reset(faiss::read_index(
-                a.index_path.c_str(), faiss::IO_FLAG_SKIP_IVF_DATA));
-    } else {
-        std::fprintf(stderr, "unknown backend '%s'\n", a.backend.c_str());
-        return 3;
-    }
+    // Load index metadata only (the lists live in CTE, read by the ChiMod);
+    // the client needs d / nlist / nprobe here.
+    std::unique_ptr<faiss::Index> owner(faiss::read_index(
+            a.index_path.c_str(), faiss::IO_FLAG_SKIP_IVF_DATA));
     auto* ivf = dynamic_cast<faiss::IndexIVF*>(owner.get());
     FAISS_THROW_IF_NOT_MSG(ivf, "not an IVF index");
 
-    if (a.backend == "iowarp") {
-        FAISS_THROW_IF_NOT_MSG(
-                faiss_iowarp::EnsureIOWarpClient(), "client init failed");
-        auto* il = new faiss_iowarp::IOWarpInvertedLists(
-                ivf->nlist, ivf->code_size, a.tag);
-        ivf->replace_invlists(il, true);
-        ivf->ntotal = static_cast<idx_t>(il->compute_total());
-    }
-
-#ifdef HAVE_FAISS_IVF_CHIMOD
-    std::unique_ptr<clio::run::faiss_ivf::Client> chimod_client;
-#endif
-    if (a.backend == "chimod") {
-#ifdef HAVE_FAISS_IVF_CHIMOD
-        FAISS_THROW_IF_NOT_MSG(
-                faiss_iowarp::EnsureIOWarpClient(), "client init failed");
-        chimod_client = std::make_unique<clio::run::faiss_ivf::Client>();
-        chimod_client
-                ->AsyncCreate(
-                        chi::PoolQuery::Local(),
-                        "faiss_ivf_bench",
-                        chi::PoolId(600, 0))
-                .Wait();
-        auto open_fut = chimod_client->AsyncOpenIndex(
-                chi::PoolQuery::Local(), a.index_path, a.tag);
-        open_fut.Wait();
-        FAISS_THROW_IF_NOT_FMT(
-                open_fut->GetReturnCode() == 0,
-                "chimod OpenIndex rc=%u",
-                open_fut->GetReturnCode());
-#else
-        std::fprintf(stderr, "built without chimod support\n");
-        return 3;
-#endif
-    }
+    FAISS_THROW_IF_NOT_MSG(
+            faiss_iowarp::EnsureIOWarpClient(), "client init failed");
+    clio::run::faiss_ivf::Client chimod_client;
+    chimod_client
+            .AsyncCreate(
+                    chi::PoolQuery::Local(),
+                    "faiss_ivf_bench",
+                    chi::PoolId(600, 0))
+            .Wait();
+    auto open_fut = chimod_client.AsyncOpenIndex(
+            chi::PoolQuery::Local(), a.index_path, a.tag);
+    open_fut.Wait();
+    FAISS_THROW_IF_NOT_FMT(
+            open_fut->GetReturnCode() == 0,
+            "chimod OpenIndex rc=%u",
+            open_fut->GetReturnCode());
 
     int d = 0;
     std::vector<float> xq = load_bvecs_queries(a.queries_path, a.nq, d);
@@ -493,20 +372,18 @@ int run_timed(const Args& a) {
     int nprobe = a.nprobe_override > 0
             ? a.nprobe_override
             : std::max<size_t>(1, ivf->nlist / 64);
-    ivf->nprobe = nprobe;
     omp_set_num_threads(a.threads);
 
     std::printf(
-            "[bench] backend=%s volume=%s nlist=%zu nprobe=%d nq=%zu k=%d "
-            "threads=%d ntotal=%" PRId64 "\n",
-            a.backend.c_str(),
+            "[bench] volume=%s nlist=%zu nprobe=%d nq=%zu k=%d threads=%d "
+            "ntotal=%" PRId64 "\n",
             a.label.c_str(),
             ivf->nlist,
             nprobe,
             a.nq,
             a.k,
             a.threads,
-            ivf->ntotal);
+            (int64_t)open_fut->ntotal_);
 
     FILE* csv = nullptr;
     if (!a.csv.empty()) {
@@ -515,7 +392,7 @@ int run_timed(const Args& a) {
         FAISS_THROW_IF_NOT_FMT(csv, "cannot open %s", a.csv.c_str());
         if (fresh) {
             fprintf(csv,
-                    "timestamp,volume,backend,pass,nq,k,nprobe,threads,"
+                    "timestamp,volume,pass,nq,k,nprobe,threads,"
                     "elapsed_s,qps,majflt,majflt_per_q,read_bytes,notes\n");
         }
     }
@@ -528,55 +405,51 @@ int run_timed(const Args& a) {
         long mf0 = majflt_now();
         long long rb0 = io_read_bytes_now();
         double t0 = now_s();
-        if (a.backend == "chimod") {
-#ifdef HAVE_FAISS_IVF_CHIMOD
-            FAISS_THROW_IF_NOT_MSG(
-                    chimod_search_parallel(
-                            *chimod_client,
-                            a.nq,
-                            a.k,
-                            nprobe,
-                            d,
-                            a.chimod_mode,
-                            a.inflight > 0 ? a.inflight : a.threads,
-                            xq.data(),
-                            D.data(),
-                            I.data()),
-                    "chimod search failed");
-#endif
-        } else {
-            ivf->search(
-                    static_cast<idx_t>(a.nq),
-                    xq.data(),
-                    a.k,
-                    D.data(),
-                    I.data());
-        }
+        FAISS_THROW_IF_NOT_MSG(
+                chimod_search_parallel(
+                        chimod_client,
+                        a.nq,
+                        a.k,
+                        nprobe,
+                        d,
+                        a.inflight > 0 ? a.inflight : a.threads,
+                        xq.data(),
+                        D.data(),
+                        I.data()),
+                "chimod search failed");
         double el = now_s() - t0;
         long mf = majflt_now() - mf0;
         long long rb = io_read_bytes_now() - rb0;
         double qps = a.nq / el;
+        // FNV-1a over the (D, I) buffers: a cheap bitwise-integrity gate at
+        // real-volume scale (identical searches produce identical hashes).
+        uint64_t rhash = 1469598103934665603ULL;
+        auto fnv = [&rhash](const void* p, size_t n) {
+            const uint8_t* b = static_cast<const uint8_t*>(p);
+            for (size_t i = 0; i < n; ++i) {
+                rhash = (rhash ^ b[i]) * 1099511628211ULL;
+            }
+        };
+        fnv(D.data(), D.size() * sizeof(float));
+        fnv(I.data(), I.size() * sizeof(idx_t));
         std::printf(
                 "  %-6s qps=%9.1f  elapsed=%8.3fs  majflt/q=%8.1f  "
-                "read_MB=%8.1f\n",
+                "read_MB=%8.1f  di_hash=%016llx\n",
                 pass.c_str(),
                 qps,
                 el,
                 mf / (double)a.nq,
-                rb / (1024.0 * 1024));
+                rb / (1024.0 * 1024),
+                (unsigned long long)rhash);
         if (csv) {
-            std::string notes;
-            if (a.backend == "chimod") {
-                notes = "mode=" + std::to_string(a.chimod_mode) +
-                        ";inflight=" +
-                        std::to_string(
-                                a.inflight > 0 ? a.inflight : a.threads);
-            }
+            char notes[64];
+            snprintf(notes, sizeof(notes), "dihash=%016llx;inflight=%d",
+                     (unsigned long long)rhash,
+                     a.inflight > 0 ? a.inflight : a.threads);
             fprintf(csv,
-                    "%ld,%s,%s,%s,%zu,%d,%d,%d,%.4f,%.1f,%ld,%.3f,%lld,%s\n",
+                    "%ld,%s,%s,%zu,%d,%d,%d,%.4f,%.1f,%ld,%.3f,%lld,%s\n",
                     (long)time(nullptr),
                     a.label.c_str(),
-                    a.backend.c_str(),
                     pass.c_str(),
                     a.nq,
                     a.k,
@@ -587,55 +460,50 @@ int run_timed(const Args& a) {
                     mf,
                     mf / (double)a.nq,
                     rb,
-                    notes.c_str());
+                    notes);
         }
     }
     if (csv) {
         fclose(csv);
     }
-#ifdef HAVE_FAISS_IVF_CHIMOD
-    if (a.backend == "chimod" && chimod_client) {
-        auto sf = chimod_client->AsyncStats(chi::PoolQuery::Local(), 1);
-        sf.Wait();
-        if (sf->GetReturnCode() == 0) {
-            std::printf(
-                    "[stats] searches=%llu lists_fetched=%llu "
-                    "GB_fetched=%.2f fetch_wait_s=%.2f scan_s=%.2f\n",
-                    (unsigned long long)sf->searches_,
-                    (unsigned long long)sf->lists_fetched_,
-                    sf->bytes_fetched_ / (1024.0 * 1024 * 1024),
-                    sf->fetch_wait_us_ / 1e6,
-                    sf->scan_us_ / 1e6);
-        }
+    auto sf = chimod_client.AsyncStats(chi::PoolQuery::Local(), 1);
+    sf.Wait();
+    if (sf->GetReturnCode() == 0) {
+        std::printf(
+                "[stats] searches=%llu lists_read=%llu GB_read=%.2f "
+                "read_wait_s=%.2f scan_s=%.2f\n",
+                (unsigned long long)sf->searches_,
+                (unsigned long long)sf->lists_fetched_,
+                sf->bytes_fetched_ / (1024.0 * 1024 * 1024),
+                sf->fetch_wait_us_ / 1e6,
+                sf->scan_us_ / 1e6);
     }
-#endif
     return 0;
 }
+
+#endif // HAVE_FAISS_IVF_CHIMOD
 
 } // namespace
 
 int main(int argc, char** argv) {
     // Line-buffer stdout so progress survives `| tee` in batch jobs.
     setvbuf(stdout, nullptr, _IOLBF, 0);
+#ifndef HAVE_FAISS_IVF_CHIMOD
+    (void)argc;
+    (void)argv;
+    std::fprintf(stderr, "built without chimod support\n");
+    return 3;
+#else
     Args a;
-    bool selftest = false, timed = false;
+    bool timed = false;
     for (int i = 1; i < argc; ++i) {
         std::string s = argv[i];
         auto next = [&](const char* opt) -> std::string {
             FAISS_THROW_IF_NOT_FMT(i + 1 < argc, "%s needs a value", opt);
             return argv[++i];
         };
-        if (s == "--selftest") selftest = true;
-        else if (s == "--selftest-chimod") {
-#ifdef HAVE_FAISS_IVF_CHIMOD
-            return run_selftest_chimod();
-#else
-            std::fprintf(stderr, "built without chimod support\n");
-            return 3;
-#endif
-        }
+        if (s == "--selftest-chimod") return run_selftest_chimod();
         else if (s == "--protocol") timed = (next("--protocol") == "step3");
-        else if (s == "--backend") a.backend = next("--backend");
         else if (s == "--index") a.index_path = next("--index");
         else if (s == "--queries") a.queries_path = next("--queries");
         else if (s == "--tag") a.tag = next("--tag");
@@ -646,19 +514,17 @@ int main(int argc, char** argv) {
         else if (s == "--k") a.k = atoi(next("--k").c_str());
         else if (s == "--passes") a.passes = atoi(next("--passes").c_str());
         else if (s == "--nprobe") a.nprobe_override = atoi(next("--nprobe").c_str());
-        else if (s == "--mode") a.chimod_mode = (uint32_t)atoi(next("--mode").c_str());
         else if (s == "--inflight") a.inflight = atoi(next("--inflight").c_str());
         else {
             std::fprintf(stderr, "unknown arg: %s\n", s.c_str());
             return 2;
         }
     }
-    if (selftest) {
-        return run_selftest();
-    }
     if (timed) {
         return run_timed(a);
     }
-    std::fprintf(stderr, "nothing to do: pass --selftest or --protocol step3\n");
+    std::fprintf(stderr,
+                 "nothing to do: pass --selftest-chimod or --protocol step3\n");
     return 2;
+#endif
 }

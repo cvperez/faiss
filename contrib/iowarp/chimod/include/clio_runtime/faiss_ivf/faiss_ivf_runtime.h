@@ -47,23 +47,16 @@ class Runtime : public chi::Container {
   // In-process CTE client bound directly to the canonical CTE pool
   // (kCtePoolId = 512.0). NEVER call CLIO_CTE_CLIENT_INIT from a handler:
   // its blocking create_task.Wait() deadlocks the cooperative worker.
+  // Search reads its probed lists through this client on demand.
   clio::cte::core::Client cte_;
-
-  // Container default search mode (from CreateParams::pipeline_mode_)
-  chi::u32 pipeline_mode_ = 0;
-
-  // Serializes v0's temporary invlists swap on the shared ivf_ (v0 is the
-  // ablation path; v1 has no shared mutable FAISS state and runs fully
-  // concurrently).
-  chi::CoMutex v0_mu_;
 
   // Statistics. Atomics: concurrent SearchTasks may run on different
   // workers (the bench splits query batches into parallel tasks).
   std::atomic<chi::u64> stat_searches_{0};
-  std::atomic<chi::u64> stat_lists_fetched_{0};
-  std::atomic<chi::u64> stat_bytes_fetched_{0};
-  std::atomic<chi::u64> stat_fetch_wait_us_{0};
-  std::atomic<chi::u64> stat_scan_us_{0};
+  std::atomic<chi::u64> stat_lists_fetched_{0};   // lists read from CTE
+  std::atomic<chi::u64> stat_bytes_fetched_{0};   // bytes read from CTE
+  std::atomic<chi::u64> stat_fetch_wait_us_{0};   // time waiting on CTE reads
+  std::atomic<chi::u64> stat_scan_us_{0};         // time scanning codes
 
   // Client for making calls to this ChiMod
   Client client_;

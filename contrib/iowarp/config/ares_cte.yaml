@@ -11,7 +11,7 @@
 #     (120g, score 0.3); placement by the max_bw DPE. The 30g RAM tier is
 #     the system's explicit "RAM budget" — state it next to any plot that
 #     compares against the page-cache baseline (~44 GiB free RAM).
-#   * clio_faiss_ivf (Level 1 ChiMod) composed at pool 600.0.
+#   * clio_faiss_ivf (the ChiMod) composed at pool 600.0.
 #   * No CAE entry — pure CTE data path.
 #
 # NOT used directly: scripts/20_ingest_cte.sh renders this file, expanding
@@ -59,10 +59,18 @@ compose:
     # Storage tiers ---------------------------------------------------------
     # score: 0.0 = slowest/cheapest, 1.0 = fastest/most expensive
     storage:
+      # BEGIN cte_ram_tier
+      # Rendered by the scripts (${CTE_RAM_TIER_GB}, default 30).
+      # CTE_RAM_TIER_GB=0 strips this whole entry (file tier only): the
+      # wheel (v2.1.0) corrupts its heap when blobs overflow a RAM tier
+      # smaller than the volume (mixed-tier spill bug — reproduced and
+      # isolated on nb10M; RAM-only and file-only are both stable), so the
+      # RAM tier must either hold the entire volume or not exist.
       - path: "ram::cte_ram_tier"      # the explicit RAM budget of the tiered system
         bdev_type: "ram"
-        capacity_limit: "30g"
+        capacity_limit: "${CTE_RAM_TIER_GB}g"
         score: 1.0
+      # END cte_ram_tier
       - path: "/mnt/nvme/${USER}/cte_tier"
         bdev_type: "file"
         capacity_limit: "120g"
@@ -78,7 +86,7 @@ compose:
       default_target_timeout_ms: 30000 # Timeout for target operations (ms)
       poll_period_ms: 5000             # Target statistics re-scan interval (ms)
 
-  # === FAISS IVF search module (Level 1) ===
+  # === FAISS IVF search module (the ChiMod) ===
   # BEGIN clio_faiss_ivf
   - mod_name: clio_faiss_ivf
     pool_name: faiss_ivf_main

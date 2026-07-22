@@ -34,8 +34,9 @@ GLOBAL_CROSS_CONST chi::u32 kSearchModeDefault = 0xFFFFFFFF;
  * Contains configuration parameters for faiss_ivf container creation
  */
 struct CreateParams {
-  // 0 = v0 (fetch-all then search_preassigned),
-  // 1 = v1 (pipelined fetch + scan)
+  // Retained for wire compatibility; IGNORED by the runtime. There is a
+  // single search path: read each probed list from CTE on demand, scan,
+  // free.
   chi::u32 pipeline_mode_;
 
   // Required: chimod library name for module manager
@@ -157,7 +158,7 @@ struct SearchTask : public chi::Task {
   IN chi::u32 k_;                        // Neighbors per query
   IN chi::u32 nprobe_;                   // Lists probed per query
   IN chi::u32 d_;                        // Query dimensionality
-  IN chi::u32 mode_;                     // 0=v0, 1=v1, kSearchModeDefault
+  IN chi::u32 mode_;                     // retained for compat; IGNORED
   IN ctp::ipc::ShmPtr<> queries_;        // nq*d float32 (shared memory)
   IN ctp::ipc::ShmPtr<> distances_out_;  // nq*k float32, client-preallocated
   IN ctp::ipc::ShmPtr<> labels_out_;     // nq*k int64, client-preallocated

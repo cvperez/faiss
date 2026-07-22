@@ -41,7 +41,7 @@ compose:
       default_target_timeout_ms: 30000
       poll_period_ms: 5000
 
-  # faiss_ivf ChiMod (Level 1). Requires libclio_faiss_ivf_runtime.so on
+  # faiss_ivf ChiMod. Requires libclio_faiss_ivf_runtime.so on
   # the module scan path (CHI_REPO_PATH or LD_LIBRARY_PATH).
   - mod_name: clio_faiss_ivf
     pool_name: faiss_ivf_main

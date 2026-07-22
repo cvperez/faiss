@@ -54,14 +54,25 @@ IOWARP_PKG="$(python3 -c 'import iowarp_core, os; print(os.path.dirname(iowarp_c
 export PATH="$IOWARP_PKG/bin:$PATH"
 export LD_LIBRARY_PATH="$IOWARP_PKG/lib:$FAISS_INSTALL/lib:$FAISS_INSTALL/lib64:$ROOT/build:$ROOT/build/chimod:${LD_LIBRARY_PATH:-}"
 
-# --- render the config (expand ${USER}; drop chimod entry if not built) ------
+# --- render the config (expand ${USER} and the RAM-tier cap; drop chimod ----
+# entry if not built). CTE_RAM_TIER_GB default 30 sizes the CTE RAM tier.
 RENDERED="$RESULTS/ares_cte_rendered_$TS.yaml"
-sed "s|\${USER}|$USER|g" "$CONF_SRC" > "$RENDERED"
+sed -e "s|\${USER}|$USER|g" \
+    -e "s|\${CTE_RAM_TIER_GB}|${CTE_RAM_TIER_GB:-30}|g" \
+    "$CONF_SRC" > "$RENDERED"
+if [ "${CTE_RAM_TIER_GB:-30}" = "0" ]; then
+    echo "NOTE: CTE_RAM_TIER_GB=0 — stripping the RAM tier (file tier only)"
+    sed -i '/# BEGIN cte_ram_tier/,/# END cte_ram_tier/d' "$RENDERED"
+fi
 if ! ls "$ROOT"/build/chimod/libclio_faiss_ivf_runtime.so >/dev/null 2>&1; then
     echo "NOTE: chimod runtime lib not built — stripping clio_faiss_ivf from compose"
     sed -i '/# BEGIN clio_faiss_ivf/,/# END clio_faiss_ivf/d' "$RENDERED"
 fi
 mkdir -p "/mnt/nvme/$USER/cte_tier"
+# The file bdev stores the tier in a file named <path>_node<i>, which
+# survives job exits on the node-local NVMe — remove stale ones so every
+# run starts from a fresh tier.
+rm -f "/mnt/nvme/$USER/cte_tier_node"* 2>/dev/null || true
 
 # --- kill-then-restart clio_run ----------------------------------------------
 echo "=== stopping any existing clio_run"

@@ -102,7 +102,7 @@ class Client : public chi::ContainerClient {
    * @param k Neighbors per query
    * @param nprobe Lists probed per query
    * @param d Query dimensionality
-   * @param mode 0=v0 fetch-all, 1=v1 pipelined, kSearchModeDefault=container
+   * @param mode Retained for wire compatibility; ignored by the runtime
    * @param queries_shm Shared-memory pointer to queries
    * @param dists_shm Shared-memory pointer for output distances
    * @param labels_shm Shared-memory pointer for output labels

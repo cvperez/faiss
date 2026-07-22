@@ -108,14 +108,13 @@ endfunction()
 add_executable(cte_smoke cte_smoke.cpp)
 iowarp_target(cte_smoke)
 
-# Level 0 + tools (need faiss and OpenMP).
+# Tools + benchmark (need faiss and OpenMP).
 find_package(faiss REQUIRED)
 find_package(OpenMP REQUIRED)
 
 # With FAISS_OPT_LEVEL=avx512 the SIMD kernels live in the faiss_avx512
 # target; plain `faiss` is the generic-kernel build. Link the fastest
-# variant available (the baseline's python wheel used AVX-512 kernels —
-# comparability requires we do too).
+# variant available.
 if(TARGET faiss_avx512)
     set(FAISS_LINK_TARGET faiss_avx512)
 elseif(TARGET faiss_avx2)
@@ -132,21 +131,22 @@ if(NOT FAISS_LINK_TARGET STREQUAL "faiss")
 endif()
 message(STATUS "Linking FAISS variant: ${FAISS_LINK_TARGET}")
 
-add_library(iowarp_invlists STATIC IOWarpInvertedLists.cpp)
-iowarp_target(iowarp_invlists)
-target_link_libraries(iowarp_invlists PRIVATE ${FAISS_LINK_TARGET})
-set_target_properties(iowarp_invlists PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# Shared helpers: CTE client bootstrap + IVF->CTE ingestion.
+add_library(iowarp_cte STATIC cte_client.cpp ivf_cte_ingest.cpp)
+iowarp_target(iowarp_cte)
+target_link_libraries(iowarp_cte PRIVATE ${FAISS_LINK_TARGET})
+set_target_properties(iowarp_cte PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_executable(ivf_to_iowarp ivf_to_iowarp.cpp)
 iowarp_target(ivf_to_iowarp)
-target_link_libraries(ivf_to_iowarp PRIVATE iowarp_invlists ${FAISS_LINK_TARGET})
+target_link_libraries(ivf_to_iowarp PRIVATE iowarp_cte ${FAISS_LINK_TARGET})
 
 add_executable(bench_ivf_qps bench_ivf_qps.cpp)
 iowarp_target(bench_ivf_qps)
-target_link_libraries(bench_ivf_qps PRIVATE iowarp_invlists ${FAISS_LINK_TARGET}
+target_link_libraries(bench_ivf_qps PRIVATE iowarp_cte ${FAISS_LINK_TARGET}
     OpenMP::OpenMP_CXX)
 
-# Level 1 ChiMod (optional subdirectory; needs the same wheel/header setup).
+# faiss_ivf ChiMod (optional subdirectory; needs the same wheel/header setup).
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/chimod/CMakeLists.txt"
    AND NOT IOWARP_SKIP_CHIMOD)
     add_subdirectory(chimod)
