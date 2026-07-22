@@ -380,16 +380,45 @@ Second, the cold and warm passes give almost the same throughput. The
 system does not need a warm-up phase, and its performance is
 predictable.
 
-This is very different from the original memory-mapped baseline
-measured on the same node. With \texttt{OnDiskInvertedLists}, the cold
-pass of the 24 gigabyte index runs at about 5.7 QPS with more than two
-hundred thousand page-ins, and only reaches roughly 70 QPS once the
-data is warm in the page cache. For indexes several times larger than
-RAM, the memory-mapped baseline degrades much further, dropping to a
-small fraction of one query per second with continuous page-cache
-thrashing. The CTE-based implementation, in contrast, keeps a stable
-throughput of several queries per second at 49 and 87 gigabytes, with
-no page faults and no collapse.
+For comparison, Table~\ref{tab:mmap} shows the original memory-mapped
+\texttt{OnDiskInvertedLists} baseline over the same index sizes, using
+the same protocol.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccccc}
+\toprule
+Index size & nprobe & QPS (cold) & QPS (warm) & page-ins (cold) & page-ins (warm) \\
+\midrule
+4.8 GB & 64  & 28.2 & 238 - 360 & 46{,}144      & $<$ 700 \\
+24 GB  & 128 & 10.8 & 93        & 213{,}276     & $<$ 200 \\
+49 GB  & 256 & 2.0  & 5.5 - 6.4 & 756{,}611     & $\approx$ 535{,}000 \\
+87 GB  & 256 & 0.4  & 0.4       & 2{,}811{,}912 & $\approx$ 2{,}725{,}000 \\
+\bottomrule
+\end{tabular}
+\caption{Memory-mapped \texttt{OnDiskInvertedLists} baseline: throughput and
+page-ins versus index size, same node and protocol as Table~\ref{tab:qps}.}
+\label{tab:mmap}
+\end{table}
+
+The behaviour of the baseline changes completely with size. For the 4.8 and 24
+gigabyte indexes, the first (cold) pass is slow and pays hundreds of thousands
+of page-ins, but once the data is warm in the page cache the page-ins almost
+vanish and throughput recovers sharply, reaching 93 QPS at 24 gigabytes. For
+the 49 and 87 gigabyte indexes, however, the warm passes never recover: the
+number of page-ins stays in the hundreds of thousands, even millions, and
+throughput stays at a few queries per second or below. This is page-cache
+thrashing: the index no longer fits in memory, so every pass keeps evicting and
+reloading the same lists from disk.
+
+Comparing Table~\ref{tab:mmap} with Table~\ref{tab:qps} shows a clear
+crossover. While the index fits in RAM, the warm memory-mapped baseline is
+faster than the CTE-based implementation (93 versus about 27 QPS at 24
+gigabytes), because a warm page is scanned directly, without any copy. Once the
+index no longer fits in RAM, the situation reverses: the CTE-based
+implementation keeps a stable throughput with zero page-ins (7.9 QPS at 49
+gigabytes and 4.0 QPS at 87 gigabytes), whereas the memory-mapped baseline
+collapses to 6.4 and 0.4 QPS respectively.
 
 This confirms that the original goal was achieved: replacing the page
 cache with explicit CTE placement removes the page-cache thrashing and
@@ -428,7 +457,7 @@ arithmetic, faster arithmetic would help; the fact that it does not
 means the search is limited by data movement.
 \item In the regime where the index fits in memory, the warm
 memory-mapped baseline is actually faster than the CTE version (about
-70 QPS versus about 28 QPS at 24 gigabytes). The difference is exactly
+93 QPS versus about 27 QPS at 24 gigabytes). The difference is exactly
 the extra copy: with a warm memory-mapped file, the page that the
 scanner reads is already the final location of the data, so no copy is
 needed, whereas the CTE version copies the list before scanning it.
