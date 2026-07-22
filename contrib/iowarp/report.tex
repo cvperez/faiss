@@ -1,0 +1,669 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{booktabs}
+
+\title{Improving FAISS IVF Search using CLIO CTE\\
+Current Implementation, Observations and Future Work}
+
+\author{Carmen Vázquez}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+
+During the last few weeks I have been working on integrating
+FAISS IVF search into the CLIO runtime using the Context Transfer
+Engine (CTE). The original motivation was to improve the behaviour
+of very large FAISS indexes that no longer fit in RAM.
+
+This document explains the work that has been implemented so far,
+the problem that motivated the project, the current implementation,
+the results and limitations that I have observed during the
+experiments and, finally, the change that I believe would allow CLIO
+to remove the remaining bottleneck.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Background}
+
+\subsection{How FAISS IVF Works}
+
+FAISS is a library for Approximate Nearest Neighbour (ANN) search.
+Instead of comparing a query against every vector in the database,
+an IVF (Inverted File Index) first partitions the dataset into
+multiple clusters, usually called \textbf{inverted lists}.
+
+Each vector belongs to exactly one inverted list.
+
+During a search:
+
+\begin{enumerate}
+\item the query is assigned to its nearest clusters,
+\item only those clusters are visited,
+\item the vectors inside those clusters are compared against the query.
+\end{enumerate}
+
+This reduces the amount of work compared to scanning the complete
+dataset.
+
+Two parameters are particularly important:
+
+\begin{itemize}
+\item \textbf{nlist}: the number of inverted lists in the index.
+\item \textbf{nprobe}: the number of lists visited during each search.
+\end{itemize}
+
+Increasing \texttt{nprobe} generally improves recall, because more
+candidate vectors are examined, but it also increases the amount of
+data that must be read during the search.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{FAISS OnDiskInvertedLists}
+
+When the inverted lists become too large to fit into memory,
+FAISS provides the OnDiskInvertedLists implementation.
+
+Instead of storing every inverted list in RAM, all the lists are
+stored inside a single \texttt{.ivfdata} file. This file is memory
+mapped using the Linux \texttt{mmap()} system call, which allows the
+operating system to transparently load data into memory only when it
+is actually accessed.
+
+This approach works well while the index still fits comfortably
+inside RAM. The operating system keeps recently used pages in the
+page cache, which is the region of memory where the kernel keeps
+copies of file data it has already read, and future accesses are
+usually served directly from memory.
+
+However, this behaviour changes once the index becomes several
+times larger than the available RAM.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The Problem with mmap}
+
+The operating system manages the mapped file through the page cache.
+
+The important point is that the page cache does not understand what
+an inverted list is. Instead, it only manages independent memory
+pages of 4 kilobytes each.
+
+Whenever a query needs an inverted list, the operating system loads
+the required pages from disk. If memory is already full, other pages
+must first be evicted, that is, removed from memory to make room.
+
+When the index is much larger than RAM, this process repeats
+continuously:
+
+\begin{itemize}
+\item pages are loaded,
+\item older pages are evicted,
+\item future queries need them again,
+\item the same pages are loaded once more.
+\end{itemize}
+
+This behaviour is commonly known as \textbf{page cache thrashing}.
+
+One of the clearest symptoms observed during the experiments is a
+large increase in the number of \textbf{page-ins}. A page-in is a
+single event where the operating system fetches one page of data
+from disk into memory. Instead of reusing data already resident in
+memory, the operating system repeatedly fetches the same pages from
+disk.
+
+As memory pressure increases, throughput drops significantly, and
+the main cost of the search becomes waiting for data to be loaded
+back into memory rather than computing distances.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Motivation}
+
+The previous observations suggest that the operating system is
+making memory placement decisions without understanding the access
+pattern of FAISS.
+
+From the application's point of view, the natural unit of data is an
+inverted list. From the operating system's point of view, however,
+the only unit is an independent memory page.
+
+The main motivation of this project was therefore to replace the
+implicit page-cache management performed by the operating system with
+explicit placement managed by CLIO's Context Transfer Engine.
+
+Instead of relying on the kernel to decide which pages remain in
+memory, the application should explicitly manage complete inverted
+lists. This idea led to the implementation described in the following
+sections.
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Using CLIO CTE instead of mmap}
+
+The main idea behind this project is to replace the operating
+system's implicit page management with explicit placement managed by
+CLIO. Instead of storing all inverted lists inside a single
+memory-mapped file, every inverted list is stored independently
+inside the Context Transfer Engine (CTE), as a separate object called
+a \textbf{blob}.
+
+This allows CLIO to treat each inverted list as an independent object
+that can be placed, migrated or evicted on its own. Because the
+inverted list is already the natural unit of access for FAISS,
+storing one inverted list per CTE blob means that the unit CLIO
+manages is exactly the unit the search reads.
+
+CTE stores these blobs across two storage tiers: a capped RAM tier,
+which is fast but limited in size, and a larger NVMe tier on the
+local solid state disk, which is slower but can hold data that does
+not fit in the RAM tier. CLIO decides, per blob, where each inverted
+list lives.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Architecture}
+
+The implementation consists of three main components:
+
+\begin{itemize}
+\item A preprocessing tool that converts a FAISS IVF index into CTE blobs.
+\item A ChiMod, which is a module running inside the CLIO runtime, that
+performs the IVF search.
+\item The Context Transfer Engine, which stores the inverted lists
+across the available storage tiers.
+\end{itemize}
+
+The overall architecture is shown conceptually below.
+
+\begin{verbatim}
+
+             Search request
+
+        +----------------------+
+        |       Client         |
+        +----------+-----------+
+                   |
+                   |
+          Shared Memory Task
+                   |
+                   v
+        +----------------------+
+        |    FAISS ChiMod      |
+        |                      |
+        | Quantization         |
+        | List Selection       |
+        | Distance Computation |
+        +----------+-----------+
+                   |
+         Read required lists
+                   |
+                   v
+        +----------------------+
+        |         CTE          |
+        |                      |
+        | Blob 0               |
+        | Blob 1               |
+        | Blob 2               |
+        | ...                  |
+        +----------------------+
+
+\end{verbatim}
+
+Unlike the original FAISS implementation, the inverted lists are
+never stored inside a single large file. Instead, every list becomes
+an independent CTE blob.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Index Ingestion}
+
+Before any search can be performed, an existing FAISS IVF index must
+be imported into CTE.
+
+A standalone ingestion tool reads the populated IVF index, extracts
+every inverted list and writes it into its corresponding CTE blob.
+The ingestion process performs the following steps:
+
+\begin{enumerate}
+\item Load the FAISS IVF index.
+\item Read the size of every inverted list.
+\item Create one CTE blob for each non-empty list.
+\item Copy the list contents into that blob.
+\item Finally, store a \texttt{sizes} blob.
+\end{enumerate}
+
+Each list blob stores the encoded vectors followed by their
+identifiers, packed together. The \texttt{sizes} blob is a small
+array with one entry per list, giving the number of vectors in each
+list. It acts as a directory: from it the search knows which lists
+exist, how many bytes each blob contains, and where inside a blob the
+vectors end and the identifiers begin. It is written last, so its
+presence also signals that the ingestion finished correctly.
+
+The result is a CTE representation where every inverted list can be
+managed independently.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Opening an Index}
+
+The ChiMod only loads the metadata required to perform the search. In
+particular, it loads:
+
+\begin{itemize}
+\item the coarse quantizer, which is the small structure used to assign
+each query to its nearest clusters,
+\item the IVF metadata (the number of lists, the vector dimension and
+the code size),
+\item the \texttt{sizes} blob,
+\item the total number of vectors.
+\end{itemize}
+
+The inverted lists themselves are \textbf{not} loaded during this
+step. Instead, they remain inside CTE and are fetched only when a
+search actually needs them.
+
+This keeps the memory footprint small when opening very large
+indexes, and it is what allows an index larger than RAM to be opened
+at all.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Search Execution}
+
+Every search follows the same sequence of operations.
+
+First, the coarse quantizer assigns every query to its nearest
+clusters. Those assignments determine which inverted lists must be
+visited.
+
+Since many queries often access the same lists, the implementation
+builds the union of all required lists, so that each list is read at
+most once even when several queries need it.
+
+For every required list, the ChiMod issues an asynchronous
+\texttt{AsyncGetBlob()} request to CTE. Several requests are kept in
+flight at the same time in order to hide part of the storage latency,
+so that while some lists are still being read, others are already
+being processed. Whenever one read completes, the corresponding
+inverted list is scanned immediately: the vectors inside it are
+compared against every query that requires it, updating each query's
+Top-K results, that is, the list of the K nearest neighbours found so
+far for that query. To accelerate this step, the scan of each list is
+parallelized across several worker threads.
+
+Finally, after every required list has been processed, the Top-K
+results are returned to the client.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Expected Benefits}
+
+Compared with the original mmap-based implementation, this design
+moves the responsibility for data placement from the operating system
+page cache to CTE. Because each inverted list is stored independently,
+placement and eviction happen at exactly the same granularity that the
+search algorithm uses, and different storage tiers can be managed
+explicitly without modifying FAISS itself.
+
+At this point, the implementation successfully replaces
+\texttt{OnDiskInvertedLists} with CTE-based storage and performs
+correct IVF search inside the CLIO runtime. The following section
+discusses the experimental results and the remaining performance
+bottleneck discovered during the evaluation.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Experimental Observations}
+
+After implementing the CTE-based storage, I first validated that the
+ChiMod produced exactly the same results as the original FAISS
+implementation, and then measured its behaviour on indexes of
+increasing size.
+
+\subsection{Setup}
+
+All the experiments were run on a single compute node with 48
+gigabytes of RAM and a local NVMe solid state disk. Each measurement
+uses 500 queries, K equal to 10, \texttt{nprobe} equal to
+\texttt{nlist} divided by 64, and 8 threads. Every configuration is
+run for three passes: one \textbf{cold} pass, immediately after
+evicting the data from memory, and two \textbf{warm} passes.
+
+The main metric is \textbf{QPS} (queries per second), that is, how
+many search queries the system can answer each second. A higher value
+is better. As a side metric I also record the number of page-ins per
+pass, which indicates how much data the operating system had to fetch
+from disk.
+
+\subsection{Correctness}
+
+Before measuring performance, I checked correctness. For every
+configuration, the distances and identifiers returned by the ChiMod
+are \textbf{bitwise-identical} to those returned by stock FAISS. In
+other words, the new storage backend does not change the result of
+the search at all, only the way the data is stored and accessed.
+
+\subsection{Results}
+
+Table~\ref{tab:qps} shows the throughput of the CTE-based
+implementation as the index size grows well beyond the size of the
+RAM tier.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Index size & nprobe & QPS (cold) & QPS (warm) & page-ins per pass \\
+\midrule
+4.8 GB  & 64  & 148 & 145 - 152 & 0 \\
+24 GB   & 128 & 21  & 27 - 30   & 0 \\
+49 GB   & 256 & 8.9 & 7.8 - 7.9 & 0 \\
+87 GB   & 256 & 4.0 & 3.9 - 4.0 & 0 \\
+\bottomrule
+\end{tabular}
+\caption{CTE-based IVF search: throughput versus index size.}
+\label{tab:qps}
+\end{table}
+
+Two facts stand out immediately. First, the number of page-ins is
+zero at every size: the search never triggers the operating system to
+fetch pages from disk, because CTE, not the kernel, manages the data.
+Second, the cold and warm passes give almost the same throughput. The
+system does not need a warm-up phase, and its performance is
+predictable.
+
+This is very different from the original memory-mapped baseline
+measured on the same node. With \texttt{OnDiskInvertedLists}, the cold
+pass of the 24 gigabyte index runs at about 5.7 QPS with more than two
+hundred thousand page-ins, and only reaches roughly 70 QPS once the
+data is warm in the page cache. For indexes several times larger than
+RAM, the memory-mapped baseline degrades much further, dropping to a
+small fraction of one query per second with continuous page-cache
+thrashing. The CTE-based implementation, in contrast, keeps a stable
+throughput of several queries per second at 49 and 87 gigabytes, with
+no page faults and no collapse.
+
+This confirms that the original goal was achieved: replacing the page
+cache with explicit CTE placement removes the page-cache thrashing and
+the performance collapse in the regime where the index is much larger
+than RAM.
+
+\subsection{A New Bottleneck}
+
+Although this solves the original problem, the same experiments reveal
+a different limitation.
+
+Looking at the absolute numbers, the throughput is still lower than I
+expected. I initially assumed that the distance computations would
+dominate the execution time, since scanning a list means comparing
+every stored vector against the query. Instead, most of the time is
+spent \textbf{before} the scan even starts.
+
+The reason is that reading a list from CTE currently requires
+\textbf{copying the whole blob into a temporary buffer}. Only after
+this copy has completed can the scanner begin computing distances. As
+a result, every inverted list involved in a search is copied once
+before it is processed, and for searches that touch many lists this
+represents a large amount of memory traffic.
+
+I confirmed that this copy, and not the distance computation, is the
+bottleneck through three observations:
+
+\begin{itemize}
+\item The internal timers of the ChiMod show that the time spent
+waiting for reads to complete is larger than the time spent actually
+scanning.
+\item Switching the distance computation from the scalar
+implementation to the wider AVX-512 vector instructions changed the
+throughput by almost nothing. If the search were limited by
+arithmetic, faster arithmetic would help; the fact that it does not
+means the search is limited by data movement.
+\item In the regime where the index fits in memory, the warm
+memory-mapped baseline is actually faster than the CTE version (about
+70 QPS versus about 28 QPS at 24 gigabytes). The difference is exactly
+the extra copy: with a warm memory-mapped file, the page that the
+scanner reads is already the final location of the data, so no copy is
+needed, whereas the CTE version copies the list before scanning it.
+\end{itemize}
+
+\subsection{Current Search Pipeline}
+
+The current execution flow can be summarized as follows, where steps 2
+to 5 overlap across different lists:
+
+\begin{enumerate}
+\item Determine the inverted lists that must be visited.
+\item Issue an \texttt{AsyncGetBlob()} request for each list.
+\item Wait until the blob has been copied into a temporary buffer.
+\item Scan the copied data.
+\item Discard the temporary buffer.
+\end{enumerate}
+
+Even when a list already resides in the RAM tier of CTE, the search
+still performs an additional memory copy before any distance
+computation can begin. Conceptually, the execution looks as follows.
+
+\begin{verbatim}
+
+CTE RAM
+
++------------------------+
+| Inverted List          |
++------------------------+
+           |
+           | AsyncGetBlob()
+           v
+
++------------------------+
+| Temporary Buffer       |
++------------------------+
+           |
+           v
+
+Distance Computation
+
+\end{verbatim}
+
+\subsection{Copies, Disk Reads, and Where the Time Goes}
+
+It is worth being precise about which part of this cost is avoidable,
+because the answer depends on where each list is stored.
+
+When a list is in the \textbf{RAM tier}, the data is already in memory
+and the copy into the temporary buffer is pure overhead: the same
+bytes are duplicated for no reason other than the shape of the read
+interface.
+
+When a list is in the \textbf{NVMe tier}, the read is not pure
+overhead: those bytes genuinely have to be brought from the solid
+state disk into memory. This part is unavoidable with any storage
+system.
+
+This distinction matters for large indexes. When the index is several
+times larger than RAM, most lists live on the NVMe tier, so a large
+part of every search is genuine disk reading rather than wasteful
+copying. Measuring the amount of data moved per search against the
+elapsed time gives an effective throughput of roughly 0.7 to 0.8
+gigabytes per second at 49 and 87 gigabytes, which is close to the
+read bandwidth of the local NVMe device. In other words, at these
+sizes the search is essentially reading the working set off the disk
+on every query batch, and the copy is an additional cost on top of the
+part that is already in RAM.
+
+The general conclusion is that the remaining bottleneck is no longer
+located in FAISS, nor in the operating system, but in the interface
+used to access CTE data. The next section describes an extension to
+CLIO that could remove the avoidable part of this cost.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Possible Extension to CLIO}
+
+The current implementation shows that CTE is a much better storage
+abstraction for IVF search than relying on the operating system page
+cache, because inverted lists are managed explicitly instead of
+implicitly by the kernel. The experiments also show that the remaining
+bottleneck is no longer storage placement, but the interface used to
+retrieve data from CTE.
+
+Currently, every call to \texttt{AsyncGetBlob()} copies the requested
+blob into a temporary buffer before the application can access it. For
+an application such as FAISS, where the data is only read and never
+modified, this copy is unnecessary when the blob already resides in
+the local RAM tier.
+
+\subsection{Why This Cannot Be Done Today}
+
+Before proposing a change, I looked at the CTE implementation to
+understand why a module cannot simply read the data in place already.
+There are three specific reasons:
+
+\begin{itemize}
+\item The bytes stored in the RAM tier live in memory that is private
+to the runtime process, not in the shared-memory region that clients
+normally address, so a client-side pointer cannot reach them directly.
+\item There is a query that would report where a blob is physically
+stored, but the fields that carry that information are currently
+disabled, so no caller can resolve a blob to a concrete location.
+\item Nothing prevents a blob from being moved between tiers or
+reclaimed while it is being read. Reading its memory directly would
+therefore risk accessing data that has already been freed or relocated.
+\end{itemize}
+
+The encouraging part is that, inside the runtime, a block of RAM keeps
+a stable address for as long as it exists. The storage already behaves
+in the way a direct read would need; what is missing is a safe way to
+expose it.
+
+\subsection{A Possible Improvement}
+
+One possible extension would be to allow a ChiMod running inside the
+same CLIO runtime to obtain a temporary read-only view of a blob that
+is already stored in the local RAM tier. Conceptually, the workflow
+would become:
+
+\begin{verbatim}
+
+Current
+
+CTE RAM
+    |
+    | AsyncGetBlob()
+    v
+Temporary Buffer
+    |
+    v
+Distance Computation
+
+
+Proposed
+
+CTE RAM
+    |
+    | Read-only view
+    v
+Distance Computation
+
+\end{verbatim}
+
+Instead of copying the contents into another buffer, the scanner would
+process the bytes directly from their original location in the RAM
+tier.
+
+\subsection{Requirements}
+
+From my understanding of the current implementation, this would
+require three capabilities.
+
+\begin{itemize}
+
+\item \textbf{Resolve.} Given a blob identifier, determine where the
+blob is currently stored.
+
+\item \textbf{View.} If the blob is located in the local RAM tier,
+obtain a temporary pointer to its contents.
+
+\item \textbf{Pin.} Guarantee that the blob cannot be relocated or
+reclaimed while it is being scanned.
+
+\end{itemize}
+
+These three operations compose naturally: resolve finds the data, view
+exposes it, and pin keeps it safe for the duration of the scan. If a
+blob is not resident in the RAM tier, the existing
+\texttt{AsyncGetBlob()} mechanism could still be used as a fallback.
+
+\subsection{Scope of the Improvement}
+
+It is important to be honest about what this change would and would not
+solve. It removes the copy for the part of the index that is resident
+in the RAM tier, which is the avoidable overhead identified in the
+experiments. It does not remove the cost of reading lists that live on
+the NVMe tier, because those bytes still have to be brought from disk.
+
+Therefore, this extension would bring the in-memory working set close
+to the speed of a warm memory-mapped index, while keeping the
+advantages that the page cache cannot offer: explicit tiers, no
+page-cache thrashing, predictable behaviour, and placement decisions
+made at the granularity of an inverted list. For indexes that are much
+larger than RAM, the local disk bandwidth remains the ultimate limit,
+and reducing it further would require a separate mechanism to read the
+NVMe tier without a full copy.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusions}
+
+The goal of this project was to investigate whether FAISS IVF search
+could benefit from CLIO's explicit storage management.
+
+The implementation successfully replaces \texttt{OnDiskInvertedLists}
+with a CTE-based representation where each inverted list is stored as
+an independent blob. This avoids the page-cache thrashing observed
+with memory-mapped indexes once the dataset becomes much larger than
+the available RAM, and it does so while producing exactly the same
+search results as stock FAISS.
+
+The evaluation also showed that, once the page cache is out of the
+picture, the remaining bottleneck is the cost of copying every blob
+into a temporary buffer before it can be processed. Part of this cost,
+the part corresponding to lists already resident in the RAM tier, is
+avoidable.
+
+For this reason, I believe that providing a mechanism for obtaining
+safe read-only views of blobs already resident in the local RAM tier,
+built from the resolve, view and pin operations described above, would
+significantly reduce the amount of memory movement performed during a
+search. More generally, such functionality could also benefit other
+near-data applications running inside CLIO, not only FAISS.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Future Work}
+
+There are several directions that could be explored in the future.
+
+\begin{itemize}
+
+\item Implement the read-only view mechanism and measure the
+performance improvement obtained by eliminating the avoidable copy.
+
+\item Measure throughput under different RAM-tier capacities, to see
+how the crossover between the RAM tier and the NVMe tier affects
+performance.
+
+\item Investigate a mechanism to read the NVMe tier without a full
+copy, so that very large indexes are limited only by disk bandwidth.
+
+\item Investigate whether the same read-only view technique could be
+applied to other data-intensive applications running inside the CLIO
+runtime.
+
+\end{itemize}
+
+\end{document}
