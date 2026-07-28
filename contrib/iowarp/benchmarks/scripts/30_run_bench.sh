@@ -22,15 +22,15 @@
 #   results/bench_<volume>_<ts>.log
 #
 # Example:
-#   bash scripts/30_run_bench.sh ondisk_nb50M
+#   bash benchmarks/scripts/30_run_bench.sh ondisk_nb50M
 
 set -euo pipefail
 
 VOLUME="${1:?usage: 30_run_bench.sh <volume>}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-RESULTS="$ROOT/results"
+ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"                   # contrib/iowarp
+RESULTS="$ROOT/benchmarks/results"
 IOWARP_WORK_DIR="${IOWARP_WORK_DIR:-/mnt/common/$USER/faiss/slurm_bench/work}"
 QUERIES="${QUERIES:-/mnt/common/$USER/faiss/slurm_bench/data/bigann/bigann_query.bvecs}"
 FAISS_INSTALL="${FAISS_INSTALL:-$HOME/faiss-install}"

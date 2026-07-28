@@ -25,8 +25,8 @@
 #   A live clio_run process + populated CTE tag.
 #
 # Example:
-#   bash scripts/20_ingest_cte.sh ondisk_nb50M
-#   bash scripts/20_ingest_cte.sh ondisk_step3_nb178M faiss_ivf::exp178
+#   bash benchmarks/scripts/20_ingest_cte.sh ondisk_nb50M
+#   bash benchmarks/scripts/20_ingest_cte.sh ondisk_step3_nb178M faiss_ivf::exp178
 
 set -euo pipefail
 
@@ -34,8 +34,8 @@ VOLUME="${1:?usage: 20_ingest_cte.sh <volume> [tag]}"
 TAG="${2:-faiss_ivf::$VOLUME}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-RESULTS="$ROOT/results"
+ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"                   # contrib/iowarp
+RESULTS="$ROOT/benchmarks/results"
 CONF_SRC="$ROOT/config/ares_cte.yaml"
 IOWARP_WORK_DIR="${IOWARP_WORK_DIR:-/mnt/common/$USER/faiss/slurm_bench/work}"
 FAISS_INSTALL="${FAISS_INSTALL:-$HOME/faiss-install}"

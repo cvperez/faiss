@@ -5,7 +5,7 @@ CLIO runtime as a ChiMod, with inverted lists stored in CTE. For the design
 narrative and the proposed clio-core change see
 [DESIGN_AND_SOLUTION.md](DESIGN_AND_SOLUTION.md) and
 [UPSTREAM_PROPOSAL_IOWARP.md](UPSTREAM_PROPOSAL_IOWARP.md); for build and usage
-see [README.md](README.md).
+see [README.md](../README.md).
 
 ## Components
 

@@ -15,6 +15,21 @@ placed and migrated on its own across RAM and NVMe tiers. The unit CTE moves is
 exactly the unit a search reads. The ChiMod runs the IVF search next to that
 storage, inside the runtime.
 
+## Repository layout
+
+```
+contrib/iowarp/
+  CMakeLists.txt        standalone CMake project (build stays here as build/)
+  chimod/               the clio_faiss_ivf ChiMod — the contribution
+  src/                  C++ helpers + tools (cte_client, ivf_cte_ingest,
+                        ivf_to_iowarp, cte_smoke)
+  benchmarks/           bench_ivf_qps.cpp, scripts/ (run harness), results/
+  config/               clio_run compose configs (ares_cte.yaml, local_smoke.yaml)
+  docs/                 design notes, plan, upstream proposal, report.tex
+  third_party/          vendored header-only deps the wheel links but doesn't
+                        ship (zmq 4.3.5, msgpack-c 6.1.0, cereal 1.3.2)
+```
+
 ## Architecture
 
 ```

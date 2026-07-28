@@ -105,7 +105,7 @@ endfunction()
 
 # --- targets --------------------------------------------------------------
 # Smoke test: wheel link sanity, no FAISS dependency.
-add_executable(cte_smoke cte_smoke.cpp)
+add_executable(cte_smoke src/cte_smoke.cpp)
 iowarp_target(cte_smoke)
 
 # Tools + benchmark (need faiss and OpenMP).
@@ -132,16 +132,17 @@ endif()
 message(STATUS "Linking FAISS variant: ${FAISS_LINK_TARGET}")
 
 # Shared helpers: CTE client bootstrap + IVF->CTE ingestion.
-add_library(iowarp_cte STATIC cte_client.cpp ivf_cte_ingest.cpp)
+add_library(iowarp_cte STATIC src/cte_client.cpp src/ivf_cte_ingest.cpp)
 iowarp_target(iowarp_cte)
+target_include_directories(iowarp_cte PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(iowarp_cte PRIVATE ${FAISS_LINK_TARGET})
 set_target_properties(iowarp_cte PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-add_executable(ivf_to_iowarp ivf_to_iowarp.cpp)
+add_executable(ivf_to_iowarp src/ivf_to_iowarp.cpp)
 iowarp_target(ivf_to_iowarp)
 target_link_libraries(ivf_to_iowarp PRIVATE iowarp_cte ${FAISS_LINK_TARGET})
 
-add_executable(bench_ivf_qps bench_ivf_qps.cpp)
+add_executable(bench_ivf_qps benchmarks/bench_ivf_qps.cpp)
 iowarp_target(bench_ivf_qps)
 target_link_libraries(bench_ivf_qps PRIVATE iowarp_cte ${FAISS_LINK_TARGET}
     OpenMP::OpenMP_CXX)

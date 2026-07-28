@@ -28,14 +28,14 @@
 # Example:
 #   salloc -N 1 --exclusive          # NEVER run builds on the login node
 #   ssh $SLURM_NODELIST
-#   bash contrib/iowarp/scripts/00_env_ares.sh
+#   bash contrib/iowarp/benchmarks/scripts/00_env_ares.sh
 #
 # Idempotent: safe to re-run; each step is check-then-build.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"                      # contrib/iowarp
+ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"                   # contrib/iowarp
 FAISS_SRC="${FAISS_SRC:-$(cd "$ROOT/../.." && pwd)}"      # the faiss checkout
 FAISS_INSTALL="${FAISS_INSTALL:-$HOME/faiss-install}"
 IOWARP_HEADERS_DIR="${IOWARP_HEADERS_DIR:-$HOME/clio-core-v2.1.0}"
@@ -139,4 +139,4 @@ echo "NVMe scratch:"
 mkdir -p "/mnt/nvme/$USER" 2>/dev/null || true
 df -h "/mnt/nvme/$USER" 2>/dev/null || echo "  /mnt/nvme/$USER not available on this node" >&2
 echo
-echo "Environment ready. Next: scripts/20_ingest_cte.sh <volume>  (or scripts/30_run_bench.sh)"
+echo "Environment ready. Next: benchmarks/scripts/20_ingest_cte.sh <volume>  (or 30_run_bench.sh)"
