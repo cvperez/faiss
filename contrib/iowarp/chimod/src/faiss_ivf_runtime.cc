@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <string>
@@ -80,6 +81,34 @@ bool ScanListParallel(
     }
   }
   return ok;
+}
+
+// Copy a burst of lists straight out of the RAM tier via the client's
+// zero-IPC read (TryReadBlobShm), nthreads-wide. Plain function for the
+// same gcc-11 OMP-in-coroutine reason as ScanListParallel. Thread-safe
+// per clio-core dev core_client.h: seqlocked record lookup, shared_mutex-
+// guarded MapRamBdev (#817), placement_gen_ re-validated across the copy.
+// fast[j] stays 0 on a miss (file-tier / truncated / moved blob) and the
+// caller falls back to AsyncGetBlob for that list.
+void FetchBurstShm(clio::cte::core::Client& cte,
+                   const clio::cte::core::TagId& tag,
+                   const std::vector<int64_t>& lists,
+                   const std::vector<int64_t>& sizes, size_t code_size,
+                   size_t b0, size_t b1, int nthreads,
+                   const std::vector<clio::run::u32>& slot_of,
+                   std::vector<ctp::ipc::FullPtr<char>>& slabs,
+                   std::vector<uint8_t>& fast) {
+#pragma omp parallel for num_threads(nthreads) schedule(dynamic, 1)
+  for (size_t j = b0; j < b1; ++j) {
+    const int64_t l = lists[j];
+    const size_t sz = static_cast<size_t>(sizes[l]);
+    const size_t bytes = sz * (code_size + sizeof(int64_t));
+    fast[j] = cte.TryReadBlobShm(tag,
+                                 std::string("list/") + std::to_string(l),
+                                 slabs[slot_of[j]].ptr_, bytes)
+                  ? 1
+                  : 0;
+  }
 }
 
 }  // namespace
@@ -337,46 +366,101 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
   // future with more sub-tasks in flight can resume a destroyed coroutine
   // frame (SIGSEGV in ResumeCoroutine).
   constexpr size_t kMaxInflight = 64;
-  std::vector<ctp::ipc::FullPtr<char>> bufs(ntoscan);
+  // Zero-IPC burst width: on dev, AsyncGetBlob's shm fast path memcpys
+  // INLINE on this coroutine's worker (core_client.h TryShmGet), so the
+  // async pipeline no longer overlaps reads. Instead, copy RAM-resident
+  // lists in kFetchBatch-sized bursts across the scan threads, and keep
+  // the RPC pipeline only for misses.
+  constexpr size_t kFetchBatch = 16;
+  // Fixed pool of reusable list buffers ("slabs"), sized to the largest
+  // probed list. Per-list AllocateBuffer/FreeBuffer must NOT be used here:
+  // the dev allocator does not recycle multi-MB buffers — segments grow by
+  // roughly the bytes pushed and stay mapped, so one cold pass at nb50M
+  // grew the daemon by ~14 GB (102 x ~140 MB segments) and the OOM killer
+  // took the node. The pool caps buffer memory at kMaxInflight x max_list.
+  size_t max_bytes = 0;
+  for (size_t j = 0; j < ntoscan; ++j) {
+    const size_t szj = static_cast<size_t>(sizes_[lists[j]]);
+    max_bytes = std::max(max_bytes, szj * (code_size + sizeof(int64_t)));
+  }
+  const size_t nslabs = std::min(kMaxInflight, ntoscan);
+  std::vector<ctp::ipc::FullPtr<char>> slabs(nslabs);
+  for (size_t s = 0; s < nslabs; ++s) {
+    slabs[s] = ipc->AllocateBuffer(max_bytes);
+    if (slabs[s].IsNull()) {
+      HLOG(kError, "faiss_ivf: AllocateBuffer({}) failed during search",
+           max_bytes);
+      for (size_t t = 0; t < s; ++t) {
+        ipc->FreeBuffer(slabs[t]);
+      }
+      task->SetReturnCode(5);
+      CLIO_CO_RETURN;
+    }
+  }
+  std::vector<clio::run::u32> free_slots(nslabs);
+  for (size_t s = 0; s < nslabs; ++s) {
+    free_slots[s] = static_cast<clio::run::u32>(nslabs - 1 - s);
+  }
+  std::vector<clio::run::u32> slot_of(ntoscan, 0);
   std::vector<clio::run::Future<clio::cte::core::GetBlobTask>> futs(ntoscan);
+  // uint8_t (not vector<bool>): written concurrently from the OMP burst.
+  std::vector<uint8_t> fast(ntoscan, 0);
   std::vector<bool> done(ntoscan, false);
+  // Attach the shm metadata cache ONCE, serially, before any parallel
+  // readers: AttachShmCache writes shm_root_ unsynchronized. The env var
+  // is a kill-switch back to the pure RPC pipeline, no rebuild needed.
+  const bool shm_direct =
+      std::getenv("FAISS_IVF_NO_SHM_DIRECT") == nullptr &&
+      !clio::cte::core::Client::ForceNetEnv() &&
+      (cte_.HasShmCache() || cte_.AttachShmCache());
   const clio::run::u64 t_loop0 = NowUs();
   clio::run::u64 scan_us = 0;
-  bool stop_issue = false;  // alloc failure: issue no more, drain the rest
   size_t issued = 0;
   size_t completed = 0;
-  while (completed < issued || (!stop_issue && issued < ntoscan)) {
-    while (!stop_issue && issued < ntoscan &&
-           issued - completed < kMaxInflight) {
-      const int64_t l = lists[issued];
-      const size_t sz = static_cast<size_t>(sizes_[l]);
-      const clio::run::u64 bytes =
-          static_cast<clio::run::u64>(sz) * (code_size + sizeof(int64_t));
-      bufs[issued] = ipc->AllocateBuffer(bytes);
-      if (bufs[issued].IsNull()) {
-        HLOG(kError, "faiss_ivf: AllocateBuffer({}) failed during search",
-             bytes);
-        task->SetReturnCode(5);
-        stop_issue = true;
-        break;
+  while (completed < issued || issued < ntoscan) {
+    while (issued < ntoscan && issued - completed < kMaxInflight) {
+      // Grab a batch of slots from the pool, zero-IPC-copy the whole
+      // batch across the scan threads, then issue RPC gets for the
+      // misses only. issued - completed < kMaxInflight bounds the slots
+      // in use, so free_slots can never underflow here.
+      const size_t b0 = issued;
+      const size_t b1 =
+          std::min({ntoscan, b0 + kFetchBatch, completed + kMaxInflight});
+      for (size_t j = b0; j < b1; ++j) {
+        slot_of[j] = free_slots.back();
+        free_slots.pop_back();
       }
-      futs[issued] = cte_.AsyncGetBlob(
-          tag_id_, std::string("list/") + std::to_string(l), 0, bytes, 0,
-          bufs[issued].shm_.template Cast<void>());
-      ++issued;
+      if (shm_direct) {
+        FetchBurstShm(cte_, tag_id_, lists, sizes_, code_size, b0, b1,
+                      kScanThreads, slot_of, slabs, fast);
+      }
+      for (size_t j = b0; j < b1; ++j) {
+        if (fast[j]) {
+          continue;  // bytes already in the slab, no task needed
+        }
+        const size_t sz = static_cast<size_t>(sizes_[lists[j]]);
+        const clio::run::u64 bytes =
+            static_cast<clio::run::u64>(sz) * (code_size + sizeof(int64_t));
+        futs[j] = cte_.AsyncGetBlob(
+            tag_id_, std::string("list/") + std::to_string(lists[j]), 0,
+            bytes, 0, slabs[slot_of[j]].shm_.template Cast<void>());
+      }
+      issued = b1;
     }
     bool progressed = false;
     for (size_t i = 0; i < issued; ++i) {
-      if (done[i] || !futs[i].IsComplete()) {
+      if (done[i] || (!fast[i] && !futs[i].IsComplete())) {
         continue;
       }
-      CLIO_CO_AWAIT(futs[i]);  // completed: returns immediately
+      if (!fast[i]) {
+        CLIO_CO_AWAIT(futs[i]);  // completed: returns immediately
+      }
       done[i] = true;
       ++completed;
       progressed = true;
       const int64_t l = lists[i];
       const size_t sz = static_cast<size_t>(sizes_[l]);
-      if (futs[i]->GetReturnCode() != 0) {
+      if (!fast[i] && futs[i]->GetReturnCode() != 0) {
         HLOG(kError, "faiss_ivf: GetBlob('list/{}') failed (rc={})", l,
              futs[i]->GetReturnCode());
         task->SetReturnCode(5);
@@ -384,7 +468,7 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
         stat_lists_fetched_ += 1;
         stat_bytes_fetched_ +=
             static_cast<clio::run::u64>(sz) * (code_size + sizeof(int64_t));
-        const char* base = bufs[i].ptr_;
+        const char* base = slabs[slot_of[i]].ptr_;
         const uint8_t* codes = reinterpret_cast<const uint8_t*>(base);
         const faiss::idx_t* ids =
             reinterpret_cast<const faiss::idx_t*>(base + sz * code_size);
@@ -396,11 +480,24 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
         }
         scan_us += NowUs() - s0;
       }
-      ipc->FreeBuffer(bufs[i]);
+      // Return the slot to the pool (slabs are reused, never freed
+      // per-list).
+      free_slots.push_back(slot_of[i]);
+      if (!fast[i]) {
+        // Drop the future NOW: on dev a Future owns its GetBlobTask via
+        // shared_ptr, and holding every awaited future until the end of
+        // the search pins one shm task per probed list (~16k at nb100M)
+        // until the client allocators are exhausted and the daemon
+        // stalls. Resetting caps live tasks at kMaxInflight.
+        futs[i] = clio::run::Future<clio::cte::core::GetBlobTask>();
+      }
     }
     if (!progressed && completed < issued) {
       CLIO_CO_AWAIT(clio::run::yield());
     }
+  }
+  for (size_t s = 0; s < nslabs; ++s) {
+    ipc->FreeBuffer(slabs[s]);
   }
   const clio::run::u64 loop_us = NowUs() - t_loop0;
   stat_scan_us_ += scan_us;

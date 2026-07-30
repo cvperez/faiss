@@ -23,6 +23,7 @@ Example:
       --phase-file results/.phase_123 --tier-dir /mnt/nvme/$USER/cte_tier &
 """
 import argparse
+import glob
 import os
 import subprocess
 import sys
@@ -42,17 +43,31 @@ def diskstats(dev):
     return 0, 0, 0
 
 
-def dir_bytes(path):
-    total = 0
+def _alloc_bytes(p):
+    """Physically allocated bytes (st_blocks), NOT st_size: the file bdev
+    preallocates a sparse capacity-sized file, so st_size would report the
+    120g capacity even when nothing has spilled."""
     try:
-        for root, _dirs, files in os.walk(path):
-            for fn in files:
-                try:
-                    total += os.stat(os.path.join(root, fn)).st_size
-                except OSError:
-                    pass
+        return os.stat(p).st_blocks * 512
     except OSError:
-        pass
+        return 0
+
+
+def dir_bytes(path):
+    """Sum allocated bytes under path taken as a PREFIX: matches both a
+    tier directory (cte_tier/) and the sibling bdev files the file
+    transport actually writes (cte_tier_node0, cte_tier_node1, ...)."""
+    total = 0
+    for p in glob.glob(path + "*"):
+        if os.path.isfile(p):
+            total += _alloc_bytes(p)
+            continue
+        try:
+            for root, _dirs, files in os.walk(p):
+                for fn in files:
+                    total += _alloc_bytes(os.path.join(root, fn))
+        except OSError:
+            pass
     return total
 
 
@@ -67,7 +82,10 @@ def devshm_used():
 def clio_rss():
     try:
         pids = subprocess.run(
-            ["pgrep", "-f", "iowarp_core/bin/clio_run"],
+            # Substring ERE against the full cmdline: the daemon is started
+            # as a bare `clio_run start` (PATH lookup, 20_ingest_cte.sh), so
+            # argv[0] carries no install-prefix path to match on.
+            ["pgrep", "-f", "clio_run"],
             capture_output=True, text=True).stdout.split()
         rss = 0
         for pid in pids:

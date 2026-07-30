@@ -1,0 +1,166 @@
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/config_manager.cc:144 INFO 2750911 ClientInit Config at: /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/benchmarks/results/ares_cte_rendered_20260730_171246.yaml[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2865 INFO 2750911 ClearUserIpcs ClearUserIpcs: Removed 26 memfd symlinks from previous runs[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:906 WARNING 2750911 ServerInitShm Main segment: requested 50079715328 bytes exceeds half the memory budget (50079715328 bytes); clamping to 25039857664 bytes[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:931 INFO 2750911 ServerInitShm Initializing main shared memory segment: 25039857664 bytes (23879 MB)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:952 INFO 2750911 ServerInitShm Initializing queue shared memory segment: 646224224 bytes (631078 KB)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1005 WARNING 2750911 ServerInitShm Metadata segment: requested 50079715328 bytes exceeds half the memory budget (50079715328 bytes); clamping to 25039857664 bytes[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1039 INFO 2750911 ServerInitShm Initializing metadata shared memory segment: 25039857664 bytes (23879 MB), sparse/not pre-faulted[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:865 INFO 2750911 ExcludeFromCoreDump metadata segment: excluded 25039857664 bytes from core dumps[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1072 INFO 2750911 ServerInitShm ServerInitShm: metadata directory at offset 68072[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1127 INFO 2750911 ServerInitShm ServerInitShm: 8 inbound SHM ring(s) 'clio-2750911-shm-in-0..7' (16MB each)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1269 INFO 2750911 ServerInitQueues Initializing 16 worker queues with depth 1024 (last worker serves dual role)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1933 INFO 2750911 IdentifyThisHost SUCCESS: Main server started on 0.0.0.0:9413 (advertised as 0.0.0.0, node=0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:561 INFO 2750911 ServerInit IpcManager: TCP ROUTER transport bound on 0.0.0.0:9416[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:579 INFO 2750911 ServerInit IpcManager: IPC lightbeam server bound on /tmp/clio_cvazquezperezdelacru/clio_9413.ipc[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/module_manager.cc:137 INFO 2750911 LoadChiMod Loaded ChiMod: clio_cte_filesystem from /mnt/common/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_filesystem_runtime.so[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/module_manager.cc:137 INFO 2750911 LoadChiMod Loaded ChiMod: clio_MOD_NAME from /mnt/common/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_MOD_NAME_runtime.so[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/module_manager.cc:137 INFO 2750911 LoadChiMod Loaded ChiMod: clio_admin from /mnt/common/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_admin_runtime.so[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/module_manager.cc:137 INFO 2750911 LoadChiMod Loaded ChiMod: clio_bdev from /mnt/common/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_bdev_runtime.so[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/module_manager.cc:137 INFO 2750911 LoadChiMod Loaded ChiMod: clio_safe_bdev from /mnt/common/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_safe_bdev_runtime.so[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/module_manager.cc:137 INFO 2750911 LoadChiMod Loaded ChiMod: clio_cte_core from /mnt/common/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_core_runtime.so[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/module_manager.cc:137 INFO 2750911 LoadChiMod Loaded ChiMod: clio_faiss_ivf from /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/build-dev/chimod/libclio_faiss_ivf_runtime.so[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/work_orchestrator.cc:94 INFO 2750911 Init Creating 8 workers (7 task + 1 dedicated network)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:756 INFO 2750911 SetNumSchedQueues IpcManager: Updated num_sched_queues to 1[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:139 INFO 2750911 DivideWorkers DefaultScheduler: 1 scheduler worker (0), 4 I/O workers, net_send_worker=6, net_recv_worker=7, gpu_worker=5[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/work_orchestrator.cc:271 INFO 2750911 SpawnWorkerThreads WorkOrchestrator: num_workers=8, num_lanes=16[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/work_orchestrator.cc:294 INFO 2750911 SpawnWorkerThreads WorkOrchestrator: Mapped worker 0 (ID 0) to lane 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/work_orchestrator.cc:294 INFO 2750911 SpawnWorkerThreads WorkOrchestrator: Mapped worker 1 (ID 1) to lane 1[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/work_orchestrator.cc:294 INFO 2750911 SpawnWorkerThreads WorkOrchestrator: Mapped worker 2 (ID 2) to lane 2[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/work_orchestrator.cc:294 INFO 2750911 SpawnWorkerThreads WorkOrchestrator: Mapped worker 3 (ID 3) to lane 3[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/work_orchestrator.cc:294 INFO 2750911 SpawnWorkerThreads WorkOrchestrator: Mapped worker 4 (ID 4) to lane 4[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/work_orchestrator.cc:294 INFO 2750911 SpawnWorkerThreads WorkOrchestrator: Mapped worker 5 (ID 5) to lane 5[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/work_orchestrator.cc:294 INFO 2750911 SpawnWorkerThreads WorkOrchestrator: Mapped worker 6 (ID 6) to lane 6[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/work_orchestrator.cc:294 INFO 2750911 SpawnWorkerThreads WorkOrchestrator: Mapped worker 7 (ID 7) to lane 7[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:534 INFO 2750911 CreatePool PoolManager: Creating pool 'admin' with 1 containers (one per node)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/modules/admin/include/clio_runtime/admin/admin_client.h:59 WARNING 2750911 Client AdminClient: Default constructor called - pool_id_ will be PoolId(0,0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:615 INFO 2750911 CreatePool Creating container for pool PoolId(major:1, minor:0) on node 0 with container_id=0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:644 INFO 2750911 CreatePool Container initialized with pool ID PoolId(major:1, minor:0), name admin, and container ID 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:663 INFO 2750911 CreatePool CreatePool: Running Create method for pool PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc/ipc_run2run.cc:1105 INFO 2750957 operator() [PeerRecvThread] started[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc/ipc_run2run.cc:1166 INFO 2750958 operator() [ClientRecvThread] started[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:666 INFO 2750911 CreatePool CreatePool: Create method completed for pool PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:700 INFO 2750911 CreatePool PoolManager: Created complete pool PoolId(major:1, minor:0) with ChiMod clio_admin (1 containers)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:125 INFO 2750911 ServerInit PoolManager: Admin chimod pool created successfully with PoolId PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:264 INFO 2750911 ServerInit Processing compose configuration with 3 pools[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/../modules/admin/include/clio_runtime/admin/admin_client.h:59 WARNING 2750911 Client AdminClient: Default constructor called - pool_id_ will be PoolId(0,0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:282 INFO 2750911 ServerInit Compose: Creating pool ram::chi_default_bdev (module: clio_bdev, restart: 0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:534 INFO 2750952 CreatePool PoolManager: Creating pool 'ram::chi_default_bdev' with 1 containers (one per node)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:615 INFO 2750952 CreatePool Creating container for pool PoolId(major:301, minor:0) on node 0 with container_id=0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:644 INFO 2750952 CreatePool Container initialized with pool ID PoolId(major:301, minor:0), name ram::chi_default_bdev, and container ID 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:663 INFO 2750952 CreatePool CreatePool: Running Create method for pool PoolId(major:301, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/modules/bdev/src/transports/mem_bdev_transport.cc:142 INFO 2750952 InitShmBacking [#783] RAM bdev 'clio_rambdev_2750911_301_0' is shared-memory backed (38655688704 of 38654705664 bytes mapped)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:666 INFO 2750952 CreatePool CreatePool: Create method completed for pool PoolId(major:301, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:700 INFO 2750952 CreatePool PoolManager: Created complete pool PoolId(major:301, minor:0) with ChiMod clio_bdev (1 containers)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:298 INFO 2750911 ServerInit Compose: Successfully created pool ram::chi_default_bdev (module: clio_bdev)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:282 INFO 2750911 ServerInit Compose: Creating pool cte_main (module: clio_cte_core, restart: 0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:534 INFO 2750949 CreatePool PoolManager: Creating pool 'cte_main' with 1 containers (one per node)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:615 INFO 2750949 CreatePool Creating container for pool PoolId(major:512, minor:0) on node 0 with container_id=0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:644 INFO 2750949 CreatePool Container initialized with pool ID PoolId(major:512, minor:0), name cte_main, and container ID 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:663 INFO 2750949 CreatePool CreatePool: Running Create method for pool PoolId(major:512, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-transfer-engine/core/src/core_config.cc:618 INFO 2750949 ParseStorageConfig Parsed 2 storage devices[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-transfer-engine/core/src/core_config.cc:636 INFO 2750949 ParseDpeConfig Parsed DPE configuration: type=max_bw[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-transfer-engine/core/src/core_config.cc:111 INFO 2750949 LoadFromString Configuration loaded successfully from YAML string[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-transfer-engine/core/src/core_runtime.cc:545 INFO 2750949 Create CTE: shared-memory metadata cache enabled (tags=65536, blobs=262144, root_off=488)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:534 INFO 2750951 CreatePool PoolManager: Creating pool 'ram::cte_ram_tier_node0' with 1 containers (one per node)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:615 INFO 2750951 CreatePool Creating container for pool PoolId(major:512, minor:1) on node 0 with container_id=0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:644 INFO 2750951 CreatePool Container initialized with pool ID PoolId(major:512, minor:1), name ram::cte_ram_tier_node0, and container ID 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:663 INFO 2750951 CreatePool CreatePool: Running Create method for pool PoolId(major:512, minor:1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/modules/bdev/src/transports/mem_bdev_transport.cc:142 INFO 2750951 InitShmBacking [#783] RAM bdev 'clio_rambdev_2750911_512_1' is shared-memory backed (32213237760 of 32212254720 bytes mapped)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:666 INFO 2750951 CreatePool CreatePool: Create method completed for pool PoolId(major:512, minor:1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:700 INFO 2750951 CreatePool PoolManager: Created complete pool PoolId(major:512, minor:1) with ChiMod clio_bdev (1 containers)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:534 INFO 2750951 CreatePool PoolManager: Creating pool '/mnt/nvme/cvazquezperezdelacru/cte_tier_node0' with 1 containers (one per node)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:615 INFO 2750951 CreatePool Creating container for pool PoolId(major:513, minor:1) on node 0 with container_id=0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:644 INFO 2750951 CreatePool Container initialized with pool ID PoolId(major:513, minor:1), name /mnt/nvme/cvazquezperezdelacru/cte_tier_node0, and container ID 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:663 INFO 2750951 CreatePool CreatePool: Running Create method for pool PoolId(major:513, minor:1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:666 INFO 2750951 CreatePool CreatePool: Create method completed for pool PoolId(major:513, minor:1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:700 INFO 2750951 CreatePool PoolManager: Created complete pool PoolId(major:513, minor:1) with ChiMod clio_bdev (1 containers)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-transfer-engine/core/src/core_runtime.cc:663 INFO 2750949 Create CTE Core container created and initialized for pool: cte_main (ID: PoolId(major:512, minor:0))[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-transfer-engine/core/src/core_runtime.cc:667 INFO 2750949 Create Configuration: neighborhood=1, poll_period_ms=5000, stat_targets_period_ms=5000[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-transfer-engine/core/src/core_runtime.cc:709 INFO 2750949 Create Starting periodic StatTargets task with period 5000 ms[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:666 INFO 2750949 CreatePool CreatePool: Create method completed for pool PoolId(major:512, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:700 INFO 2750949 CreatePool PoolManager: Created complete pool PoolId(major:512, minor:0) with ChiMod clio_cte_core (1 containers)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:298 INFO 2750911 ServerInit Compose: Successfully created pool cte_main (module: clio_cte_core)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:282 INFO 2750911 ServerInit Compose: Creating pool faiss_ivf_main (module: clio_faiss_ivf, restart: 0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:534 INFO 2750951 CreatePool PoolManager: Creating pool 'faiss_ivf_main' with 1 containers (one per node)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:615 INFO 2750951 CreatePool Creating container for pool PoolId(major:600, minor:0) on node 0 with container_id=0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:644 INFO 2750951 CreatePool Container initialized with pool ID PoolId(major:600, minor:0), name faiss_ivf_main, and container ID 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:663 INFO 2750951 CreatePool CreatePool: Running Create method for pool PoolId(major:600, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:666 INFO 2750951 CreatePool CreatePool: Create method completed for pool PoolId(major:600, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:700 INFO 2750951 CreatePool PoolManager: Created complete pool PoolId(major:600, minor:0) with ChiMod clio_faiss_ivf (1 containers)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:298 INFO 2750911 ServerInit Compose: Successfully created pool faiss_ivf_main (module: clio_faiss_ivf)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:304 INFO 2750911 ServerInit Compose: All 3 pools created successfully[0m
+[32m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1368 SUCCESS 2750911 StartLocalServer Successfully started local server at 127.0.0.1:9414[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:137 INFO 2750911 ClientInit RuntimeManager::ClientInit[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:181 INFO 2750911 ClientInit ClientInit: g_admin already exists, pool_id_=PoolId(major:0, minor:0)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:430 WARNING 2750956 LoadBalance [#781 PDF] observed exec-time bins (cumulative): <10us=60195 <50us=299 <500us=8 <10ms=8 <50ms=0 <500ms=2 <1s=0 >=1s=0 | stalls_detected=0[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:439 WARNING 2750956 LoadBalance [#785] lane rescues performed: 0[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:430 WARNING 2750956 LoadBalance [#781 PDF] observed exec-time bins (cumulative): <10us=127052 <50us=574 <500us=14 <10ms=8 <50ms=0 <500ms=2 <1s=0 >=1s=0 | stalls_detected=0[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:439 WARNING 2750956 LoadBalance [#785] lane rescues performed: 0[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:430 WARNING 2750956 LoadBalance [#781 PDF] observed exec-time bins (cumulative): <10us=193866 <50us=825 <500us=22 <10ms=11 <50ms=0 <500ms=2 <1s=0 >=1s=0 | stalls_detected=0[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:439 WARNING 2750956 LoadBalance [#785] lane rescues performed: 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2288 INFO 2750958 GetOrCreateClient [ClientPool] Creating new persistent connection to 127.0.0.1:43449[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:152 INFO 2750958 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2308 INFO 2750958 GetOrCreateClient [ClientPool] Connection established to 127.0.0.1:43449[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/modules/admin/src/admin_runtime.cc:1191 INFO 2750948 RegisterMemory Admin::RegisterMemory: Registering CPU alloc_id (2751026.0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2532 INFO 2750948 RegisterMemory IpcManager::RegisterMemory: Registering clio_2751026_0 from pid 2751026[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2575 INFO 2750948 RegisterMemory IpcManager::RegisterMemory: Successfully registered clio_2751026_0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:534 INFO 2750952 CreatePool PoolManager: Creating pool 'clio_cte_core' with 1 containers (one per node)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:575 INFO 2750952 CreatePool PoolManager: Pool PoolId(major:512, minor:0) already exists by ID, returning existing pool[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:430 WARNING 2750956 LoadBalance [#781 PDF] observed exec-time bins (cumulative): <10us=264643 <50us=3376 <500us=1042 <10ms=64 <50ms=15 <500ms=4 <1s=0 >=1s=0 | stalls_detected=0[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:439 WARNING 2750956 LoadBalance [#785] lane rescues performed: 0[0m
+[31m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:726 ERROR 2750956 LoadBalance [HANGWATCH-HB] processed=5373 outstanding=6 (queued=6 blocked=0 retry=0 periodic=7) live=1 live_stalled=0[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:430 WARNING 2750956 LoadBalance [#781 PDF] observed exec-time bins (cumulative): <10us=329159 <50us=7559 <500us=2492 <10ms=128 <50ms=37 <500ms=4 <1s=0 >=1s=0 | stalls_detected=0[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:439 WARNING 2750956 LoadBalance [#785] lane rescues performed: 0[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:430 WARNING 2750956 LoadBalance [#781 PDF] observed exec-time bins (cumulative): <10us=393866 <50us=11885 <500us=3847 <10ms=181 <50ms=59 <500ms=6 <1s=0 >=1s=0 | stalls_detected=0[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:439 WARNING 2750956 LoadBalance [#785] lane rescues performed: 0[0m
+[31m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:726 ERROR 2750956 LoadBalance [HANGWATCH-HB] processed=10618 outstanding=1 (queued=1 blocked=0 retry=0 periodic=6) live=1 live_stalled=0[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:430 WARNING 2750956 LoadBalance [#781 PDF] observed exec-time bins (cumulative): <10us=459688 <50us=14318 <500us=4704 <10ms=232 <50ms=72 <500ms=8 <1s=0 >=1s=0 | stalls_detected=0[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:439 WARNING 2750956 LoadBalance [#785] lane rescues performed: 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2288 INFO 2750958 GetOrCreateClient [ClientPool] Creating new persistent connection to 127.0.0.1:35083[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2308 INFO 2750958 GetOrCreateClient [ClientPool] Connection established to 127.0.0.1:35083[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/modules/admin/src/admin_runtime.cc:1191 INFO 2750950 RegisterMemory Admin::RegisterMemory: Registering CPU alloc_id (2751100.0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2532 INFO 2750950 RegisterMemory IpcManager::RegisterMemory: Registering clio_2751100_0 from pid 2751100[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2575 INFO 2750950 RegisterMemory IpcManager::RegisterMemory: Successfully registered clio_2751100_0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:534 INFO 2750950 CreatePool PoolManager: Creating pool 'clio_cte_core' with 1 containers (one per node)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:575 INFO 2750950 CreatePool PoolManager: Pool PoolId(major:512, minor:0) already exists by ID, returning existing pool[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:534 INFO 2750950 CreatePool PoolManager: Creating pool 'faiss_ivf_bench' with 1 containers (one per node)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:575 INFO 2750950 CreatePool PoolManager: Pool PoolId(major:600, minor:0) already exists by ID, returning existing pool[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2750950 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2750911_4 with size 117522432 (83968000 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2750950 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2750911_4 with ID (2750911.4)[0m
+[97m/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/chimod/src/faiss_ivf_runtime.cc:258 INFO 2750950 OpenIndex faiss_ivf: opened '/mnt/common/cvazquezperezdelacru/faiss/slurm_bench/work/ondisk_nb10M.index' (d=128, nlist=4096, ntotal=10000000, tag='faiss_ivf::ondisk_nb10M')[0m
+[97m/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/chimod/src/faiss_ivf_runtime.cc:329 INFO 2750950 Search faiss_ivf: Search nq=500 k=10 nprobe=64 unique_lists=4084[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2750950 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2750911_5 with size 132545216 (98990784 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2750950 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2750911_5 with ID (2750911.5)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2750950 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2750911_6 with size 132545216 (98990784 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2750950 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2750911_6 with ID (2750911.6)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2750950 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2750911_7 with size 132545216 (98990784 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2750950 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2750911_7 with ID (2750911.7)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:455 WARNING 2750956 operator() [#781] worker 2 STALLED on one task (load_us=0 realtime_load_us=1.18688e+06 threshold_s=1)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/worker.cc:370 WARNING 2750956 AdoptLane [#785] worker 2 adopted lane 0x7fb0497e0368[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/work_orchestrator.cc:545 WARNING 2750956 SpawnAdditionalWorker [#785] spawned elastic worker 8 (pool now 9 workers)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:598 WARNING 2750956 operator() [#785] RESCUE: stalled worker 2 -> worker 8 (4 parked task(s) moved, 1 queued task(s) redistributed, rescues=1)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:455 WARNING 2750956 operator() [#781] worker 2 STALLED on one task (load_us=0 realtime_load_us=1.68814e+06 threshold_s=1)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/worker.cc:370 WARNING 2750956 AdoptLane [#785] worker 2 adopted lane 0x7fb0497e0368[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/work_orchestrator.cc:545 WARNING 2750956 SpawnAdditionalWorker [#785] spawned elastic worker 9 (pool now 10 workers)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:598 WARNING 2750956 operator() [#785] RESCUE: stalled worker 2 -> worker 9 (0 parked task(s) moved, 1 queued task(s) redistributed, rescues=2)[0m
+[97m/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/chimod/src/faiss_ivf_runtime.cc:329 INFO 2750950 Search faiss_ivf: Search nq=500 k=10 nprobe=64 unique_lists=4084[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:455 WARNING 2750956 operator() [#781] worker 2 STALLED on one task (load_us=0 realtime_load_us=1.59684e+06 threshold_s=1)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/worker.cc:370 WARNING 2750956 AdoptLane [#785] worker 2 adopted lane 0x7fb0497e0368[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:598 WARNING 2750956 operator() [#785] RESCUE: stalled worker 2 -> worker 8 (0 parked task(s) moved, 0 queued task(s) redistributed, rescues=3)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:455 WARNING 2750956 operator() [#781] worker 2 STALLED on one task (load_us=0 realtime_load_us=2.09749e+06 threshold_s=1)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/worker.cc:370 WARNING 2750956 AdoptLane [#785] worker 2 adopted lane 0x7fb0497e0368[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:598 WARNING 2750956 operator() [#785] RESCUE: stalled worker 2 -> worker 8 (0 parked task(s) moved, 0 queued task(s) redistributed, rescues=4)[0m
+[97m/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/chimod/src/faiss_ivf_runtime.cc:329 INFO 2750950 Search faiss_ivf: Search nq=500 k=10 nprobe=64 unique_lists=4084[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:430 WARNING 2750956 LoadBalance [#781 PDF] observed exec-time bins (cumulative): <10us=524926 <50us=16287 <500us=4712 <10ms=234 <50ms=72 <500ms=8 <1s=0 >=1s=2 | stalls_detected=4[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:439 WARNING 2750956 LoadBalance [#785] lane rescues performed: 4[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:455 WARNING 2750956 operator() [#781] worker 2 STALLED on one task (load_us=0 realtime_load_us=1.95957e+06 threshold_s=1)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/worker.cc:370 WARNING 2750956 AdoptLane [#785] worker 2 adopted lane 0x7fb0497e0368[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:598 WARNING 2750956 operator() [#785] RESCUE: stalled worker 2 -> worker 8 (0 parked task(s) moved, 0 queued task(s) redistributed, rescues=5)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:455 WARNING 2750956 operator() [#781] worker 2 STALLED on one task (load_us=0 realtime_load_us=2.46023e+06 threshold_s=1)[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/worker.cc:370 WARNING 2750956 AdoptLane [#785] worker 2 adopted lane 0x7fb0497e0368[0m
+[33m/home/cvazquezperezdelacru/clio-core/context-runtime/src/scheduler/default_sched.cc:598 WARNING 2750956 operator() [#785] RESCUE: stalled worker 2 -> worker 8 (0 parked task(s) moved, 0 queued task(s) redistributed, rescues=6)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/pool_manager.cc:431 INFO 2750911 DestroyLocalPool PoolManager: Destroyed local pool PoolId(major:1, minor:0)[0m
+[31m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:3849 ERROR 2750955 RouteTask RouteTask: RouteLocal returned 4 for pool=PoolId(major:1, minor:0) method=21, worker=7[0m
+[31m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:3849 ERROR 2750955 RouteTask RouteTask: RouteLocal returned 4 for pool=PoolId(major:1, minor:0) method=21, worker=7[0m
+[31m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:3849 ERROR 2750954 RouteTask RouteTask: RouteLocal returned 4 for pool=PoolId(major:1, minor:0) method=14, worker=6[0m
+[31m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:3849 ERROR 2750954 RouteTask RouteTask: RouteLocal returned 4 for pool=PoolId(major:1, minor:0) method=14, worker=6[0m

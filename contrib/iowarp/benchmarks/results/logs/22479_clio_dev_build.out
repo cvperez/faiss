@@ -1,0 +1,617 @@
+=== toolchain on ares-comp-14 ===
+gcc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
+cmake version 4.3.1
+nproc=40
+=== build (all configured targets) ===
+[  1%] Building CXX object context-transport-primitives/src/CMakeFiles/clio_ctp_host.dir/system_info.cc.o
+[  3%] Building CXX object context-transport-primitives/src/CMakeFiles/clio_ctp_host.dir/malloc_allocator.cc.o
+[  3%] Building CXX object context-transport-primitives/src/CMakeFiles/clio_ctp_host.dir/thread_model.cc.o
+[  4%] Linking CXX shared library ../../bin/libclio_ctp_host.so
+[  6%] Built target clio_ctp_host
+[  9%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/admin.cc.o
+[  9%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/clio_runtime.cc.o
+[ 13%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/ipc/ipc_cpu2cpu.cc.o
+[ 13%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/batch_manager.cc.o
+[ 13%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/config_manager.cc.o
+[ 13%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/dynamic_container.cc.o
+[ 18%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/ipc/ipc_gpu2cpu.cc.o
+[ 18%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/ipc/ipc_cpu2self.cc.o
+[ 18%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/ipc/ipc_run2run.cc.o
+[ 18%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/ipc/ipc_cpu2cpu_zmq.cc.o
+[ 18%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/ipc_manager.cc.o
+[ 24%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/pool_manager.cc.o
+[ 24%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/pool_query.cc.o
+[ 24%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/scheduler/local_sched.cc.o
+[ 30%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/task_archive.cc.o
+[ 24%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/module_manager.cc.o
+[ 24%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/restart_log.cc.o
+[ 30%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/scheduler/scheduler_factory.cc.o
+[ 30%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/task.cc.o
+[ 30%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/worker.cc.o
+[ 30%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/work_orchestrator.cc.o
+[ 24%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/manager.cc.o
+[ 30%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/scheduler/default_sched.cc.o
+[ 30%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/types.cc.o
+[ 31%] Linking CXX shared library ../../bin/libclio_run_cxx.so
+[ 32%] Built target clio_run_cxx
+[ 33%] Building CXX object context-runtime/modules/admin/CMakeFiles/clio_admin_client.dir/src/admin_client.cc.o
+[ 34%] Building CXX object context-runtime/modules/MOD_NAME/CMakeFiles/clio_MOD_NAME_client.dir/src/MOD_NAME_client.cc.o
+[ 35%] Linking CXX shared library ../../../bin/libclio_MOD_NAME_client.so
+[ 35%] Built target clio_MOD_NAME_client
+[ 36%] Linking CXX shared library ../../../bin/libclio_admin_client.so
+[ 38%] Building CXX object context-runtime/modules/MOD_NAME/CMakeFiles/clio_MOD_NAME_runtime.dir/src/autogen/MOD_NAME_lib_exec.cc.o
+[ 38%] Building CXX object context-runtime/modules/MOD_NAME/CMakeFiles/clio_MOD_NAME_runtime.dir/src/MOD_NAME_runtime.cc.o
+[ 39%] Built target clio_admin_client
+[ 40%] Building CXX object context-runtime/modules/bdev/CMakeFiles/clio_bdev_client.dir/src/bdev_client.cc.o
+[ 42%] Building CXX object context-runtime/modules/admin/CMakeFiles/clio_admin_runtime.dir/src/autogen/admin_lib_exec.cc.o
+[ 42%] Building CXX object context-runtime/modules/admin/CMakeFiles/clio_admin_runtime.dir/src/admin_runtime.cc.o
+[ 43%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_runtime_start.cc.o
+[ 47%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_runtime_stop.cc.o
+[ 47%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_migrate.cc.o
+[ 49%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_config.cc.o
+[ 49%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_compose.cc.o
+[ 49%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_refresh_repo.cc.o
+[ 47%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_monitor.cc.o
+[ 50%] Linking CXX shared library ../../../bin/libclio_bdev_client.so
+[ 51%] Built target clio_bdev_client
+[ 52%] Building CXX object context-runtime/modules/safe-bdev/CMakeFiles/clio_safe_bdev_client.dir/src/safe_bdev_client.cc.o
+[ 55%] Building CXX object context-transfer-engine/core/CMakeFiles/clio_cte_core_client.dir/src/content_transfer_engine.cc.o
+[ 55%] Building CXX object context-transfer-engine/core/CMakeFiles/clio_cte_core_client.dir/src/core_client.cc.o
+[ 55%] Building CXX object context-transfer-engine/core/CMakeFiles/clio_cte_core_client.dir/src/tag.cc.o
+[ 56%] Linking CXX shared library ../../../bin/libclio_MOD_NAME_runtime.so
+[ 57%] Built target clio_MOD_NAME_runtime
+[ 58%] Linking CXX shared library ../../../bin/libclio_safe_bdev_client.so
+[ 59%] Built target clio_safe_bdev_client
+[ 60%] Linking CXX static library ../../bin/libclio_run_commands.a
+[ 60%] Built target clio_run_commands
+[ 61%] Linking CXX executable ../../bin/clio_run
+[ 62%] Built target clio_run
+[ 63%] Linking CXX shared library ../../../bin/libclio_admin_runtime.so
+[ 64%] Linking CXX shared library ../../bin/libclio_cte_core_client.so
+[ 65%] Built target clio_admin_runtime
+[ 66%] Built target clio_cte_core_client
+[ 68%] Building CXX object context-transfer-engine/core/util/CMakeFiles/cte_search.dir/cte_search.cc.o
+[ 68%] Building CXX object context-transfer-engine/filesystem/CMakeFiles/clio_cte_filesystem_client.dir/src/filesystem_client.cc.o
+[ 74%] Building CXX object context-runtime/modules/bdev/CMakeFiles/clio_bdev_runtime.dir/src/transports/fs_bdev_transport.cc.o
+[ 74%] Building CXX object context-runtime/modules/bdev/CMakeFiles/clio_bdev_runtime.dir/src/transports/mem_bdev_transport.cc.o
+[ 74%] Building CXX object context-runtime/modules/bdev/CMakeFiles/clio_bdev_runtime.dir/src/transports/bdev_transport.cc.o
+[ 74%] Building CXX object context-runtime/modules/bdev/CMakeFiles/clio_bdev_runtime.dir/src/transports/block_allocator.cc.o
+[ 74%] Building CXX object context-runtime/modules/bdev/CMakeFiles/clio_bdev_runtime.dir/src/autogen/bdev_lib_exec.cc.o
+[ 74%] Building CXX object context-runtime/modules/bdev/CMakeFiles/clio_bdev_runtime.dir/src/bdev_runtime.cc.o
+[ 75%] Linking CXX shared library ../../../bin/libclio_bdev_runtime.so
+[ 76%] Built target clio_bdev_runtime
+[ 77%] Linking CXX shared library ../../bin/libclio_cte_filesystem_client.so
+[ 78%] Building CXX object context-runtime/modules/safe-bdev/CMakeFiles/clio_safe_bdev_runtime.dir/src/safe_bdev_runtime.cc.o
+[ 79%] Building CXX object context-runtime/modules/safe-bdev/CMakeFiles/clio_safe_bdev_runtime.dir/src/autogen/safe_bdev_lib_exec.cc.o
+[ 80%] Building CXX object context-transfer-engine/core/CMakeFiles/clio_cte_core_runtime.dir/src/core_config.cc.o
+[ 81%] Building CXX object context-transfer-engine/core/CMakeFiles/clio_cte_core_runtime.dir/src/core_runtime.cc.o
+[ 82%] Building CXX object context-transfer-engine/core/CMakeFiles/clio_cte_core_runtime.dir/src/dpe/dpe.cc.o
+[ 83%] Building CXX object context-transfer-engine/core/CMakeFiles/clio_cte_core_runtime.dir/src/dpe/random_dpe.cc.o
+[ 85%] Built target clio_cte_filesystem_client
+[ 85%] Building CXX object context-transfer-engine/core/CMakeFiles/clio_cte_core_runtime.dir/src/dpe/round_robin_dpe.cc.o
+[ 87%] Building CXX object context-transfer-engine/core/CMakeFiles/clio_cte_core_runtime.dir/src/data_organizer/frecency_organizer.cc.o
+[ 87%] Building CXX object context-transfer-engine/core/CMakeFiles/clio_cte_core_runtime.dir/src/dpe/max_bw_dpe.cc.o
+[ 88%] Building CXX object context-transfer-engine/core/CMakeFiles/clio_cte_core_runtime.dir/src/data_organizer/data_organizer.cc.o
+[ 89%] Building CXX object context-transfer-engine/core/CMakeFiles/clio_cte_core_runtime.dir/src/autogen/core_lib_exec.cc.o
+[ 90%] Building CXX object context-transfer-engine/filesystem/CMakeFiles/clio_cte_filesystem_runtime.dir/src/filesystem_runtime.cc.o
+[ 91%] Building CXX object context-transfer-engine/filesystem/CMakeFiles/clio_cte_filesystem_runtime.dir/src/autogen/filesystem_lib_exec.cc.o
+[ 92%] Building CXX object context-transfer-engine/adapter/cfs/CMakeFiles/clio_cte_cfs_adapter.dir/cfs_io.cc.o
+[ 93%] Linking CXX executable ../../../bin/cte_search
+[ 93%] Built target cte_search
+[ 94%] Linking CXX static library ../../../bin/libclio_cte_cfs_adapter.a
+[ 94%] Built target clio_cte_cfs_adapter
+[ 95%] Linking CXX shared library ../../../bin/libclio_safe_bdev_runtime.so
+[ 96%] Built target clio_safe_bdev_runtime
+[ 97%] Linking CXX shared library ../../bin/libclio_cte_filesystem_runtime.so
+[ 98%] Built target clio_cte_filesystem_runtime
+[ 99%] Linking CXX shared library ../../bin/libclio_cte_core_runtime.so
+[100%] Built target clio_cte_core_runtime
+=== install to /home/cvazquezperezdelacru/clio-core-dev-install ===
+-- Install configuration: "Release"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/clio_ctp.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/bitgrooming.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/blosc.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/brotli.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/bzip2.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/compress.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/compress_factory.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/cusz.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/cuszp.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/data_stats.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/fpzip.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/libpressio.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/libpressio_modes.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/lossless_modes.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/lz4.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/lzma.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/lzo.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/ndzip.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/nvcomp.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/snappy.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/sycl_zfp.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/sz.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/sz3.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/zfp.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/zlib.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/compress/zstd.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/constants
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/constants/macros.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/ipc
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/ipc/algorithm.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/ipc/rb_tree_pre.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/ipc/shm_container.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/ipc/slist_pre.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/ipc/vector.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/ipc/multi_ring_buffer.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/ipc/ring_buffer.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/ipc/string.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/ipc/unordered_map.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/priv
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/priv/array.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/priv/array_vector.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/priv/unordered_map_lhash.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/priv/unordered_map_ll.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/priv/wrap_vector.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/priv/fixed_string.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/priv/string.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/priv/vector.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/serialization
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/serialization/global_serialize.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/serialization/local_serialize.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/data_structures/serialization/serialize_common.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/encrypt
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/encrypt/aes.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/encrypt/encrypt.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/introspect
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/introspect/system_info.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/io
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/io/async_io.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/io/async_io_factory.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/io/iocp_io.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/io/iouring_io.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/io/libaio_io.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/io/nixl_io.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/io/posix_aio.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/io/io_error.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/event_manager.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/event_manager_linux.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/event_manager_macos.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/event_manager_win.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/lightbeam.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/nixl_transport.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/posix_socket.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/shm_transport.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/socket_transport.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/thallium_transport.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/transport_factory_impl.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/utils.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/zmq_transport.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/lightbeam/shm_mpsc_transport.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/allocator
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/allocator/allocator.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/allocator/arena_allocator.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/allocator/buddy_allocator.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/allocator/heap.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/allocator/leak_checker.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/allocator/malloc_allocator.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/allocator/mp_allocator.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/allocator/round_robin_allocator.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/allocator/slab_allocator.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/allocator/slab_cache_allocator.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/allocator/thread_allocator.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/backend
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/backend/array_backend.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/backend/gpu_malloc.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/backend/gpu_shm_mmap.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/backend/malloc_backend.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/backend/memory_backend.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/backend/posix_mmap.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/backend/posix_shm_mmap.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/smart_ptr
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/smart_ptr/shared_ptr.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/smart_ptr/unique_ptr.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/memory/smart_ptr/lease.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/search
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/search/regex_search_engine.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/serialize
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/serialize/msgpack_wrapper.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/solver
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/solver/nonlinear_least_squares.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/lock.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/lock
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/lock/cvrwlock.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/lock/mutex.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/lock/rwlock.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/lock/spin_lock.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/lock/timed_mutex.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/thread_model
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/thread_model/argobots.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/thread_model/cuda.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/thread_model/pthread.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/thread_model/rocm.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/thread_model/std_thread.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/thread_model/thread_model.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/thread/thread_model_manager.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/types
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/types/argpack.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/types/atomic.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/types/bitfield.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/types/hash.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/types/numbers.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/affinity.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/auto_trace.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/config_parse.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/env_compat.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/error.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/errors.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/formatter.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/gpu_intrinsics.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/gpu_linker.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/random.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/real_api.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/timer.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/timer_mpi.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/timer_thread.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/type_switch.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/gpu_api.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/logging.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_ctp/util/singleton.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/ClioCtp/ClioCtpCoreConfig.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/ClioCtp/ClioCtpCoreConfig-release.cmake
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_ctp_host.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_ctp_host.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_run_cxx.so.1.0.0
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_run_cxx.so.1
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_run_cxx.so.1.0.0" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_run_cxx.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/clio_runtime.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/admin.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/api.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/batch_manager.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/boost_stack_allocator.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/clio_runtime.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/dynamic_container.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/future.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/gpu
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/gpu/future.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/gpu/gpu_info.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/gpu/gpu_ipc_manager.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/ipc
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/ipc/ipc_cpu2cpu_zmq.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/ipc/ipc_cpu2cpu_zmq_impl.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/ipc/ipc_cpu2self.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/ipc/ipc_gpu2cpu.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/ipc/ipc_gpu2cpu_impl.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/ipc/ipc_run2run.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/ipc/ipc_cpu2cpu.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/ipc/ipc_cpu2cpu_impl.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/local_task_archives.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/manager.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/module_manager.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/pool_manager.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/pool_query.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/restart_log.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/scheduler
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/scheduler/scheduler_factory.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/scheduler/default_sched.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/scheduler/local_sched.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/scheduler/scheduler.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/singletons.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/task_archives.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/batch_groups.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/comutex.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/config_manager.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/container.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/corwlock.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/ipc_manager.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/task.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/types.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/work_orchestrator.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/worker.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/etc/clio
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/etc/clio/clio_default.yaml
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/etc/clio/example_hostfile
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/etc/clio/test_hostfile
+-- User config already exists: /home/cvazquezperezdelacru/.clio/clio.yaml (not overwriting)
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run/clio_run_coreTargets.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run/clio_run_coreTargets-release.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run/clio_runConfig.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run/clio_runConfigVersion.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run/ClioCoreCommon.cmake
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/bin/clio_run
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/bin/clio_run" to "$ORIGIN:$ORIGIN/../lib"
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_MOD_NAME_client.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_MOD_NAME_client.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/MOD_NAME
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/MOD_NAME/autogen
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/MOD_NAME/autogen/MOD_NAME_methods.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/MOD_NAME/MOD_NAME_client.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/MOD_NAME/MOD_NAME_runtime.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/MOD_NAME/MOD_NAME_tasks.h
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_MOD_NAME_runtime.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_MOD_NAME_runtime.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_MOD_NAME/clio_run_MOD_NAME.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_MOD_NAME/clio_run_MOD_NAME-release.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_MOD_NAME/clio_run_MOD_NAMEConfig.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_MOD_NAME/clio_run_MOD_NAMEConfigVersion.cmake
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_admin_client.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_admin_client.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/admin
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/admin/admin_client.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/admin/admin_runtime.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/admin/autogen
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/admin/autogen/admin_methods.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/admin/admin_tasks.h
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_admin_runtime.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_admin_runtime.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_admin/clio_run_admin.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_admin/clio_run_admin-release.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_admin/clio_run_adminConfig.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_admin/clio_run_adminConfigVersion.cmake
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_bdev_client.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_bdev_client.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/autogen
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/autogen/bdev_methods.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/transports
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/transports/bdev_transport.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/transports/gcs_bdev_transport.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/transports/gcs_rest.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/transports/s3_bdev_transport.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/transports/block_allocator.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/transports/fs_bdev_transport.h
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/transports/mem_bdev_transport.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/bdev_alloc_log.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/bdev_client.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/bdev_runtime.h
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/bdev/bdev_tasks.h
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_bdev_runtime.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_bdev_runtime.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_bdev/clio_run_bdev.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_bdev/clio_run_bdev-release.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_bdev/clio_run_bdevConfig.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_bdev/clio_run_bdevConfigVersion.cmake
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_safe_bdev_client.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_safe_bdev_client.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/safe_bdev
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/safe_bdev/autogen
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/safe_bdev/autogen/safe_bdev_methods.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/safe_bdev/ec
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/safe_bdev/ec/declustered.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/safe_bdev/ec/ec_array.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/safe_bdev/ec/gf256.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/safe_bdev/ec/reed_solomon.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/safe_bdev/safe_bdev_client.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/safe_bdev/safe_bdev_runtime.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/safe_bdev/safe_bdev_superblock.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/safe_bdev/safe_bdev_tasks.h
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_safe_bdev_runtime.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_safe_bdev_runtime.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_safe_bdev/clio_run_safe_bdev.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_safe_bdev/clio_run_safe_bdev-release.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_safe_bdev/clio_run_safe_bdevConfig.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_run_safe_bdev/clio_run_safe_bdevConfigVersion.cmake
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_core_runtime.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_core_runtime.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/api.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/autogen
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/autogen/core_methods.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/content_transfer_engine.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/gpu_metadata_cache.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/blob_transform.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/core_config.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/core_runtime.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/data_organizer
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/data_organizer/data_organizer.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/data_organizer/frecency_organizer.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/dpe
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/dpe/dpe.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/dpe/max_bw_dpe.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/dpe/random_dpe.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/dpe/round_robin_dpe.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/shm_metadata_cache.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/transaction_log.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/core_tasks.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/core_client.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_cte_core/clio_cte_core.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_cte_core/clio_cte_core-release.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_cte_core/clio_cte_coreConfig.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_cte_core/clio_cte_coreConfigVersion.cmake
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_core_client.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_core_client.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/api.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/autogen
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/autogen/core_methods.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/content_transfer_engine.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/gpu_metadata_cache.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/blob_transform.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/core_config.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/core_runtime.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/data_organizer
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/data_organizer/data_organizer.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/data_organizer/frecency_organizer.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/dpe
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/dpe/dpe.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/dpe/max_bw_dpe.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/dpe/random_dpe.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/dpe/round_robin_dpe.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/shm_metadata_cache.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/transaction_log.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/core_tasks.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/core/core_client.h
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/bin/cte_search
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/bin/cte_search" to "$ORIGIN:$ORIGIN/../lib"
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_filesystem_runtime.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_filesystem_runtime.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem/autogen
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem/autogen/filesystem_methods.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem/filesystem_client.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem/filesystem_runtime.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem/filesystem_tasks.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem/shm_fs_cache.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_cte_filesystem/clio_cte_filesystem.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_cte_filesystem/clio_cte_filesystem-release.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_cte_filesystem/clio_cte_filesystemConfig.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio_cte_filesystem/clio_cte_filesystemConfigVersion.cmake
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_filesystem_client.so
+-- Set non-toolchain portion of runtime path of "/home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_filesystem_client.so" to "$ORIGIN:$ORIGIN/../lib"
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem/autogen
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem/autogen/filesystem_methods.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem/filesystem_client.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem/filesystem_runtime.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem/filesystem_tasks.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_cte/filesystem/shm_fs_cache.h
+-- Installing: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_cfs_adapter.a
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/adapter_constants.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/adapter_types.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/iowarp_engine.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/cfs_io.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/gpu_vector.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/gpu_vector_kernels.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/gpu_vector_page.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/gpu_vector_view.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/clio_vol.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/clio_vol_trace.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/blob_backend.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/chunking.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/cpu_dataset.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/cpu_file.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/defines.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/gpu_cte_dataset.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/gpu_dataset_handle.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/inmem_blob_backend.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/tag_path.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/tag_resolve.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/cte_env.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/fuse_cte.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/fuse_win_compat.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/abstract_mapper.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/balanced_mapper.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/mapper_factory.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/mpiio_api.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/cufile_api.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/posix_api.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/stdio_api.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/H5FDclio.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/mapper
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/mapper/abstract_mapper.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/mapper/balanced_mapper.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/adapter/mapper/mapper_factory.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/__init__.py
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/__main__.py
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/api
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/api/__init__.py
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/api/config.py
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/api/node.py
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/api/pools.py
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/api/system.py
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/api/topology.py
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/api/workers.py
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/api/safe_bdev.py
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/static
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/static/css
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/static/css/style.css
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/static/js
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/static/js/config.js
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/static/js/dashboard.js
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/static/js/node.js
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/static/js/topology.js
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/static/js/workers.js
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/static/js/safe_bdev.js
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/templates
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/templates/config.html
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/templates/dashboard.html
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/templates/node.html
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/templates/pools.html
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/templates/topology.html
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/templates/workers.html
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/templates/base.html
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/templates/safe_bdev.html
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/app.py
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/python3/dist-packages/context_visualizer/clio_client.py
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/bin/context-visualizer
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/iowarp-core/iowarp-coreConfig.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/iowarp-core/iowarp-coreConfigVersion.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/iowarp-core/ClioCoreCommon.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/iowarp-core/IowarpCoreCommon.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio-core/clio-coreConfig.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/cmake/clio-core/clio-coreConfigVersion.cmake
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_ctp_host.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_run_cxx.so.1.0.0
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_run_cxx.so.1
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_run_cxx.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/clio_runtime.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_admin_client.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_admin_runtime.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_bdev_client.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_bdev_runtime.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_MOD_NAME_client.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_MOD_NAME_runtime.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_core_client.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_core_runtime.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_ctp_host.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_run_cxx.so.1.0.0
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_run_cxx.so.1
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_run_cxx.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/include/clio_runtime/clio_runtime.h
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_admin_client.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_admin_runtime.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_bdev_client.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_bdev_runtime.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_MOD_NAME_client.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_MOD_NAME_runtime.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_core_client.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_cte_core_runtime.so
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/bin/clio_run
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/bin/clio_run
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/data/clio_default.yaml
+-- Up-to-date: /home/cvazquezperezdelacru/clio-core-dev-install/../iowarp_core.pth
+=== verify install ===
+-rwxr-xr-x 1 cvazquezperezdelacru sudo_power 660040 Jul 30 16:04 /home/cvazquezperezdelacru/clio-core-dev-install/bin/clio_run
+--- installed client/runtime libs ---
+libclio_admin_client.so
+libclio_admin_runtime.so
+libclio_bdev_client.so
+libclio_bdev_runtime.so
+libclio_cte_core_client.so
+libclio_cte_core_runtime.so
+libclio_ctp_host.so
+libclio_run_cxx.so
+libclio_run_cxx.so.1
+libclio_run_cxx.so.1.0.0
+--- find_package export ---
+ClioCoreCommon.cmake
+IowarpCoreCommon.cmake
+iowarp-coreConfig.cmake
+iowarp-coreConfigVersion.cmake
+=== DONE ===
