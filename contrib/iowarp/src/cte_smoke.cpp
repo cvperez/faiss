@@ -22,7 +22,7 @@
 #include <clio_runtime/clio_runtime.h>
 
 int main() {
-    if (!chi::CHIMAERA_INIT(chi::ChimaeraMode::kClient, false)) {
+    if (!clio::run::CLIO_INIT(clio::run::RuntimeMode::kClient, false)) {
         std::fprintf(stderr, "smoke: runtime client init failed\n");
         return 1;
     }

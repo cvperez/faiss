@@ -28,7 +28,7 @@ namespace clio::run::faiss_ivf {
 /**
  * Runtime implementation for faiss_ivf container
  */
-class Runtime : public chi::Container {
+class Runtime : public clio::run::Container {
  public:
   // CreateParams type used by CLIO_TASK_CC macro for lib_name access
   using CreateParams = clio::run::faiss_ivf::CreateParams;
@@ -42,7 +42,7 @@ class Runtime : public chi::Container {
   bool opened_ = false;
   std::string opened_index_path_;  // volume identity: OpenIndex with a
   std::string opened_tag_name_;    // different path/tag replaces the state
-  chi::CoMutex open_mu_;
+  clio::run::CoMutex open_mu_;
 
   // In-process CTE client bound directly to the canonical CTE pool
   // (kCtePoolId = 512.0). NEVER call CLIO_CTE_CLIENT_INIT from a handler:
@@ -52,11 +52,11 @@ class Runtime : public chi::Container {
 
   // Statistics. Atomics: concurrent SearchTasks may run on different
   // workers (the bench splits query batches into parallel tasks).
-  std::atomic<chi::u64> stat_searches_{0};
-  std::atomic<chi::u64> stat_lists_fetched_{0};   // lists read from CTE
-  std::atomic<chi::u64> stat_bytes_fetched_{0};   // bytes read from CTE
-  std::atomic<chi::u64> stat_fetch_wait_us_{0};   // time waiting on CTE reads
-  std::atomic<chi::u64> stat_scan_us_{0};         // time scanning codes
+  std::atomic<clio::run::u64> stat_searches_{0};
+  std::atomic<clio::run::u64> stat_lists_fetched_{0};   // lists read from CTE
+  std::atomic<clio::run::u64> stat_bytes_fetched_{0};   // bytes read from CTE
+  std::atomic<clio::run::u64> stat_fetch_wait_us_{0};   // time waiting on CTE reads
+  std::atomic<clio::run::u64> stat_scan_us_{0};         // time scanning codes
 
   // Client for making calls to this ChiMod
   Client client_;
@@ -71,86 +71,85 @@ class Runtime : public chi::Container {
   /**
    * Initialize container with pool information
    */
-  void Init(const chi::PoolId& pool_id, const std::string& pool_name,
-            chi::u32 container_id = 0) override;
+  void Init(const clio::run::PoolId& pool_id, const std::string& pool_name,
+            clio::run::u32 container_id = 0) override;
 
   /**
-   * Execute a method on a task
+   * Execute a method on a task (dev: no RunContext; task is a shared_ptr)
    */
-  chi::TaskResume Run(chi::u32 method, ctp::ipc::FullPtr<chi::Task> task_ptr,
-                      chi::RunContext& rctx) override;
+  clio::run::TaskResume Run(clio::run::u32 method,
+                            clio::run::shared_ptr<clio::run::Task> task_ptr) override;
 
   //===========================================================================
   // Method implementations
   //===========================================================================
 
   /** Handle Create task */
-  chi::TaskResume Create(ctp::ipc::FullPtr<CreateTask> task,
-                         chi::RunContext& rctx);
+  clio::run::TaskResume Create(clio::run::shared_ptr<CreateTask>& task);
 
   /** Handle OpenIndex task */
-  chi::TaskResume OpenIndex(ctp::ipc::FullPtr<OpenIndexTask> task,
-                            chi::RunContext& rctx);
+  clio::run::TaskResume OpenIndex(clio::run::shared_ptr<OpenIndexTask>& task);
 
   /** Handle Search task */
-  chi::TaskResume Search(ctp::ipc::FullPtr<SearchTask> task,
-                         chi::RunContext& rctx);
+  clio::run::TaskResume Search(clio::run::shared_ptr<SearchTask>& task);
 
   /** Handle Stats task */
-  chi::TaskResume Stats(ctp::ipc::FullPtr<StatsTask> task,
-                        chi::RunContext& rctx);
+  clio::run::TaskResume Stats(clio::run::shared_ptr<StatsTask>& task);
 
   /** Handle Monitor task */
-  chi::TaskResume Monitor(ctp::ipc::FullPtr<MonitorTask> task,
-                          chi::RunContext& rctx);
+  clio::run::TaskResume Monitor(clio::run::shared_ptr<MonitorTask>& task);
 
   /** Handle Destroy task */
-  chi::TaskResume Destroy(ctp::ipc::FullPtr<DestroyTask> task,
-                          chi::RunContext& rctx);
+  clio::run::TaskResume Destroy(clio::run::shared_ptr<DestroyTask>& task);
 
   /**
    * Get remaining work count for this container
    */
-  chi::u64 GetWorkRemaining() const override;
+  clio::run::u64 GetWorkRemaining() const override;
 
   //===========================================================================
   // Task Serialization Methods (implemented in autogen/faiss_ivf_lib_exec.cc)
   //===========================================================================
 
   /** Serialize task parameters for network transfer (unified method) */
-  void SaveTask(chi::u32 method, chi::SaveTaskArchive& archive,
-                ctp::ipc::FullPtr<chi::Task> task_ptr) override;
+  void SaveTask(clio::run::u32 method, clio::run::SaveTaskArchive& archive,
+                clio::run::shared_ptr<clio::run::Task>& task_ptr) override;
 
   /** Deserialize task parameters into an existing task */
-  void LoadTask(chi::u32 method, chi::LoadTaskArchive& archive,
-                ctp::ipc::FullPtr<chi::Task> task_ptr) override;
+  void LoadTask(clio::run::u32 method, clio::run::LoadTaskArchive& archive,
+                clio::run::shared_ptr<clio::run::Task>& task_ptr) override;
 
   /** Allocate and deserialize task parameters from network transfer */
-  ctp::ipc::FullPtr<chi::Task> AllocLoadTask(
-      chi::u32 method, chi::LoadTaskArchive& archive) override;
+  clio::run::shared_ptr<clio::run::Task> AllocLoadTask(
+      clio::run::u32 method, clio::run::LoadTaskArchive& archive) override;
 
   /** Deserialize task input parameters using LocalSerialize */
-  void LocalLoadTask(chi::u32 method, chi::DefaultLoadArchive& archive,
-                     ctp::ipc::FullPtr<chi::Task> task_ptr) override;
+  void LocalLoadTask(clio::run::u32 method, clio::run::DefaultLoadArchive& archive,
+                     clio::run::shared_ptr<clio::run::Task>& task_ptr) override;
 
   /** Allocate and deserialize task input parameters using LocalSerialize */
-  ctp::ipc::FullPtr<chi::Task> LocalAllocLoadTask(
-      chi::u32 method, chi::DefaultLoadArchive& archive) override;
+  clio::run::shared_ptr<clio::run::Task> LocalAllocLoadTask(
+      clio::run::u32 method, clio::run::DefaultLoadArchive& archive) override;
 
   /** Serialize task output parameters using LocalSerialize */
-  void LocalSaveTask(chi::u32 method, chi::DefaultSaveArchive& archive,
-                     ctp::ipc::FullPtr<chi::Task> task_ptr) override;
+  void LocalSaveTask(clio::run::u32 method, clio::run::DefaultSaveArchive& archive,
+                     clio::run::shared_ptr<clio::run::Task>& task_ptr) override;
 
   /** Create a new copy of a task (deep copy for distributed execution) */
-  ctp::ipc::FullPtr<chi::Task> NewCopyTask(
-      chi::u32 method, ctp::ipc::FullPtr<chi::Task> orig_task_ptr,
+  clio::run::shared_ptr<clio::run::Task> NewCopyTask(
+      clio::run::u32 method, clio::run::shared_ptr<clio::run::Task>& orig_task_ptr,
       bool deep) override;
 
   /** Create a new task of the specified method type */
-  ctp::ipc::FullPtr<chi::Task> NewTask(chi::u32 method) override;
-  void Aggregate(chi::u32 method, ctp::ipc::FullPtr<chi::Task> orig_task,
-                 const ctp::ipc::FullPtr<chi::Task>& replica_task) override;
-  void DelTask(chi::u32 method, ctp::ipc::FullPtr<chi::Task> task_ptr) override;
+  clio::run::shared_ptr<clio::run::Task> NewTask(clio::run::u32 method) override;
+
+  /** Aggregate replica OUT fields (N->1 gather) */
+  void AggregateOut(clio::run::u32 method, clio::run::shared_ptr<clio::run::Task>& orig_task,
+                    const clio::run::shared_ptr<clio::run::Task>& replica_task) override;
+
+  /** Aggregate member IN fields into the collective task */
+  void AggregateIn(clio::run::u32 method, clio::run::shared_ptr<clio::run::Task>& agg_task,
+                   const clio::run::shared_ptr<clio::run::Task>& member_task) override;
 };
 
 }  // namespace clio::run::faiss_ivf

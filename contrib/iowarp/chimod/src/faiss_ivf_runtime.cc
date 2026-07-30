@@ -36,8 +36,8 @@ namespace clio::run::faiss_ivf {
 namespace {
 
 /** Current steady-clock time in microseconds. */
-inline chi::u64 NowUs() {
-  return static_cast<chi::u64>(
+inline clio::run::u64 NowUs() {
+  return static_cast<clio::run::u64>(
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now().time_since_epoch())
           .count());
@@ -48,7 +48,7 @@ inline chi::u64 NowUs() {
 // gcc 11 ICEs when an OpenMP region sits inside a C++20 coroutine body.
 // Safe because every pair updates a distinct per-query heap.
 bool ScanListParallel(
-    const std::vector<std::pair<chi::u32, float>>& plist,
+    const std::vector<std::pair<clio::run::u32, float>>& plist,
     const std::vector<std::unique_ptr<faiss::InvertedListScanner>>& scanners,
     const float* q, size_t d, int64_t l, size_t sz, const uint8_t* codes,
     const faiss::idx_t* ids, float* D_out, faiss::idx_t* I_out, size_t k) {
@@ -93,8 +93,7 @@ bool ScanListParallel(
 // Method implementations
 //===========================================================================
 
-chi::TaskResume Runtime::Create(ctp::ipc::FullPtr<CreateTask> task,
-                                chi::RunContext& rctx) {
+clio::run::TaskResume Runtime::Create(clio::run::shared_ptr<CreateTask>& task) {
   CLIO_TASK_BODY_BEGIN
   HLOG(kDebug, "faiss_ivf: Executing Create task for pool {}", task->pool_id_);
 
@@ -106,16 +105,13 @@ chi::TaskResume Runtime::Create(ctp::ipc::FullPtr<CreateTask> task,
   (void)params;
 
   HLOG(kDebug, "faiss_ivf: Container created for pool: {}", pool_name_);
-  (void)rctx;
   CLIO_CO_RETURN;
   CLIO_TASK_BODY_END
 }
 
-chi::TaskResume Runtime::OpenIndex(ctp::ipc::FullPtr<OpenIndexTask> task,
-                                   chi::RunContext& rctx) {
+clio::run::TaskResume Runtime::OpenIndex(clio::run::shared_ptr<OpenIndexTask>& task) {
   CLIO_TASK_BODY_BEGIN
-  (void)rctx;
-  chi::ScopedCoMutex lock(open_mu_);
+  clio::run::ScopedCoMutex lock(open_mu_);
 
   std::string index_path = task->index_path_.str();
   std::string tag_name = task->tag_name_.str();
@@ -123,9 +119,9 @@ chi::TaskResume Runtime::OpenIndex(ctp::ipc::FullPtr<OpenIndexTask> task,
   if (opened_ && index_path == opened_index_path_ &&
       tag_name == opened_tag_name_) {
     // Same volume already open: report the current index metadata.
-    task->ntotal_ = static_cast<chi::u64>(ivf_->ntotal);
-    task->d_ = static_cast<chi::u32>(ivf_->d);
-    task->nlist_ = static_cast<chi::u32>(ivf_->nlist);
+    task->ntotal_ = static_cast<clio::run::u64>(ivf_->ntotal);
+    task->d_ = static_cast<clio::run::u32>(ivf_->d);
+    task->nlist_ = static_cast<clio::run::u32>(ivf_->nlist);
     task->SetReturnCode(0);
     CLIO_CO_RETURN;
   }
@@ -184,8 +180,8 @@ chi::TaskResume Runtime::OpenIndex(ctp::ipc::FullPtr<OpenIndexTask> task,
   // Fetch the "sizes" blob: int64[nlist] of list sizes.
   auto* ipc = CLIO_IPC;
   const size_t nlist = ivf->nlist;
-  const chi::u64 sizes_bytes =
-      static_cast<chi::u64>(nlist) * sizeof(int64_t);
+  const clio::run::u64 sizes_bytes =
+      static_cast<clio::run::u64>(nlist) * sizeof(int64_t);
   ctp::ipc::FullPtr<char> buf = ipc->AllocateBuffer(sizes_bytes);
   if (buf.IsNull()) {
     HLOG(kError, "faiss_ivf: AllocateBuffer({}) failed for sizes blob",
@@ -208,9 +204,9 @@ chi::TaskResume Runtime::OpenIndex(ctp::ipc::FullPtr<OpenIndexTask> task,
   sizes_.assign(sizes_ptr, sizes_ptr + nlist);
   ipc->FreeBuffer(buf);
 
-  chi::u64 ntotal = 0;
+  clio::run::u64 ntotal = 0;
   for (size_t i = 0; i < nlist; ++i) {
-    ntotal += static_cast<chi::u64>(sizes_[i]);
+    ntotal += static_cast<clio::run::u64>(sizes_[i]);
   }
   ivf->ntotal = static_cast<faiss::idx_t>(ntotal);
 
@@ -226,8 +222,8 @@ chi::TaskResume Runtime::OpenIndex(ctp::ipc::FullPtr<OpenIndexTask> task,
   opened_tag_name_ = tag_name;
 
   task->ntotal_ = ntotal;
-  task->d_ = static_cast<chi::u32>(ivf_->d);
-  task->nlist_ = static_cast<chi::u32>(nlist);
+  task->d_ = static_cast<clio::run::u32>(ivf_->d);
+  task->nlist_ = static_cast<clio::run::u32>(nlist);
   task->SetReturnCode(0);
 
   HLOG(kInfo, "faiss_ivf: opened '{}' (d={}, nlist={}, ntotal={}, tag='{}')",
@@ -236,25 +232,23 @@ chi::TaskResume Runtime::OpenIndex(ctp::ipc::FullPtr<OpenIndexTask> task,
   CLIO_TASK_BODY_END
 }
 
-chi::TaskResume Runtime::Search(ctp::ipc::FullPtr<SearchTask> task,
-                                chi::RunContext& rctx) {
+clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
   CLIO_TASK_BODY_BEGIN
-  (void)rctx;
   if (!opened_ || ivf_ == nullptr) {
     task->SetReturnCode(1);
     CLIO_CO_RETURN;
   }
 
-  const chi::u32 nq = task->nq_;
-  const chi::u32 k = task->k_;
-  chi::u32 nprobe = task->nprobe_;
+  const clio::run::u32 nq = task->nq_;
+  const clio::run::u32 k = task->k_;
+  clio::run::u32 nprobe = task->nprobe_;
   if (nq == 0 || k == 0 || nprobe == 0 ||
-      task->d_ != static_cast<chi::u32>(ivf_->d)) {
+      task->d_ != static_cast<clio::run::u32>(ivf_->d)) {
     task->SetReturnCode(2);
     CLIO_CO_RETURN;
   }
   if (nprobe > ivf_->nlist) {
-    nprobe = static_cast<chi::u32>(ivf_->nlist);
+    nprobe = static_cast<clio::run::u32>(ivf_->nlist);
   }
   auto* ipc = CLIO_IPC;
   // NOTE: ShmPtr -> raw pointer via CLIO_IPC->ToFullPtr, as done for
@@ -284,10 +278,10 @@ chi::TaskResume Runtime::Search(ctp::ipc::FullPtr<SearchTask> task,
 
   // Unique sorted set of non-empty probed lists, plus per-list probe map
   // (query, coarse distance).
-  std::unordered_map<int64_t, std::vector<std::pair<chi::u32, float>>> probes;
+  std::unordered_map<int64_t, std::vector<std::pair<clio::run::u32, float>>> probes;
   std::vector<int64_t> lists;
-  for (chi::u32 qi = 0; qi < nq; ++qi) {
-    for (chi::u32 j = 0; j < nprobe; ++j) {
+  for (clio::run::u32 qi = 0; qi < nq; ++qi) {
+    for (clio::run::u32 j = 0; j < nprobe; ++j) {
       const faiss::idx_t l = assign[static_cast<size_t>(qi) * nprobe + j];
       if (l < 0 || sizes_[l] <= 0) {
         continue;
@@ -344,10 +338,10 @@ chi::TaskResume Runtime::Search(ctp::ipc::FullPtr<SearchTask> task,
   // frame (SIGSEGV in ResumeCoroutine).
   constexpr size_t kMaxInflight = 64;
   std::vector<ctp::ipc::FullPtr<char>> bufs(ntoscan);
-  std::vector<chi::Future<clio::cte::core::GetBlobTask>> futs(ntoscan);
+  std::vector<clio::run::Future<clio::cte::core::GetBlobTask>> futs(ntoscan);
   std::vector<bool> done(ntoscan, false);
-  const chi::u64 t_loop0 = NowUs();
-  chi::u64 scan_us = 0;
+  const clio::run::u64 t_loop0 = NowUs();
+  clio::run::u64 scan_us = 0;
   bool stop_issue = false;  // alloc failure: issue no more, drain the rest
   size_t issued = 0;
   size_t completed = 0;
@@ -356,8 +350,8 @@ chi::TaskResume Runtime::Search(ctp::ipc::FullPtr<SearchTask> task,
            issued - completed < kMaxInflight) {
       const int64_t l = lists[issued];
       const size_t sz = static_cast<size_t>(sizes_[l]);
-      const chi::u64 bytes =
-          static_cast<chi::u64>(sz) * (code_size + sizeof(int64_t));
+      const clio::run::u64 bytes =
+          static_cast<clio::run::u64>(sz) * (code_size + sizeof(int64_t));
       bufs[issued] = ipc->AllocateBuffer(bytes);
       if (bufs[issued].IsNull()) {
         HLOG(kError, "faiss_ivf: AllocateBuffer({}) failed during search",
@@ -389,12 +383,12 @@ chi::TaskResume Runtime::Search(ctp::ipc::FullPtr<SearchTask> task,
       } else {
         stat_lists_fetched_ += 1;
         stat_bytes_fetched_ +=
-            static_cast<chi::u64>(sz) * (code_size + sizeof(int64_t));
+            static_cast<clio::run::u64>(sz) * (code_size + sizeof(int64_t));
         const char* base = bufs[i].ptr_;
         const uint8_t* codes = reinterpret_cast<const uint8_t*>(base);
         const faiss::idx_t* ids =
             reinterpret_cast<const faiss::idx_t*>(base + sz * code_size);
-        const chi::u64 s0 = NowUs();
+        const clio::run::u64 s0 = NowUs();
         if (!ScanListParallel(probes[l], scanners, q, ivf_->d, l, sz, codes,
                               ids, D_out, I_out, k)) {
           HLOG(kError, "faiss_ivf: scan failed on list {}", l);
@@ -405,15 +399,15 @@ chi::TaskResume Runtime::Search(ctp::ipc::FullPtr<SearchTask> task,
       ipc->FreeBuffer(bufs[i]);
     }
     if (!progressed && completed < issued) {
-      CLIO_CO_AWAIT(chi::yield());
+      CLIO_CO_AWAIT(clio::run::yield());
     }
   }
-  const chi::u64 loop_us = NowUs() - t_loop0;
+  const clio::run::u64 loop_us = NowUs() - t_loop0;
   stat_scan_us_ += scan_us;
   stat_fetch_wait_us_ += (loop_us > scan_us ? loop_us - scan_us : 0);
 
   // Sort each query's heap into ascending (L2) / descending (IP) order.
-  for (chi::u32 qi = 0; qi < nq; ++qi) {
+  for (clio::run::u32 qi = 0; qi < nq; ++qi) {
     if (is_l2) {
       faiss::maxheap_reorder(k, D_out + static_cast<size_t>(qi) * k,
                              I_out + static_cast<size_t>(qi) * k);
@@ -428,8 +422,7 @@ chi::TaskResume Runtime::Search(ctp::ipc::FullPtr<SearchTask> task,
   CLIO_TASK_BODY_END
 }
 
-chi::TaskResume Runtime::Stats(ctp::ipc::FullPtr<StatsTask> task,
-                               chi::RunContext& rctx) {
+clio::run::TaskResume Runtime::Stats(clio::run::shared_ptr<StatsTask>& task) {
   CLIO_TASK_BODY_BEGIN
   task->searches_ = stat_searches_;
   task->lists_fetched_ = stat_lists_fetched_;
@@ -444,13 +437,11 @@ chi::TaskResume Runtime::Stats(ctp::ipc::FullPtr<StatsTask> task,
     stat_scan_us_ = 0;
   }
   task->SetReturnCode(0);
-  (void)rctx;
   CLIO_CO_RETURN;
   CLIO_TASK_BODY_END
 }
 
-chi::TaskResume Runtime::Monitor(ctp::ipc::FullPtr<MonitorTask> task,
-                                 chi::RunContext& rctx) {
+clio::run::TaskResume Runtime::Monitor(clio::run::shared_ptr<MonitorTask>& task) {
   CLIO_TASK_BODY_BEGIN
   // Report container statistics as msgpack.
   msgpack::sbuffer sbuf;
@@ -472,13 +463,11 @@ chi::TaskResume Runtime::Monitor(ctp::ipc::FullPtr<MonitorTask> task,
 
   task->results_[container_id_] = std::string(sbuf.data(), sbuf.size());
   task->SetReturnCode(0);
-  (void)rctx;
   CLIO_CO_RETURN;
   CLIO_TASK_BODY_END
 }
 
-chi::TaskResume Runtime::Destroy(ctp::ipc::FullPtr<DestroyTask> task,
-                                 chi::RunContext& rctx) {
+clio::run::TaskResume Runtime::Destroy(clio::run::shared_ptr<DestroyTask>& task) {
   CLIO_TASK_BODY_BEGIN
   HLOG(kDebug, "faiss_ivf: Executing Destroy task - Pool ID: {}",
        task->target_pool_id_);
@@ -494,12 +483,11 @@ chi::TaskResume Runtime::Destroy(ctp::ipc::FullPtr<DestroyTask> task,
   opened_ = false;
 
   HLOG(kDebug, "faiss_ivf: Container destroyed successfully");
-  (void)rctx;
   CLIO_CO_RETURN;
   CLIO_TASK_BODY_END
 }
 
-chi::u64 Runtime::GetWorkRemaining() const {
+clio::run::u64 Runtime::GetWorkRemaining() const {
   // No work tracking
   return 0;
 }

@@ -15,15 +15,28 @@ if(NOT TARGET OpenMP::OpenMP_CXX)
   find_package(OpenMP REQUIRED COMPONENTS CXX)
 endif()
 
-# Libraries common to client and runtime
-set(FAISS_IVF_COMMON_LIBS
-  ${IOWARP_LIB_DIR}/libclio_run_cxx.so
-  ${IOWARP_LIB_DIR}/libclio_ctp_host.so
-  ${IOWARP_LIB_DIR}/libclio_admin_client.so
-  ${IOWARP_LIB_DIR}/libclio_bdev_client.so
-  pthread
-  rt
-)
+# iowarp-side link libraries for the client and runtime chimod libs.
+# IOWARP_USE_DEV: use the exported imported targets (includes + CTP defines
+# arrive transitively). Otherwise: absolute wheel .so paths.
+if(IOWARP_USE_DEV)
+  set(FAISS_IVF_CLIENT_IOWARP_LIBS ${IOWARP_CLIENT_TARGETS})
+  set(FAISS_IVF_RUNTIME_IOWARP_LIBS ${IOWARP_RUNTIME_TARGETS})
+else()
+  set(FAISS_IVF_CLIENT_IOWARP_LIBS
+    ${IOWARP_LIB_DIR}/libclio_run_cxx.so
+    ${IOWARP_LIB_DIR}/libclio_ctp_host.so
+    ${IOWARP_LIB_DIR}/libclio_admin_client.so
+    ${IOWARP_LIB_DIR}/libclio_bdev_client.so
+    pthread
+    rt
+  )
+  set(FAISS_IVF_RUNTIME_IOWARP_LIBS
+    ${FAISS_IVF_CLIENT_IOWARP_LIBS}
+    ${IOWARP_LIB_DIR}/libclio_admin_runtime.so
+    ${IOWARP_LIB_DIR}/libclio_bdev_runtime.so
+    ${IOWARP_LIB_DIR}/libclio_cte_core_client.so
+  )
+endif()
 
 #------------------------------------------------------------------------------
 # Client library
@@ -32,18 +45,20 @@ add_library(clio_faiss_ivf_client SHARED
   src/faiss_ivf_client.cc
 )
 target_compile_features(clio_faiss_ivf_client PUBLIC cxx_std_20)
-target_compile_definitions(clio_faiss_ivf_client PUBLIC ${IOWARP_COMPILE_DEFS})
+if(IOWARP_COMPILE_DEFS)
+  target_compile_definitions(clio_faiss_ivf_client PUBLIC ${IOWARP_COMPILE_DEFS})
+endif()
 target_include_directories(clio_faiss_ivf_client PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${IOWARP_INCLUDE_DIRS}
 )
 target_link_libraries(clio_faiss_ivf_client PUBLIC
-  ${FAISS_IVF_COMMON_LIBS}
+  ${FAISS_IVF_CLIENT_IOWARP_LIBS}
 )
 set_target_properties(clio_faiss_ivf_client PROPERTIES
   OUTPUT_NAME clio_faiss_ivf_client
-  BUILD_RPATH "${IOWARP_LIB_DIR}"
-  INSTALL_RPATH "${IOWARP_LIB_DIR}"
+  BUILD_RPATH "${IOWARP_RPATH_DIR}"
+  INSTALL_RPATH "${IOWARP_RPATH_DIR}"
 )
 
 #------------------------------------------------------------------------------
@@ -54,23 +69,22 @@ add_library(clio_faiss_ivf_runtime SHARED
   src/autogen/faiss_ivf_lib_exec.cc
 )
 target_compile_features(clio_faiss_ivf_runtime PUBLIC cxx_std_20)
-target_compile_definitions(clio_faiss_ivf_runtime PRIVATE CHIMAERA_RUNTIME=1)
-target_compile_definitions(clio_faiss_ivf_runtime PUBLIC ${IOWARP_COMPILE_DEFS})
+target_compile_definitions(clio_faiss_ivf_runtime PRIVATE CLIO_RUNTIME=1)
+if(IOWARP_COMPILE_DEFS)
+  target_compile_definitions(clio_faiss_ivf_runtime PUBLIC ${IOWARP_COMPILE_DEFS})
+endif()
 target_include_directories(clio_faiss_ivf_runtime PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${IOWARP_INCLUDE_DIRS}
 )
 target_link_libraries(clio_faiss_ivf_runtime PUBLIC
-  ${FAISS_IVF_COMMON_LIBS}
-  ${IOWARP_LIB_DIR}/libclio_admin_runtime.so
-  ${IOWARP_LIB_DIR}/libclio_bdev_runtime.so
-  ${IOWARP_LIB_DIR}/libclio_cte_core_client.so
+  ${FAISS_IVF_RUNTIME_IOWARP_LIBS}
   clio_faiss_ivf_client
   ${FAISS_LINK_TARGET}
   OpenMP::OpenMP_CXX
 )
 set_target_properties(clio_faiss_ivf_runtime PROPERTIES
   OUTPUT_NAME clio_faiss_ivf_runtime
-  BUILD_RPATH "${IOWARP_LIB_DIR}"
-  INSTALL_RPATH "${IOWARP_LIB_DIR}"
+  BUILD_RPATH "${IOWARP_RPATH_DIR}"
+  INSTALL_RPATH "${IOWARP_RPATH_DIR}"
 )

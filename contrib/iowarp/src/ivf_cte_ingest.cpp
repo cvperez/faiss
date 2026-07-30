@@ -16,7 +16,7 @@ namespace {
 
 struct InFlightPut {
     ctp::ipc::FullPtr<char> buf;
-    chi::Future<clio::cte::core::PutBlobTask> fut;
+    clio::run::Future<clio::cte::core::PutBlobTask> fut;
 };
 
 void drain_one(std::deque<InFlightPut>& q) {

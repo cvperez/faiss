@@ -37,16 +37,23 @@ FAISS_INSTALL="${FAISS_INSTALL:-$HOME/faiss-install}"
 
 INDEX="$IOWARP_WORK_DIR/$VOLUME.index"
 IVFDATA="$IOWARP_WORK_DIR/$VOLUME.ivfdata"
-CSV="$RESULTS/qps_$VOLUME.csv"
+CSV="${QPS_CSV:-$RESULTS/qps_$VOLUME.csv}"
 [ -f "$INDEX" ]   || { echo "ERROR: missing $INDEX" >&2; exit 1; }
 [ -f "$QUERIES" ] || { echo "ERROR: missing $QUERIES" >&2; exit 1; }
 mkdir -p "$RESULTS"
 
 export OMP_NUM_THREADS=8
 
-IOWARP_PKG="$(python3 -c 'import iowarp_core, os; print(os.path.dirname(iowarp_core.__file__))')"
-export PATH="$IOWARP_PKG/bin:$PATH"
-export LD_LIBRARY_PATH="$IOWARP_PKG/lib:$FAISS_INSTALL/lib:$FAISS_INSTALL/lib64:$ROOT/build:$ROOT/build/chimod:${LD_LIBRARY_PATH:-}"
+# Provider-selectable (see 20_ingest_cte.sh). Defaults to the v2.1.0 wheel;
+# set CLIO_BIN_DIR/CLIO_LIB_DIR/BUILD_DIR/IOWARP_EXTRA_LIB for the dev install.
+BUILD_DIR="${BUILD_DIR:-$ROOT/build}"
+if [ -z "${CLIO_BIN_DIR:-}" ] || [ -z "${CLIO_LIB_DIR:-}" ]; then
+    IOWARP_PKG="$(python3 -c 'import iowarp_core, os; print(os.path.dirname(iowarp_core.__file__))')"
+    CLIO_BIN_DIR="${CLIO_BIN_DIR:-$IOWARP_PKG/bin}"
+    CLIO_LIB_DIR="${CLIO_LIB_DIR:-$IOWARP_PKG/lib}"
+fi
+export PATH="$CLIO_BIN_DIR:$PATH"
+export LD_LIBRARY_PATH="$CLIO_LIB_DIR:$FAISS_INSTALL/lib:$FAISS_INSTALL/lib64:$BUILD_DIR:$BUILD_DIR/chimod:${IOWARP_EXTRA_LIB:-}:${LD_LIBRARY_PATH:-}"
 
 drop_page_cache() {
     # Unprivileged posix_fadvise(DONTNEED) evicts the volume's file pages
@@ -78,7 +85,7 @@ drop_page_cache
 [ -n "${TELEMETRY_PHASE_FILE:-}" ] && echo "bench_chimod" > "$TELEMETRY_PHASE_FILE" || true
 for INFLIGHT in ${CHIMOD_INFLIGHTS:-8}; do
     echo "--- inflight=$INFLIGHT"
-    "$ROOT/build/bench_ivf_qps" \
+    "$BUILD_DIR/bench_ivf_qps" \
         --protocol step3 \
         --index "$INDEX" \
         --queries "$QUERIES" \

@@ -1,0 +1,44 @@
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:137 INFO 2482379 ClientInit RuntimeManager::ClientInit[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/config_manager.cc:144 INFO 2482379 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:219 INFO 2482379 ClientInit IpcManager::ClientInit: IPC mode = SHM (auto-selected)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:231 INFO 2482379 ClientInit IpcManager::ClientInit: retry_timeout = 60s[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:239 INFO 2482379 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:152 INFO 2482379 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:292 INFO 2482379 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:322 INFO 2482379 ClientInit IpcManager: client response listener bound to port 44815[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1388 INFO 2482379 WaitForLocalServer Waiting for runtime via lightbeam (timeout=30s)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1496 INFO 2482379 WaitForLocalServer Successfully connected to runtime (generation=751845849368934, server_pid=2482207, shm_in_shards=1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1202 INFO 2482379 ClientInitShm ClientInitShm: attached metadata segment 'chi_metadata_segment_cvazquezperezdelacru_9413'[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1228 INFO 2482379 ClientInitShm ClientInitShm: response SHM ring 'clio-2482379-shm-out' (1MB)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2482379 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2482379_0 with size 570425344 (536870912 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2482379 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2482379_0 with ID (2482379.0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:175 INFO 2482379 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:178 INFO 2482379 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[bench] volume=ondisk_nb10M nlist=4096 nprobe=64 nq=500 k=10 threads=8 ntotal=10000000
+  cold   qps=    160.7  elapsed=   3.111s  majflt/q=     0.1  read_MB=     0.0  di_hash=0e04f8171f7d1898
+  warm0  qps=     99.3  elapsed=   5.035s  majflt/q=     0.0  read_MB=     0.0  di_hash=0e04f8171f7d1898
+  warm1  qps=    104.9  elapsed=   4.767s  majflt/q=     0.0  read_MB=     0.0  di_hash=0e04f8171f7d1898
+[stats] searches=1500 lists_read=12252 GB_read=14.49 read_wait_s=8.50 scan_s=4.21
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2341 INFO 2482379 ClearClientPool [ClientPool] Clearing 0 persistent connections[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:137 INFO 2482435 ClientInit RuntimeManager::ClientInit[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/config_manager.cc:144 INFO 2482435 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:219 INFO 2482435 ClientInit IpcManager::ClientInit: IPC mode = SHM (auto-selected)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:231 INFO 2482435 ClientInit IpcManager::ClientInit: retry_timeout = 60s[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:239 INFO 2482435 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:152 INFO 2482435 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:292 INFO 2482435 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:322 INFO 2482435 ClientInit IpcManager: client response listener bound to port 46251[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1388 INFO 2482435 WaitForLocalServer Waiting for runtime via lightbeam (timeout=30s)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1496 INFO 2482435 WaitForLocalServer Successfully connected to runtime (generation=751845849368934, server_pid=2482207, shm_in_shards=1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1202 INFO 2482435 ClientInitShm ClientInitShm: attached metadata segment 'chi_metadata_segment_cvazquezperezdelacru_9413'[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1228 INFO 2482435 ClientInitShm ClientInitShm: response SHM ring 'clio-2482435-shm-out' (1MB)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2482435 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2482435_0 with size 570425344 (536870912 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2482435 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2482435_0 with ID (2482435.0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:175 INFO 2482435 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:178 INFO 2482435 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[bench] volume=ondisk_nb10M nlist=4096 nprobe=64 nq=500 k=10 threads=8 ntotal=10000000
+  cold   qps=     40.7  elapsed=  12.279s  majflt/q=     0.2  read_MB=     0.0  di_hash=0e04f8171f7d1898
+  warm0  qps=     61.6  elapsed=   8.114s  majflt/q=     0.0  read_MB=     0.0  di_hash=0e04f8171f7d1898
+  warm1  qps=     55.5  elapsed=   9.004s  majflt/q=     0.0  read_MB=     0.0  di_hash=0e04f8171f7d1898
+[stats] searches=1500 lists_read=59733 GB_read=72.39 read_wait_s=205.43 scan_s=13.89
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2341 INFO 2482435 ClearClientPool [ClientPool] Clearing 0 persistent connections[0m

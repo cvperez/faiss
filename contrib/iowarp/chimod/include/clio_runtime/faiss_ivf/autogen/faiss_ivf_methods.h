@@ -1,5 +1,5 @@
-#ifndef CHIMAERA_FAISS_IVF_AUTOGEN_METHODS_H_
-#define CHIMAERA_FAISS_IVF_AUTOGEN_METHODS_H_
+#ifndef CLIO_RUNTIME_FAISS_IVF_AUTOGEN_METHODS_H_
+#define CLIO_RUNTIME_FAISS_IVF_AUTOGEN_METHODS_H_
 
 #include <clio_runtime/clio_runtime.h>
 #include <string>
@@ -13,16 +13,16 @@ namespace clio::run::faiss_ivf {
 
 namespace Method {
 // Inherited methods
-GLOBAL_CROSS_CONST chi::u32 kCreate = 0;
-GLOBAL_CROSS_CONST chi::u32 kDestroy = 1;
-GLOBAL_CROSS_CONST chi::u32 kMonitor = 9;
+GLOBAL_CROSS_CONST clio::run::u32 kCreate = 0;
+GLOBAL_CROSS_CONST clio::run::u32 kDestroy = 1;
+GLOBAL_CROSS_CONST clio::run::u32 kMonitor = 9;
 
 // faiss_ivf-specific methods
-GLOBAL_CROSS_CONST chi::u32 kOpenIndex = 10;
-GLOBAL_CROSS_CONST chi::u32 kSearch = 11;
-GLOBAL_CROSS_CONST chi::u32 kStats = 12;
+GLOBAL_CROSS_CONST clio::run::u32 kOpenIndex = 10;
+GLOBAL_CROSS_CONST clio::run::u32 kSearch = 11;
+GLOBAL_CROSS_CONST clio::run::u32 kStats = 12;
 
-GLOBAL_CROSS_CONST chi::u32 kMaxMethodId = 13;
+GLOBAL_CROSS_CONST clio::run::u32 kMaxMethodId = 13;
 
 inline const std::vector<std::string>& GetMethodNames() {
   static const std::vector<std::string> names = [] {
@@ -41,4 +41,4 @@ inline const std::vector<std::string>& GetMethodNames() {
 
 }  // namespace clio::run::faiss_ivf
 
-#endif  // CHIMAERA_FAISS_IVF_AUTOGEN_METHODS_H_
+#endif  // FAISS_IVF_AUTOGEN_METHODS_H_

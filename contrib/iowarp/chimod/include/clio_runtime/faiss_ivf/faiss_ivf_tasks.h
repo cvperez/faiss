@@ -27,7 +27,7 @@ namespace clio::run::faiss_ivf {
 using MonitorTask = clio::run::admin::MonitorTask;
 
 /** Sentinel for SearchTask::mode_: use the container default. */
-GLOBAL_CROSS_CONST chi::u32 kSearchModeDefault = 0xFFFFFFFF;
+GLOBAL_CROSS_CONST clio::run::u32 kSearchModeDefault = 0xFFFFFFFF;
 
 /**
  * CreateParams for faiss_ivf chimod
@@ -37,13 +37,13 @@ struct CreateParams {
   // Retained for wire compatibility; IGNORED by the runtime. There is a
   // single search path: read each probed list from CTE on demand, scan,
   // free.
-  chi::u32 pipeline_mode_;
+  clio::run::u32 pipeline_mode_;
 
   // Required: chimod library name for module manager
   static constexpr const char* chimod_lib_name = "clio_faiss_ivf";
 
   // Constructor with parameters (also serves as default)
-  CreateParams(chi::u32 pipeline_mode = 0) : pipeline_mode_(pipeline_mode) {}
+  CreateParams(clio::run::u32 pipeline_mode = 0) : pipeline_mode_(pipeline_mode) {}
 
   // Serialization support for cereal
   template <class Archive>
@@ -55,7 +55,7 @@ struct CreateParams {
    * Load configuration from PoolConfig (for compose mode).
    * No-op: faiss_ivf has no YAML-configurable state.
    */
-  void LoadConfig(const chi::PoolConfig& pool_config) { (void)pool_config; }
+  void LoadConfig(const clio::run::PoolConfig& pool_config) { (void)pool_config; }
 };
 
 /**
@@ -68,16 +68,16 @@ using CreateTask = clio::run::admin::GetOrCreatePoolTask<CreateParams>;
  * OpenIndexTask - Open a FAISS IndexIVF (metadata only, IVF data skipped)
  * and bind the CTE tag holding the inverted lists.
  */
-struct OpenIndexTask : public chi::Task {
-  IN chi::priv::string index_path_;  // Path to the FAISS index file
-  IN chi::priv::string tag_name_;    // CTE tag holding "sizes" + "list/<i>"
-  OUT chi::u64 ntotal_;              // Total number of indexed vectors
-  OUT chi::u32 d_;                   // Vector dimensionality
-  OUT chi::u32 nlist_;               // Number of inverted lists
+struct OpenIndexTask : public clio::run::Task {
+  IN clio::run::priv::string index_path_;  // Path to the FAISS index file
+  IN clio::run::priv::string tag_name_;    // CTE tag holding "sizes" + "list/<i>"
+  OUT clio::run::u64 ntotal_;              // Total number of indexed vectors
+  OUT clio::run::u32 d_;                   // Vector dimensionality
+  OUT clio::run::u32 nlist_;               // Number of inverted lists
 
   /** SHM default constructor */
   OpenIndexTask()
-      : chi::Task(),
+      : clio::run::Task(),
         index_path_(CLIO_PRIV_ALLOC),
         tag_name_(CLIO_PRIV_ALLOC),
         ntotal_(0),
@@ -86,12 +86,12 @@ struct OpenIndexTask : public chi::Task {
 
   /** Emplace constructor */
   explicit OpenIndexTask(
-      const chi::TaskId& task_node,
-      const chi::PoolId& pool_id,
-      const chi::PoolQuery& pool_query,
+      const clio::run::TaskId& task_node,
+      const clio::run::PoolId& pool_id,
+      const clio::run::PoolQuery& pool_query,
       const std::string& index_path,
       const std::string& tag_name)
-      : chi::Task(task_node, pool_id, pool_query, Method::kOpenIndex),
+      : clio::run::Task(task_node, pool_id, pool_query, Method::kOpenIndex),
         index_path_(CLIO_PRIV_ALLOC, index_path),
         tag_name_(CLIO_PRIV_ALLOC, tag_name),
         ntotal_(0),
@@ -122,10 +122,13 @@ struct OpenIndexTask : public chi::Task {
     ar(ntotal_, d_, nlist_);
   }
 
-  /** Fix up priv::string SSO pointer after cudaMemcpy */
+  /** Fix up priv::string SSO pointer after a raw copy (e.g. cudaMemcpy).
+   * dev renamed the old FixupSsoPointer(); re-pointing the self-referential
+   * SSO data_ is done via SetSsoState(GetSsoState()). Heap strings need no
+   * fixup. Vestigial on this CPU-only build (never called by the runtime). */
   CTP_CROSS_FUN void FixupAfterCopy() {
-    index_path_.FixupSsoPointer();
-    tag_name_.FixupSsoPointer();
+    if (index_path_.UsingSso()) index_path_.SetSsoState(index_path_.GetSsoState());
+    if (tag_name_.UsingSso()) tag_name_.SetSsoState(tag_name_.GetSsoState());
   }
 
   /** Copy from another OpenIndexTask */
@@ -140,8 +143,8 @@ struct OpenIndexTask : public chi::Task {
   }
 
   /** Aggregate replica results into this task */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task>& other_base) {
-    Task::Aggregate(other_base);
+  void AggregateOut(const ctp::ipc::FullPtr<clio::run::Task>& other_base) {
+    Task::AggregateOut(other_base);
     Copy(other_base.template Cast<OpenIndexTask>());
   }
 };
@@ -153,19 +156,19 @@ struct OpenIndexTask : public chi::Task {
  * float32) and labels_out_ (nq*k int64) are client-preallocated output
  * buffers (BULK_EXPOSE in, BULK_XFER out) — modeled on cte GetBlobTask.
  */
-struct SearchTask : public chi::Task {
-  IN chi::u32 nq_;                       // Number of queries
-  IN chi::u32 k_;                        // Neighbors per query
-  IN chi::u32 nprobe_;                   // Lists probed per query
-  IN chi::u32 d_;                        // Query dimensionality
-  IN chi::u32 mode_;                     // retained for compat; IGNORED
+struct SearchTask : public clio::run::Task {
+  IN clio::run::u32 nq_;                       // Number of queries
+  IN clio::run::u32 k_;                        // Neighbors per query
+  IN clio::run::u32 nprobe_;                   // Lists probed per query
+  IN clio::run::u32 d_;                        // Query dimensionality
+  IN clio::run::u32 mode_;                     // retained for compat; IGNORED
   IN ctp::ipc::ShmPtr<> queries_;        // nq*d float32 (shared memory)
   IN ctp::ipc::ShmPtr<> distances_out_;  // nq*k float32, client-preallocated
   IN ctp::ipc::ShmPtr<> labels_out_;     // nq*k int64, client-preallocated
 
   /** SHM default constructor */
   CTP_CROSS_FUN SearchTask()
-      : chi::Task(),
+      : clio::run::Task(),
         nq_(0),
         k_(0),
         nprobe_(0),
@@ -177,14 +180,14 @@ struct SearchTask : public chi::Task {
 
   /** Emplace constructor */
   CTP_CROSS_FUN explicit SearchTask(
-      const chi::TaskId& task_node,
-      const chi::PoolId& pool_id,
-      const chi::PoolQuery& pool_query,
-      chi::u32 nq, chi::u32 k, chi::u32 nprobe, chi::u32 d, chi::u32 mode,
+      const clio::run::TaskId& task_node,
+      const clio::run::PoolId& pool_id,
+      const clio::run::PoolQuery& pool_query,
+      clio::run::u32 nq, clio::run::u32 k, clio::run::u32 nprobe, clio::run::u32 d, clio::run::u32 mode,
       ctp::ipc::ShmPtr<> queries,
       ctp::ipc::ShmPtr<> distances_out,
       ctp::ipc::ShmPtr<> labels_out)
-      : chi::Task(task_node, pool_id, pool_query, Method::kSearch),
+      : clio::run::Task(task_node, pool_id, pool_query, Method::kSearch),
         nq_(nq),
         k_(k),
         nprobe_(nprobe),
@@ -230,11 +233,11 @@ struct SearchTask : public chi::Task {
     Task::SerializeIn(ar);
     ar(nq_, k_, nprobe_, d_, mode_, queries_, distances_out_, labels_out_);
     ar.bulk(queries_,
-            static_cast<chi::u64>(nq_) * d_ * sizeof(float), BULK_XFER);
+            static_cast<clio::run::u64>(nq_) * d_ * sizeof(float), BULK_XFER);
     ar.bulk(distances_out_,
-            static_cast<chi::u64>(nq_) * k_ * sizeof(float), BULK_EXPOSE);
+            static_cast<clio::run::u64>(nq_) * k_ * sizeof(float), BULK_EXPOSE);
     ar.bulk(labels_out_,
-            static_cast<chi::u64>(nq_) * k_ * sizeof(int64_t), BULK_EXPOSE);
+            static_cast<clio::run::u64>(nq_) * k_ * sizeof(int64_t), BULK_EXPOSE);
   }
 
   /** Serialize OUT and INOUT parameters. Only the result buffers travel
@@ -244,9 +247,9 @@ struct SearchTask : public chi::Task {
   CTP_CROSS_FUN void SerializeOut(Archive& ar) {
     Task::SerializeOut(ar);
     ar.bulk(distances_out_,
-            static_cast<chi::u64>(nq_) * k_ * sizeof(float), BULK_XFER);
+            static_cast<clio::run::u64>(nq_) * k_ * sizeof(float), BULK_XFER);
     ar.bulk(labels_out_,
-            static_cast<chi::u64>(nq_) * k_ * sizeof(int64_t), BULK_XFER);
+            static_cast<clio::run::u64>(nq_) * k_ * sizeof(int64_t), BULK_XFER);
   }
 
   /** Copy from another SearchTask */
@@ -264,8 +267,8 @@ struct SearchTask : public chi::Task {
   }
 
   /** Aggregate replica results into this task */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task>& other_base) {
-    Task::Aggregate(other_base);
+  void AggregateOut(const ctp::ipc::FullPtr<clio::run::Task>& other_base) {
+    Task::AggregateOut(other_base);
     Copy(other_base.template Cast<SearchTask>());
   }
 };
@@ -273,17 +276,17 @@ struct SearchTask : public chi::Task {
 /**
  * StatsTask - Report (and optionally reset) container statistics.
  */
-struct StatsTask : public chi::Task {
-  IN chi::u32 reset_;           // Non-zero: reset counters after reading
-  OUT chi::u64 searches_;       // Number of query vectors searched
-  OUT chi::u64 lists_fetched_;  // Number of inverted lists fetched from CTE
-  OUT chi::u64 bytes_fetched_;  // Bytes fetched from CTE
-  OUT chi::u64 fetch_wait_us_;  // Microseconds spent waiting on CTE fetches
-  OUT chi::u64 scan_us_;        // Microseconds spent scanning codes
+struct StatsTask : public clio::run::Task {
+  IN clio::run::u32 reset_;           // Non-zero: reset counters after reading
+  OUT clio::run::u64 searches_;       // Number of query vectors searched
+  OUT clio::run::u64 lists_fetched_;  // Number of inverted lists fetched from CTE
+  OUT clio::run::u64 bytes_fetched_;  // Bytes fetched from CTE
+  OUT clio::run::u64 fetch_wait_us_;  // Microseconds spent waiting on CTE fetches
+  OUT clio::run::u64 scan_us_;        // Microseconds spent scanning codes
 
   /** SHM default constructor */
   StatsTask()
-      : chi::Task(),
+      : clio::run::Task(),
         reset_(0),
         searches_(0),
         lists_fetched_(0),
@@ -293,11 +296,11 @@ struct StatsTask : public chi::Task {
 
   /** Emplace constructor */
   explicit StatsTask(
-      const chi::TaskId& task_node,
-      const chi::PoolId& pool_id,
-      const chi::PoolQuery& pool_query,
-      chi::u32 reset)
-      : chi::Task(task_node, pool_id, pool_query, Method::kStats),
+      const clio::run::TaskId& task_node,
+      const clio::run::PoolId& pool_id,
+      const clio::run::PoolQuery& pool_query,
+      clio::run::u32 reset)
+      : clio::run::Task(task_node, pool_id, pool_query, Method::kStats),
         reset_(reset),
         searches_(0),
         lists_fetched_(0),
@@ -337,8 +340,8 @@ struct StatsTask : public chi::Task {
   }
 
   /** Aggregate replica results into this task */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task>& other_base) {
-    Task::Aggregate(other_base);
+  void AggregateOut(const ctp::ipc::FullPtr<clio::run::Task>& other_base) {
+    Task::AggregateOut(other_base);
     Copy(other_base.template Cast<StatsTask>());
   }
 };

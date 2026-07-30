@@ -1,0 +1,45 @@
+[ingest] reading /mnt/common/cvazquezperezdelacru/faiss/slurm_bench/work/ondisk_nb10M.index (mmap)
+[ingest] nlist=4096 code_size=512 ntotal=10000000
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:137 INFO 2477967 ClientInit RuntimeManager::ClientInit[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/config_manager.cc:144 INFO 2477967 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:219 INFO 2477967 ClientInit IpcManager::ClientInit: IPC mode = SHM (auto-selected)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:231 INFO 2477967 ClientInit IpcManager::ClientInit: retry_timeout = 60s[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:239 INFO 2477967 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:152 INFO 2477967 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:292 INFO 2477967 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:322 INFO 2477967 ClientInit IpcManager: client response listener bound to port 34103[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1388 INFO 2477967 WaitForLocalServer Waiting for runtime via lightbeam (timeout=30s)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1496 INFO 2477967 WaitForLocalServer Successfully connected to runtime (generation=750510055032181, server_pid=2477869, shm_in_shards=1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1202 INFO 2477967 ClientInitShm ClientInitShm: attached metadata segment 'chi_metadata_segment_cvazquezperezdelacru_9413'[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1228 INFO 2477967 ClientInitShm ClientInitShm: response SHM ring 'clio-2477967-shm-out' (1MB)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_0 with size 570425344 (536870912 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_0 with ID (2477967.0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:175 INFO 2477967 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:178 INFO 2477967 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_1 with size 121951512 (88397080 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_1 with ID (2477967.1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_2 with size 123178712 (89624280 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_2 with ID (2477967.2)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_3 with size 129088512 (95534080 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_3 with ID (2477967.3)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_4 with size 130842208 (97287776 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_4 with ID (2477967.4)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_5 with size 126972112 (93417680 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_5 with ID (2477967.5)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_6 with size 129370608 (95816176 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_6 with ID (2477967.6)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_7 with size 132242312 (98687880 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_7 with ID (2477967.7)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_8 with size 128298112 (94743680 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_8 with ID (2477967.8)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_9 with size 127186608 (93632176 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_9 with ID (2477967.9)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_10 with size 132545216 (98990784 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_10 with ID (2477967.10)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_11 with size 123163112 (89608680 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_11 with ID (2477967.11)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2477967_12 with size 126121912 (92567480 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2477967 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2477967_12 with ID (2477967.12)[0m
+[ingest] done: 4.84 GiB compact (tag faiss_ivf::ondisk_nb10M)
+[verify] PASS — 16 lists byte-identical
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2341 INFO 2477967 ClearClientPool [ClientPool] Clearing 0 persistent connections[0m

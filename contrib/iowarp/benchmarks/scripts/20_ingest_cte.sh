@@ -49,10 +49,22 @@ IVFDATA="$IOWARP_WORK_DIR/$VOLUME.ivfdata"
 [ -f "$IVFDATA" ] || { echo "ERROR: missing $IVFDATA" >&2; exit 1; }
 mkdir -p "$RESULTS"
 
-# --- runtime environment (wheel bins/libs + faiss + our build) ---------------
-IOWARP_PKG="$(python3 -c 'import iowarp_core, os; print(os.path.dirname(iowarp_core.__file__))')"
-export PATH="$IOWARP_PKG/bin:$PATH"
-export LD_LIBRARY_PATH="$IOWARP_PKG/lib:$FAISS_INSTALL/lib:$FAISS_INSTALL/lib64:$ROOT/build:$ROOT/build/chimod:${LD_LIBRARY_PATH:-}"
+# --- runtime environment -----------------------------------------------------
+# Provider is selectable so the same harness runs against either the pinned
+# v2.1.0 pip wheel (default) or a clio-core *dev* source install:
+#   dev:  CLIO_BIN_DIR=~/clio-core-dev-install/bin
+#         CLIO_LIB_DIR=~/clio-core-dev-install/lib
+#         BUILD_DIR=$ROOT/build-dev
+#         IOWARP_EXTRA_LIB=~/iowarp-dev-deps/usr/lib/x86_64-linux-gnu  (BLAS etc.)
+BUILD_DIR="${BUILD_DIR:-$ROOT/build}"
+if [ -z "${CLIO_BIN_DIR:-}" ] || [ -z "${CLIO_LIB_DIR:-}" ]; then
+    IOWARP_PKG="$(python3 -c 'import iowarp_core, os; print(os.path.dirname(iowarp_core.__file__))')"
+    CLIO_BIN_DIR="${CLIO_BIN_DIR:-$IOWARP_PKG/bin}"
+    CLIO_LIB_DIR="${CLIO_LIB_DIR:-$IOWARP_PKG/lib}"
+fi
+echo "=== clio provider: bin=$CLIO_BIN_DIR lib=$CLIO_LIB_DIR build=$BUILD_DIR"
+export PATH="$CLIO_BIN_DIR:$PATH"
+export LD_LIBRARY_PATH="$CLIO_LIB_DIR:$FAISS_INSTALL/lib:$FAISS_INSTALL/lib64:$BUILD_DIR:$BUILD_DIR/chimod:${IOWARP_EXTRA_LIB:-}:${LD_LIBRARY_PATH:-}"
 
 # --- render the config (expand ${USER} and the RAM-tier cap; drop chimod ----
 # entry if not built). CTE_RAM_TIER_GB default 30 sizes the CTE RAM tier.
@@ -64,7 +76,7 @@ if [ "${CTE_RAM_TIER_GB:-30}" = "0" ]; then
     echo "NOTE: CTE_RAM_TIER_GB=0 — stripping the RAM tier (file tier only)"
     sed -i '/# BEGIN cte_ram_tier/,/# END cte_ram_tier/d' "$RENDERED"
 fi
-if ! ls "$ROOT"/build/chimod/libclio_faiss_ivf_runtime.so >/dev/null 2>&1; then
+if ! ls "$BUILD_DIR"/chimod/libclio_faiss_ivf_runtime.so >/dev/null 2>&1; then
     echo "NOTE: chimod runtime lib not built — stripping clio_faiss_ivf from compose"
     sed -i '/# BEGIN clio_faiss_ivf/,/# END clio_faiss_ivf/d' "$RENDERED"
 fi
@@ -73,6 +85,16 @@ mkdir -p "/mnt/nvme/$USER/cte_tier"
 # survives job exits on the node-local NVMe — remove stale ones so every
 # run starts from a fresh tier.
 rm -f "/mnt/nvme/$USER/cte_tier_node"* 2>/dev/null || true
+
+# Clear stale bdev perf stats: a bogus low RAM-tier read bandwidth (seen as
+# 476 MB/s vs NVMe 1637 MB/s) makes the max_bw DPE place blobs on NVMe instead
+# of RAM, which defeats the zero-IPC RAM-tier direct-read path (blobs never
+# become kShmBlobDirectReadable). Fresh stats tie the tiers so the RAM tier's
+# higher score wins placement. Opt out with KEEP_BDEV_PERF=1.
+if [ "${KEEP_BDEV_PERF:-0}" != "1" ]; then
+    rm -f "$HOME/.clio/bdev_perf"/*.perf 2>/dev/null || true
+    echo "=== cleared stale bdev perf stats (RAM placement for the zero-IPC path)"
+fi
 
 # --- kill-then-restart clio_run ----------------------------------------------
 echo "=== stopping any existing clio_run"
@@ -98,7 +120,7 @@ echo "=== ingesting $VOLUME -> tag '$TAG' (verify $VERIFY_N lists; log: $INGEST_
 # NB: the .ivfdata path is recorded inside the .index file; the binary
 # takes only <index> <tag>. $IVFDATA above is validated for existence only.
 [ -n "${TELEMETRY_PHASE_FILE:-}" ] && echo "ingest" > "$TELEMETRY_PHASE_FILE" || true
-"$ROOT/build/ivf_to_iowarp" "$INDEX" "$TAG" --verify "$VERIFY_N" 2>&1 | tee "$INGEST_LOG"
+"$BUILD_DIR/ivf_to_iowarp" "$INDEX" "$TAG" --verify "$VERIFY_N" 2>&1 | tee "$INGEST_LOG"
 [ -n "${TELEMETRY_PHASE_FILE:-}" ] && echo "idle" > "$TELEMETRY_PHASE_FILE" || true
 
 echo "=== ingest OK — runtime left running (pid $CLIO_PID)"

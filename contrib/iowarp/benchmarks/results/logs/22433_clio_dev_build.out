@@ -1,0 +1,72 @@
+=== toolchain on ares-comp-14 ===
+gcc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
+cmake version 4.3.1
+nproc=40
+=== build (all configured targets) ===
+[  1%] Building CXX object context-transport-primitives/src/CMakeFiles/clio_ctp_host.dir/cmake_pch.hxx.gch
+[  2%] Building CXX object context-transport-primitives/src/CMakeFiles/clio_ctp_host.dir/thread_model.cc.o
+[  5%] Building CXX object context-transport-primitives/src/CMakeFiles/clio_ctp_host.dir/malloc_allocator.cc.o
+[  5%] Building CXX object context-transport-primitives/src/CMakeFiles/clio_ctp_host.dir/socket_posix.cc.o
+[  5%] Building CXX object context-transport-primitives/src/CMakeFiles/clio_ctp_host.dir/system_info.cc.o
+[  6%] Linking CXX shared library ../../bin/libclio_ctp_host.so
+[  6%] Built target clio_ctp_host
+[  7%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/cmake_pch.hxx.gch
+[ 10%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/admin.cc.o
+[ 12%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/clio_runtime.cc.o
+[ 12%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/batch_manager.cc.o
+[ 14%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/ipc/ipc_cpu2self.cc.o
+[ 14%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/config_manager.cc.o
+[ 14%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/dynamic_container.cc.o
+[ 16%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/ipc/ipc_cpu2cpu.cc.o
+[ 18%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/ipc/ipc_cpu2cpu_zmq.cc.o
+[ 18%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/ipc/ipc_gpu2cpu.cc.o
+[ 20%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/manager.cc.o
+[ 20%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/ipc/ipc_run2run.cc.o
+[ 23%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/ipc_manager.cc.o
+[ 23%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/pool_query.cc.o
+[ 23%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/module_manager.cc.o
+[ 26%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/restart_log.cc.o
+[ 26%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/pool_manager.cc.o
+[ 27%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/scheduler/default_sched.cc.o
+[ 26%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/scheduler/local_sched.cc.o
+[ 27%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/task_archive.cc.o
+[ 29%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/task.cc.o
+[ 28%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/scheduler/scheduler_factory.cc.o
+[ 31%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/work_orchestrator.cc.o
+[ 31%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/types.cc.o
+[ 31%] Building CXX object context-runtime/src/CMakeFiles/clio_run_cxx.dir/worker.cc.o
+[ 32%] Linking CXX shared library ../../bin/libclio_run_cxx.so
+[ 32%] Built target clio_run_cxx
+[ 33%] Building CXX object context-runtime/modules/admin/CMakeFiles/clio_admin_client.dir/cmake_pch.hxx.gch
+[ 33%] Building CXX object context-runtime/modules/MOD_NAME/CMakeFiles/clio_MOD_NAME_client.dir/cmake_pch.hxx.gch
+[ 34%] Building CXX object context-runtime/modules/MOD_NAME/CMakeFiles/clio_MOD_NAME_client.dir/src/MOD_NAME_client.cc.o
+[ 35%] Building CXX object context-runtime/modules/admin/CMakeFiles/clio_admin_client.dir/src/admin_client.cc.o
+[ 36%] Linking CXX shared library ../../../bin/libclio_MOD_NAME_client.so
+[ 36%] Built target clio_MOD_NAME_client
+[ 37%] Building CXX object context-runtime/modules/MOD_NAME/CMakeFiles/clio_MOD_NAME_runtime.dir/cmake_pch.hxx.gch
+[ 38%] Linking CXX shared library ../../../bin/libclio_admin_client.so
+[ 38%] Built target clio_admin_client
+gmake[2]: *** No rule to make target '/usr/lib/x86_64-linux-gnu/libaio.so', needed by 'bin/libclio_bdev_client.so'.  Stop.
+gmake[2]: *** Waiting for unfinished jobs....
+[ 39%] Building CXX object context-runtime/modules/admin/CMakeFiles/clio_admin_runtime.dir/cmake_pch.hxx.gch
+[ 42%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_runtime_stop.cc.o
+[ 42%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_runtime_start.cc.o
+[ 42%] Building CXX object context-runtime/modules/bdev/CMakeFiles/clio_bdev_client.dir/cmake_pch.hxx.gch
+[ 43%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_monitor.cc.o
+[ 45%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_config.cc.o
+[ 45%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_compose.cc.o
+[ 47%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_migrate.cc.o
+[ 47%] Building CXX object context-runtime/util/CMakeFiles/clio_run_commands.dir/clio_run_cmd_refresh_repo.cc.o
+[ 49%] Building CXX object context-runtime/modules/MOD_NAME/CMakeFiles/clio_MOD_NAME_runtime.dir/src/autogen/MOD_NAME_lib_exec.cc.o
+[ 49%] Building CXX object context-runtime/modules/MOD_NAME/CMakeFiles/clio_MOD_NAME_runtime.dir/src/MOD_NAME_runtime.cc.o
+[ 51%] Building CXX object context-runtime/modules/admin/CMakeFiles/clio_admin_runtime.dir/src/autogen/admin_lib_exec.cc.o
+[ 51%] Building CXX object context-runtime/modules/admin/CMakeFiles/clio_admin_runtime.dir/src/admin_runtime.cc.o
+gmake[1]: *** [CMakeFiles/Makefile2:878: context-runtime/modules/bdev/CMakeFiles/clio_bdev_client.dir/all] Error 2
+gmake[1]: *** Waiting for unfinished jobs....
+[ 52%] Linking CXX shared library ../../../bin/libclio_MOD_NAME_runtime.so
+[ 52%] Built target clio_MOD_NAME_runtime
+[ 53%] Linking CXX static library ../../bin/libclio_run_commands.a
+[ 53%] Built target clio_run_commands
+[ 54%] Linking CXX shared library ../../../bin/libclio_admin_runtime.so
+[ 54%] Built target clio_admin_runtime
+gmake: *** [Makefile:136: all] Error 2

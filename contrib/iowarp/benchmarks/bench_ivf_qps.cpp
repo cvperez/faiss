@@ -126,11 +126,11 @@ bool chimod_search(
     auto ibuf = CLIO_IPC->AllocateBuffer(nq * k * sizeof(idx_t));
     std::memcpy(qbuf.ptr_, xq, nq * d * sizeof(float));
     auto fut = client.AsyncSearch(
-            chi::PoolQuery::Local(),
-            static_cast<chi::u32>(nq),
-            static_cast<chi::u32>(k),
-            static_cast<chi::u32>(nprobe),
-            static_cast<chi::u32>(d),
+            clio::run::PoolQuery::Local(),
+            static_cast<clio::run::u32>(nq),
+            static_cast<clio::run::u32>(k),
+            static_cast<clio::run::u32>(nprobe),
+            static_cast<clio::run::u32>(d),
             0,
             qbuf.shm_.template Cast<void>(),
             dbuf.shm_.template Cast<void>(),
@@ -171,7 +171,7 @@ bool chimod_search_parallel(
     }
     struct Sub {
         ctp::ipc::FullPtr<char> q, dd, ii;
-        chi::Future<clio::run::faiss_ivf::SearchTask> fut;
+        clio::run::Future<clio::run::faiss_ivf::SearchTask> fut;
         size_t off = 0, cnt = 0;
     };
     std::vector<Sub> subs(nsplit);
@@ -184,11 +184,11 @@ bool chimod_search_parallel(
         s.ii = CLIO_IPC->AllocateBuffer(s.cnt * k * sizeof(idx_t));
         std::memcpy(s.q.ptr_, xq + s.off * d, s.cnt * d * sizeof(float));
         s.fut = client.AsyncSearch(
-                chi::PoolQuery::Local(),
-                static_cast<chi::u32>(s.cnt),
-                static_cast<chi::u32>(k),
-                static_cast<chi::u32>(nprobe),
-                static_cast<chi::u32>(d),
+                clio::run::PoolQuery::Local(),
+                static_cast<clio::run::u32>(s.cnt),
+                static_cast<clio::run::u32>(k),
+                static_cast<clio::run::u32>(nprobe),
+                static_cast<clio::run::u32>(d),
                 0,
                 s.q.shm_.template Cast<void>(),
                 s.dd.shm_.template Cast<void>(),
@@ -250,12 +250,12 @@ int run_selftest_chimod() {
 
     clio::run::faiss_ivf::Client client;
     auto create_fut = client.AsyncCreate(
-            chi::PoolQuery::Local(),
+            clio::run::PoolQuery::Local(),
             "faiss_ivf_bench",
-            chi::PoolId(600, 0));
+            clio::run::PoolId(600, 0));
     create_fut.Wait();
     auto open_fut = client.AsyncOpenIndex(
-            chi::PoolQuery::Local(), index_file, tag);
+            clio::run::PoolQuery::Local(), index_file, tag);
     open_fut.Wait();
     if (open_fut->GetReturnCode() != 0) {
         std::fprintf(
@@ -352,12 +352,12 @@ int run_timed(const Args& a) {
     clio::run::faiss_ivf::Client chimod_client;
     chimod_client
             .AsyncCreate(
-                    chi::PoolQuery::Local(),
+                    clio::run::PoolQuery::Local(),
                     "faiss_ivf_bench",
-                    chi::PoolId(600, 0))
+                    clio::run::PoolId(600, 0))
             .Wait();
     auto open_fut = chimod_client.AsyncOpenIndex(
-            chi::PoolQuery::Local(), a.index_path, a.tag);
+            clio::run::PoolQuery::Local(), a.index_path, a.tag);
     open_fut.Wait();
     FAISS_THROW_IF_NOT_FMT(
             open_fut->GetReturnCode() == 0,
@@ -466,7 +466,7 @@ int run_timed(const Args& a) {
     if (csv) {
         fclose(csv);
     }
-    auto sf = chimod_client.AsyncStats(chi::PoolQuery::Local(), 1);
+    auto sf = chimod_client.AsyncStats(clio::run::PoolQuery::Local(), 1);
     sf.Wait();
     if (sf->GetReturnCode() == 0) {
         std::printf(
