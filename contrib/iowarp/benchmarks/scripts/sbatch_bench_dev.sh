@@ -39,10 +39,20 @@ export FAISS_INSTALL="${FAISS_INSTALL:-$HOME/faiss-install}"
 # Keep dev rows in their own CSV so the v2.1.0 baseline CSVs are preserved.
 export QPS_CSV="$ROOT/benchmarks/results/qps_dev_${FAISS_VOLUME}.csv"
 
+# A whole search pass at the large sizes takes longer than the client's default
+# 60 s request timeout (v2.1.0 nb100M/nb178M passes ran 56-130 s), so the client
+# would abandon a still-running search and abort. Give it a generous budget.
+export CLIO_CLIENT_RETRY_TIMEOUT="${CLIO_CLIENT_RETRY_TIMEOUT:-1200}"
+export CLIO_WAIT_SERVER="${CLIO_WAIT_SERVER:-120}"
+
 echo "=== IOWarp QPS (DEV)  volume=${FAISS_VOLUME}  RAM_tier=${CTE_RAM_TIER_GB:-30}g"
 echo "=== job=${SLURM_JOB_ID:-?}  host=$(hostname)  started=$(date)"
 echo "=== clio dev: $CLIO_DEV_PREFIX   build: $BUILD_DIR"
-"$CLIO_BIN_DIR/clio_run" --help >/dev/null 2>&1 && echo "clio_run(dev) OK" || echo "WARN: clio_run --help failed"
+# Sanity-check clio_run with the runtime lib path the real run uses. The dep
+# prefix carries REAL libzmq/libsodium/libaio/libmsgpackc .so files (not symlinks
+# into /lib), so this works on compute nodes that lack those system libs.
+LD_LIBRARY_PATH="$CLIO_LIB_DIR:$IOWARP_EXTRA_LIB:${LD_LIBRARY_PATH:-}" \
+    "$CLIO_BIN_DIR/clio_run" --help >/dev/null 2>&1 && echo "clio_run(dev) OK" || echo "WARN: clio_run --help failed"
 echo "MemAvailable: $(awk '/MemAvailable/{printf "%.2f GiB", $2/1024/1024}' /proc/meminfo)"
 
 # Sanity: contrib dev binaries must exist (built with IOWARP_USE_DEV=ON).
