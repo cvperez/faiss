@@ -1,0 +1,20 @@
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:137 INFO 2921442 ClientInit RuntimeManager::ClientInit[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/config_manager.cc:144 INFO 2921442 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:219 INFO 2921442 ClientInit IpcManager::ClientInit: IPC mode = SHM (auto-selected)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:231 INFO 2921442 ClientInit IpcManager::ClientInit: retry_timeout = 1200s[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:239 INFO 2921442 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:152 INFO 2921442 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:292 INFO 2921442 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:322 INFO 2921442 ClientInit IpcManager: client response listener bound to port 33115[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1388 INFO 2921442 WaitForLocalServer Waiting for runtime via lightbeam (timeout=120s)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1496 INFO 2921442 WaitForLocalServer Successfully connected to runtime (generation=918682270840530, server_pid=2920595, shm_in_shards=1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1202 INFO 2921442 ClientInitShm ClientInitShm: attached metadata segment 'chi_metadata_segment_cvazquezperezdelacru_9413'[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1228 INFO 2921442 ClientInitShm ClientInitShm: response SHM ring 'clio-2921442-shm-out' (1MB)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2440 INFO 2921442 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_2921442_0 with size 570425344 (536870912 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2485 INFO 2921442 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_2921442_0 with ID (2921442.0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:175 INFO 2921442 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:178 INFO 2921442 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[bench] volume=ondisk_step3_nb178M nlist=16384 nprobe=256 nq=500 k=10 threads=8 ntotal=178000000
+chimod subtask rc=5
+terminate called after throwing an instance of 'faiss::FaissException'
+  what():  Error in int {anonymous}::run_timed(const {anonymous}::Args&) at /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/benchmarks/bench_ivf_qps.cpp:408: Error: '!(chimod_search_parallel( chimod_client, a.nq, a.k, nprobe, d, a.inflight > 0 ? a.inflight : a.threads, xq.data(), D.data(), I.data()))' failed: chimod search failed

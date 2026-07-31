@@ -118,6 +118,20 @@ removing the per-list copy should help. Testing that on dev:
   reporting upstream as dev behavior: the client segment allocator's
   non-recycling of freed multi-MB buffers, and segments staying mapped in
   the daemon after the owning client exits.
+- **Placement records corrupt at large ingest-time spill volumes**
+  (found 2026-07-31, nb178M campaign). With RAM 30 GB + 56 GB NVMe spill,
+  the shm metadata cache keeps claiming direct-readability for spilled
+  blobs: the zero-IPC fast path then "reads" 86 GB in 12 s with **zero disk
+  I/O** — silently returning stale RAM-tier bytes (job 22495; the
+  placement_gen seqlock does not catch it because the stale record is
+  *stable*, not mid-move) — and the daemon's own RPC GetBlob fails with
+  rc=1 on 42 of ~10.4 k spilled blobs (job 22496). At nb100M's 19 GB spill
+  every record is correct, so the corruption onsets between 19 and 56 GB of
+  spill. Workaround: `CTE_RAM_TIER_GB=0` (direct-to-file-tier placement, no
+  reorganization) runs clean — nb178M completed 3/3 passes at 8.7/6.6/6.6
+  QPS with zero failures (job 22497). This is the most serious of the three
+  upstream findings: the fast-path variant returns **wrong data without any
+  error**.
 
 ## Bottom line
 
@@ -136,9 +150,13 @@ The report's actual ask still stands, sharpened: dev is **zero-IPC, not
 zero-copy**, and with the read fixed **scan_s now exceeds read_s
 everywhere** — the per-list memcpy+scan is the last data-movement cost, and
 the **zero-copy scan-in-place view** (no per-list buffer, no memcpy) is what
-would remove it. Upstream-worthy dev findings from this campaign: the client
-segment allocator does not recycle freed multi-MB buffers, client segments
-stay mapped in the daemon after the owning client exits, and the zero-IPC
-`AsyncGetBlob` fast path silently serializes async pipelines (a documented
-"completes-inline" note or an async-preserving variant would spare the next
-porter).
+would remove it. Upstream-worthy dev findings from this campaign: (1) the
+client segment allocator does not recycle freed multi-MB buffers; (2) client
+segments stay mapped in the daemon after the owning client exits; (3) the
+zero-IPC `AsyncGetBlob` fast path silently serializes async pipelines (a
+documented "completes-inline" note or an async-preserving variant would
+spare the next porter); and (4) — most serious — at large ingest-time spill
+volumes (between 19 and 56 GB) blob placement records go stale: the shm fast
+path then returns **wrong bytes with no error and no I/O**, and the RPC path
+fails rc=1 on the affected blobs (see the caveat above; workaround
+`CTE_RAM_TIER_GB=0`).

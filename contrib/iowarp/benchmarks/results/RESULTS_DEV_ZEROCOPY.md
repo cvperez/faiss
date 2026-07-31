@@ -35,21 +35,28 @@ three passes.
 | **nb100M** (49 GB, nprobe 256) | v2.1.0 scalar² (2026-07-13) | 8.9 | 7.8 / 7.9 | 122.67 | 47.76 | RAM+NVMe |
 | | dev before (job 22476) | 11.4 | daemon died³ | — | — | RAM+NVMe |
 | | **dev after (job 22485)** | **17.7** | **20.4 / 21.7** | **33.41** | 41.74 | 30 GB RAM + 19 GB NVMe |
+| **nb178M** (86 GB, nprobe 256) | v2.1.0 scalar² (2026-07-13) | 4.0 | 3.9 / 4.0 | 258.47 | 103.69 | RAM+NVMe |
+| | dev before | not attempted (nb100M-class crash) | | | | |
+| | **dev after (job 22497)** | **8.7** | **6.6 / 6.6** | **127.34** | 80.30 | 87 GB NVMe, file-tier only⁴ |
 
 **Correctness.** Every dev-after pass returns `(D, I)` bitwise-identical to
 stock FAISS (FNV-1a di_hash): nb10M `0e04f8171f7d1898`, nb50M
 `32085d09bb65391b` — the same hashes as the v2.1.0 and mmap baselines. nb100M
 prints `4d0bb1d73138720a` on all three passes (no stock-FAISS reference hash
 exists for nb100M; the hash is also identical to the pre-fix cold pass, i.e.
-consistent across two different ChiMod binaries). Zero page-ins on warm passes
-throughout.
+consistent across two different ChiMod binaries); nb178M prints
+`b1bda05cb0b86813` on all three passes (likewise self-consistent, no
+reference). Zero page-ins on warm passes throughout.
 
 **Bottom line.** On latest dev with the port fixed, the ChiMod is ~2× the
-v2.1.0 baseline at every size (130→251, 21→52, 8.9→17.7 cold QPS), the
-previously-fatal nb100M warm passes complete, and read time stops dominating:
-read_s dropped 5.74→1.37 (nb10M), 39.60→6.67 (nb50M), 122.67→33.41 (nb100M).
-Scan time is now the bottleneck at every size — exactly the profile the
-zero-copy view/pin API proposal targets next.
+v2.1.0 baseline at every size (130→251, 21→52, 8.9→17.7, 4.0→8.7 cold QPS),
+the previously-fatal nb100M/nb178M passes complete, and read time stops
+dominating wherever data is RAM-resident: read_s dropped 5.74→1.37 (nb10M),
+39.60→6.67 (nb50M), 122.67→33.41 (nb100M). At the RAM-resident sizes scan_s
+is now the bottleneck — exactly the profile the zero-copy view/pin API
+proposal targets next. nb178M is NVMe-bandwidth-bound (read 127 s vs scan
+80 s over 3 passes, ~2.0 GB/s sustained io_uring reads), the regime where
+CTE's explicit placement beats mmap by 16× (6.6 vs 0.4 warm).
 
 ### CTE (dev, fixed) vs the mmap baseline
 
@@ -62,7 +69,7 @@ mmap does not involve clio-core, so those baselines are unchanged):
 | 4.8 GB | 64 | **251 / 257** | 28 / 238 | 46k / <700 |
 | 24 GB | 128 | **52 / 55** | 11 / 93 | 213k / <200 |
 | 49 GB | 256 | **17.7 / 20.4** | 2.0 / 5.5 | 757k / ~535k |
-| 87 GB | 256 | not run on dev⁴ | 0.4 / 0.4 | 2.8M / ~2.7M |
+| 87 GB | 256 | **8.7 / 6.6**⁴ | 0.4 / 0.4 | 2.8M / ~2.7M |
 
 (500 queries, K = 10, nprobe = nlist/64, 8 threads, 48 GB node. CTE page-ins
 ≈ 0 on every pass, cold included.)
@@ -70,13 +77,15 @@ mmap does not involve clio-core, so those baselines are unchanged):
 The v2.1.0 campaign's story was a crossover: mmap won warm while the index
 fit in RAM, CTE won once it didn't. That crossover still exists but has
 narrowed sharply: **cold, CTE now wins at every size** (251 vs 28, 52 vs 11,
-17.7 vs 2.0); **warm in-RAM**, mmap's page cache is comparable at 4.8 GB
-(238–360 vs 257) and still ahead at 24 GB, though the gap shrank from 3.4×
-(93 vs ~27) to 1.7× (93 vs 55); **out-of-core** (49 GB+), CTE is 3–4× ahead
-warm (20.4 vs 5.5) with zero page-ins versus ~535 k per pass.
+17.7 vs 2.0, 8.7 vs 0.4); **warm in-RAM**, mmap's page cache is comparable
+at 4.8 GB (238–360 vs 257) and still ahead at 24 GB, though the gap shrank
+from 3.4× (93 vs ~27) to 1.7× (93 vs 55); **out-of-core** (49 GB+), CTE is
+3–16× ahead warm (20.4 vs 5.5; 6.6 vs 0.4) with zero page-ins versus
+~535 k–2.7 M per pass.
 
-⁴ nb178M was not part of this campaign (user-scoped to nb10M/50M/100M); the
-v2.1.0 CTE reference at 87 GB is 4.0 / 3.9 QPS (scalar build, report.tex).
+⁴ nb178M ran **file-tier only** (`CTE_RAM_TIER_GB=0`, all 86 GB on NVMe) —
+see the footnote in Provenance for why the mixed-tier config is not usable
+at this size on dev.
 
 ## What was wrong, and what changed
 
@@ -133,6 +142,22 @@ used here are jobs 21917–21919 from 2026-07-14, see `RESULTS.md` §3).
 ³ Job 22476 log: cold pass completed, then client shm allocators climbed past
 ~120 × ~140 MB, a worker stalled with NaN load, the daemon vanished, and
 `bench_ivf_qps` aborted after the 1200 s reconnect timeout.
+
+⁴ **nb178M could not run the standard mixed-tier config on dev — a
+placement-record bug at large spill volumes.** Two rejected attempts:
+job 22495 (RAM 30 GB + 56 GB spill, fast path on) "completed" a cold pass at
+41.8 QPS in 12 s with **zero NVMe reads** — the shm metadata cache still
+claimed direct-readability for spilled blobs, so `TryReadBlobShm` copied
+stale RAM-tier bytes (garbage, hash `b781267ff858a9b8` invalid) — then the
+daemon stalled and died; job 22496 (same config, `FAISS_IVF_NO_SHM_DIRECT=1`)
+did honest io_uring reads but the daemon's own GetBlob returned **rc=1 for
+42 of ~10.4 k spilled blobs** — same stale records, correctly failing
+instead of silently lying. At nb100M's 19 GB spill all records are correct
+(sustained 1–1.6 GB/s NVMe reads, consistent hashes), so the corruption
+onsets somewhere between 19 GB and 56 GB of ingest-time spill. Workaround
+(v2.1.0 §9.1 precedent): `CTE_RAM_TIER_GB=0` — all 86 GB placed directly on
+the file tier at Put time, no reorganization, zero failures (job 22497).
+Upstream-worthy dev bug.
 
 * `qps_dev_*.csv` files contain both campaigns' rows — select by timestamp/job
   (before: ts ≤ 1785351239; after: jobs 22484/22485/22487; an intermediate
