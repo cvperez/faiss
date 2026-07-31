@@ -51,6 +51,33 @@ read_s dropped 5.74→1.37 (nb10M), 39.60→6.67 (nb50M), 122.67→33.41 (nb100M
 Scan time is now the bottleneck at every size — exactly the profile the
 zero-copy view/pin API proposal targets next.
 
+### CTE (dev, fixed) vs the mmap baseline
+
+Same format as `docs/report.tex` Tables 1–2, with the CTE column replaced by
+this campaign's numbers (mmap column reproduced from report.tex Table 2 —
+mmap does not involve clio-core, so those baselines are unchanged):
+
+| Index size | nprobe | CTE dev QPS (cold/warm) | mmap QPS (cold/warm) | mmap page-ins/pass |
+|---|---|---|---|---|
+| 4.8 GB | 64 | **251 / 257** | 28 / 238 | 46k / <700 |
+| 24 GB | 128 | **52 / 55** | 11 / 93 | 213k / <200 |
+| 49 GB | 256 | **17.7 / 20.4** | 2.0 / 5.5 | 757k / ~535k |
+| 87 GB | 256 | not run on dev⁴ | 0.4 / 0.4 | 2.8M / ~2.7M |
+
+(500 queries, K = 10, nprobe = nlist/64, 8 threads, 48 GB node. CTE page-ins
+≈ 0 on every pass, cold included.)
+
+The v2.1.0 campaign's story was a crossover: mmap won warm while the index
+fit in RAM, CTE won once it didn't. That crossover still exists but has
+narrowed sharply: **cold, CTE now wins at every size** (251 vs 28, 52 vs 11,
+17.7 vs 2.0); **warm in-RAM**, mmap's page cache is comparable at 4.8 GB
+(238–360 vs 257) and still ahead at 24 GB, though the gap shrank from 3.4×
+(93 vs ~27) to 1.7× (93 vs 55); **out-of-core** (49 GB+), CTE is 3–4× ahead
+warm (20.4 vs 5.5) with zero page-ins versus ~535 k per pass.
+
+⁴ nb178M was not part of this campaign (user-scoped to nb10M/50M/100M); the
+v2.1.0 CTE reference at 87 GB is 4.0 / 3.9 QPS (scalar build, report.tex).
+
 ## What was wrong, and what changed
 
 The ChiMod port to dev was line-for-line equivalent to the v2.1.0 version —
