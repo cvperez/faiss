@@ -1,0 +1,262 @@
+# Running the FAISS IVF ChiMod on two (or more) nodes
+
+How the multi-node scenario is implemented, layer by layer, with the actual
+code. Measured results and limitations are in
+[`../benchmarks/results/RESULTS_DEV_ZEROCOPY.md`](../benchmarks/results/RESULTS_DEV_ZEROCOPY.md)
+(§"2026-08-05 campaign"); this document explains *how it works*.
+
+## 1. What clio-core gives us
+
+clio-core forms a cluster from a single config key: `networking.hostfile`
+(one hostname per line; **the line number is the node id**). Everything else
+derives from it automatically:
+
+* every pool is created with **one container per node**
+  (`pool_manager.cc`: `num_containers = all_hosts.size()`), and
+  `ContainerId == NodeId`;
+* each node's CTE container registers **its own local tiers** — with
+  `targets.neighborhood: 1` node *i* gets `ram::cte_ram_tier_node<i>` and
+  `/mnt/nvme/$USER/cte_tier_node<i>`. Capacity is therefore per-node and
+  additive: 2 nodes ⇒ 2 × 30 GB RAM tier + 2 × 120 GB NVMe;
+* a blob's **owner node is chosen by hashing the blob name**
+  (`HashBlobToContainer(tag_id, blob_name)` → `PoolQuery::DirectHash`), so
+  an ingest from any one node spreads the `list/<i>` blobs ~50/50 across
+  the cluster with no code changes on the ingest side;
+* a `GetBlob`/`PutBlob` whose hash lands on a remote container routes over
+  the network transparently (ZMQ; queries/results move as bulk transfers).
+
+Two things clio-core does **not** do: `clio_run` does not self-spawn across
+the hostfile (each node's daemon must be started separately), and there is
+no startup barrier (nothing may talk to the cluster before every daemon has
+bound its port).
+
+One important asymmetry: the **zero-IPC shared-memory read is node-local by
+construction** (`ShmBlobRecord.node_id_` — "only local is cacheable"). A
+container can fast-path only the blobs its own node owns; peer-owned blobs
+always go through the RPC path. This is what makes the query-split fan-out
+network-bound (see §6).
+
+## 2. Config rendering — `benchmarks/scripts/20_ingest_cte.sh`
+
+The committed `config/ares_cte.yaml` stays single-node. At run time, when
+the SLURM allocation has more than one node, the rendered copy gets the
+hostfile injected into the `networking:` block and SWIM failure-probing
+disabled (probes share the 8 task workers; a saturated benchmark pass can
+get a node falsely declared dead):
+
+```bash
+# --- multi-node (2+ nodes): hostfile + SWIM off ------------------------------
+MULTI_NODE=0
+if [ -n "${IOWARP_HOSTFILE:-}" ] && [ "${SLURM_JOB_NUM_NODES:-1}" -gt 1 ]; then
+    MULTI_NODE=1
+    sed -i "/^  port:/a\\  hostfile: \"$IOWARP_HOSTFILE\"" "$RENDERED"
+    printf '\nswim:\n  enabled: false\n' >> "$RENDERED"
+fi
+```
+
+The rendered `networking:` block then reads:
+
+```yaml
+networking:
+  port: 9413
+  hostfile: "/mnt/common/<user>/.../results/hostfile_<jobid>"
+  neighborhood_size: 32
+swim:
+  enabled: false
+```
+
+Per-node preparation (fresh tier files, stale-perf cleanup, killing old
+daemons) must run **on every node**, so the script wraps those commands in
+a helper that srun-broadcasts when multi-node and degrades to plain bash on
+one node:
+
+```bash
+# Run a command on every node of the allocation (or just locally, 1-node).
+on_all_nodes() {
+    if [ "$MULTI_NODE" = 1 ]; then
+        srun --ntasks-per-node=1 --nodes="$SLURM_JOB_NUM_NODES" --export=ALL bash -c "$*"
+    else
+        bash -c "$*"
+    fi
+}
+
+on_all_nodes "mkdir -p /mnt/nvme/$USER/cte_tier; rm -f /mnt/nvme/$USER/cte_tier_node* 2>/dev/null || true"
+...
+on_all_nodes "pkill -u $USER -f clio_[r]un 2>/dev/null || true"
+```
+
+(The `clio_[r]un` bracket pattern is deliberate: the srun wrapper's own
+command line contains the pattern text, and a plain `pkill -f clio_run`
+would match — and SIGTERM — its own wrapper.)
+
+## 3. Launching one daemon per node
+
+`clio_run` stays in the **foreground of its srun task** (a backgrounded
+child would die when the task exits); the srun itself is backgrounded and
+the script then polls every host's RPC port — clio-core has no peer
+barrier, so ingest must not start before all daemons have bound:
+
+```bash
+srun --ntasks-per-node=1 --nodes="$SLURM_JOB_NUM_NODES" --export=ALL \
+     --output="$RESULTS/clio_run_${VOLUME}_${TS}_node%n.log" \
+     bash -c "export CLIO_RESTART_LOG=/tmp/${USER}_restart_\$(hostname).bin; exec clio_run start" &
+CLIO_PID=$!
+
+# Readiness: poll the run2run ROUTER port on every host.
+PORT="$(awk '/^  port:/{print $2; exit}' "$RENDERED")"
+while read -r h; do
+    for i in $(seq 1 60); do
+        if timeout 1 bash -c "</dev/tcp/$h/$PORT" 2>/dev/null; then break; fi
+        sleep 1
+    done
+done < "$IOWARP_HOSTFILE"
+```
+
+`CLIO_RESTART_LOG` is pointed at node-local `/tmp` because the default
+lives in the shared home directory and two daemons would race on one file.
+Per-node daemon logs land as `clio_run_<volume>_<ts>_node0.log` /
+`_node1.log`.
+
+The hostfile itself is generated by `sbatch_bench_dev.sh` from the SLURM
+allocation (line order = node ids):
+
+```bash
+if [ "${SLURM_JOB_NUM_NODES:-1}" -gt 1 ]; then
+    export IOWARP_HOSTFILE="$ROOT/benchmarks/results/hostfile_${SLURM_JOB_ID}"
+    scontrol show hostnames "$SLURM_JOB_NODELIST" > "$IOWARP_HOSTFILE"
+fi
+```
+
+## 4. Client-side changes — `benchmarks/bench_ivf_qps.cpp`
+
+Only two routing decisions had to change; the ChiMod runtime itself
+(`faiss_ivf_runtime.cc`) needed **no** multi-node changes — its per-list
+CTE fetch already falls back from the node-local shm fast path to the RPC
+path, which routes cross-node transparently.
+
+**(a) `OpenIndex` must reach every container.** The index handle
+(`ivf_`, `sizes_`, `tag_id_`) is per-container state, and `Search` fails
+with rc=1 on a container that never opened. With the old
+`PoolQuery::Local()` only node 0's container was opened, so every search
+routed to node 1 would fail:
+
+```cpp
+// Broadcast: EVERY node's container must open the index (per-container
+// state) — with Local, a second node's container would fail every
+// search routed to it with rc=1. Single-node this degenerates to the
+// one local container.
+auto open_fut = chimod_client.AsyncOpenIndex(
+        clio::run::PoolQuery::Broadcast(), a.index_path, a.tag);
+```
+
+(`OpenIndex` reads only the index *metadata* from the shared filesystem —
+`/mnt/common` on Ares — the inverted lists come from CTE.)
+
+**(b) Search sub-batches fan out by container id.** The bench splits the
+query batch into `--inflight N` independent SearchTasks; sub-batch `i` is
+routed with `DirectHash(i)`, which resolves to container `i %
+num_containers` — so `--inflight 2` on two nodes puts exactly one
+SearchTask (with its 8 scan threads) on each node. On one node,
+`hash % 1 = 0` reproduces the old `Local()` behavior exactly:
+
+```cpp
+// DirectHash(i): sub-batch i lands on container i % num_containers.
+// Single node this is container 0 (== the old Local behavior);
+// multi-node it fans one SearchTask (with its 8 scan threads) out
+// to each node's container — use --inflight <num nodes>.
+s.fut = client.AsyncSearch(
+        clio::run::PoolQuery::DirectHash(static_cast<clio::run::u32>(i)),
+        static_cast<clio::run::u32>(s.cnt),
+        ...);
+```
+
+Per-query results are independent, so the split cannot change any output —
+the 2-node runs return the byte-identical `di_hash` of the 1-node runs.
+
+**(c) Stats become cluster totals.** `AsyncStats` is broadcast, and the
+task's reply-merge hook **sums** each container's counters instead of
+copying the last reply
+(`chimod/include/clio_runtime/faiss_ivf/faiss_ivf_tasks.h`):
+
+```cpp
+/** Aggregate replica results into this task. Counters are SUMMED across
+ *  containers (a broadcast Stats on N nodes must report cluster totals;
+ *  Copy would report only the last replica's). */
+void AggregateOut(const ctp::ipc::FullPtr<clio::run::Task>& other_base) {
+  Task::AggregateOut(other_base);
+  auto other = other_base.template Cast<StatsTask>();
+  searches_ += other->searches_;
+  lists_fetched_ += other->lists_fetched_;
+  bytes_fetched_ += other->bytes_fetched_;
+  fetch_wait_us_ += other->fetch_wait_us_;
+  scan_us_ += other->scan_us_;
+}
+```
+
+(`AsyncCreate` stays `Local()`: the admin module turns pool creation into a
+broadcast itself.)
+
+## 5. How to run
+
+```bash
+cd contrib/iowarp/benchmarks/scripts
+sbatch --wait --nodes=2 --ntasks=2 --ntasks-per-node=1 \
+    --export=ALL,FAISS_VOLUME=ondisk_nb50M,CHIMOD_INFLIGHTS=2,VERIFY_N=all \
+    sbatch_bench_dev.sh
+```
+
+Notes:
+
+* **All three of `--nodes=2 --ntasks=2 --ntasks-per-node=1` are required**
+  on the command line: the script's `#SBATCH --ntasks=1` directive
+  otherwise constrains SLURM into shrinking the allocation back to one
+  node (observed: job 22790 silently ran single-node).
+* `CHIMOD_INFLIGHTS` should equal the node count — one SearchTask with 8
+  scan threads per node preserves the per-node thread contract of the
+  1-node baseline.
+* Everything degrades to the unchanged 1-node behavior when the
+  allocation has a single node (verified: job 22789).
+
+What a healthy 2-node run prints:
+
+```
+=== multi-node allocation: ares-comp-31 ares-comp-32
+=== multi-node: 2 nodes (ares-comp-31 ares-comp-32 ), swim off
+clio_run up on ares-comp-31:9413
+clio_run up on ares-comp-32:9413
+[verify] PASS — 8192 lists byte-identical        <- includes cross-node reads
+  cold   qps=...  di_hash=32085d09bb65391b       <- same hash as 1-node
+ares-comp-31: 0  total                            <- per-node tier occupancy
+ares-comp-32: 0  total
+```
+
+## 6. What the measurements showed (summary)
+
+| Volume | 1-node warm QPS | 2-node warm QPS | Correctness |
+|---|---|---|---|
+| nb10M (job 22791) | 269–276 | 22.5 | exact 1-node di_hash |
+| nb50M (job 22793) | 54 | 4.6 | exact 1-node di_hash |
+| nb100M (jobs 22795/22818) | 21 | — | ingest + verify-all pass; search OOMs the peer daemon |
+
+* **Correctness is complete**: cluster formation, hash-spread ingest,
+  cross-node verification, and bitwise-identical search results.
+* **The query-split fan-out is network-bound by construction.** Each
+  sub-batch probes nearly the whole index, so every node reads ~half its
+  lists from the peer over RPC (~215 MB/s effective) — and the zero-IPC
+  fast path cannot help, being node-local. Combined RAM capacity is real
+  (each node holds half the blobs) but combined *bandwidth* is not
+  exploitable this way.
+* **The scalable design is data-local**: route the *scan* to the node that
+  owns each list (split by list ownership, not by query), return partial
+  top-k heaps, and merge k results per query at the client. That turns the
+  cross-node traffic from ~half the index per pass into `nq × k × 12
+  bytes`, and lets both nodes scan at local-RAM speed. This is the natural
+  next evolution of the ChiMod (`SearchTask` would gain an owner-filter
+  mode and the client a heap-merge step) — future work.
+* **Upstream limit at scale**: daemon-side shm segments grow with the
+  bytes moved cross-node (remote-put staging and remote-read serving) and
+  are never recycled — at nb100M (~24 GB/node) the peer daemon is
+  OOM-killed (131→188 × ~140 MB segments; per-node logs
+  `clio_run_ondisk_nb100M_*_node1.log`). nb10M/nb50M scales fit. Worth
+  raising with the clio-core maintainers together with the #856
+  strict-event-resume note.

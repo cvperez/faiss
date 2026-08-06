@@ -26,6 +26,7 @@ contrib/iowarp/
   benchmarks/           bench_ivf_qps.cpp, scripts/ (run harness), results/
   config/               clio_run compose configs (ares_cte.yaml, local_smoke.yaml)
   docs/                 design notes, plan, upstream proposal, report.tex
+                        MULTINODE.md — how the 2-node deployment works (code walkthrough)
   third_party/          vendored header-only deps the wheel links but doesn't
                         ship (zmq 4.3.5, msgpack-c 6.1.0, cereal 1.3.2)
 ```
