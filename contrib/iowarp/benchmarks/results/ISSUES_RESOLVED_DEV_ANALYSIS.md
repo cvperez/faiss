@@ -4,6 +4,24 @@
 correctness + runtime instrumentation; performance measured on nb10M/nb50M/nb100M.
 Measured numbers: [RESULTS_DEV_ZEROCOPY.md](RESULTS_DEV_ZEROCOPY.md).
 
+**UPDATED 2026-08-05 — the large-spill corruption is RESOLVED on dev
+`8715591a`.** The nb178M mixed-tier gate (job 22786, RAM 30 GB + 57 GB
+spill) now passes a FULL read-back verification — `ivf_to_iowarp --verify
+all`, every one of 16 384 lists byte-identical via RPC GetBlob right after
+ingest — and completes all search passes at 8.8/9.4/9.4 QPS with the same
+di_hash as the file-tier-only control from the previous HEAD. The fix
+landed upstream between `4cc0d780` and `8715591a` (the #909/#910
+"safe-bdev concurrent alloc race" family is the plausible vehicle; our
+allocator-race hypothesis below, §4 discussion, matched that shape). **The
+planned upstream corruption issue is withdrawn as unnecessary.** One NEW
+dev-semantics adaptation was required this round (the fifth): #856's strict
+event-resume guard starves yield-polling in handlers — see
+RESULTS_DEV_ZEROCOPY.md §"2026-08-05 campaign". Two findings remain worth
+mentioning to the maintainers informally: `ReadData` still collapses all
+bdev failure kinds into `rc=1`, and on 2-node runs the daemon-side shm
+segments grow with cross-node bytes moved and never recycle (OOM at
+nb100M scale — jobs 22795/22818, `clio_run_*_node1.log`).
+
 **UPDATED 2026-07-30** — the first campaign's two negative conclusions
 ("no speedup for the co-located ChiMod" and "search is unstable at scale on
 dev") are **superseded**. Both were artifacts of running a v2.1.0-shaped

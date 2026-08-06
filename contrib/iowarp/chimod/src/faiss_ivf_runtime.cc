@@ -360,11 +360,10 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
   // remove (scan the RAM tier's own bytes in place). Keep up to
   // kMaxInflight AsyncGetBlobs outstanding — never issue unbounded tasks
   // from a handler, the runtime queues are shared with the CTE handlers.
-  // Poll-then-finalize: only CLIO_CO_AWAIT a future that IsComplete() (the
-  // await returns immediately), scan on arrival, free the buffer, and
-  // yield only while fetches are outstanding — awaiting a still-pending
-  // future with more sub-tasks in flight can resume a destroyed coroutine
-  // frame (SIGSEGV in ResumeCoroutine).
+  // Poll-then-finalize: sweep for IsComplete() futures and scan those
+  // first; when a sweep makes no progress, await the oldest pending RPC
+  // future directly (see the #856 note at the bottom of the loop — the
+  // historical yield-based park starves on dev >= d7b1f053).
   constexpr size_t kMaxInflight = 64;
   // Zero-IPC burst width: on dev, AsyncGetBlob's shm fast path memcpys
   // INLINE on this coroutine's worker (core_client.h TryShmGet), so the
@@ -413,6 +412,26 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
       std::getenv("FAISS_IVF_NO_SHM_DIRECT") == nullptr &&
       !clio::cte::core::Client::ForceNetEnv() &&
       (cte_.HasShmCache() || cte_.AttachShmCache());
+  // FAISS_IVF_VERIFY_SHM=1: diagnostic mode — after every zero-IPC fast-path
+  // hit, ALSO fetch the same list via the RPC GetBlob path and byte-compare.
+  // Proves (or refutes) that the raw shm read returns the same bytes the
+  // official API returns. Roughly halves throughput; diagnostics only.
+  const bool verify_shm =
+      shm_direct && std::getenv("FAISS_IVF_VERIFY_SHM") != nullptr;
+  ctp::ipc::FullPtr<char> vslab;
+  clio::run::u64 verify_diverge = 0;
+  clio::run::u64 verify_rpcfail = 0;
+  if (verify_shm) {
+    vslab = ipc->AllocateBuffer(max_bytes);
+    if (vslab.IsNull()) {
+      HLOG(kError, "faiss_ivf: VERIFY_SHM scratch AllocateBuffer failed");
+      task->SetReturnCode(5);
+      for (size_t t = 0; t < nslabs; ++t) {
+        ipc->FreeBuffer(slabs[t]);
+      }
+      CLIO_CO_RETURN;
+    }
+  }
   const clio::run::u64 t_loop0 = NowUs();
   clio::run::u64 scan_us = 0;
   size_t issued = 0;
@@ -460,9 +479,35 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
       progressed = true;
       const int64_t l = lists[i];
       const size_t sz = static_cast<size_t>(sizes_[l]);
+      if (fast[i] && verify_shm) {
+        // Cross-check the fast-path bytes against the RPC path. Direct
+        // await (safe and required on dev >= d7b1f053, see #856 note at
+        // the bottom of the loop).
+        const clio::run::u64 vbytes =
+            static_cast<clio::run::u64>(sz) * (code_size + sizeof(int64_t));
+        auto vfut = cte_.AsyncGetBlob(
+            tag_id_, std::string("list/") + std::to_string(l), 0, vbytes, 0,
+            vslab.shm_.template Cast<void>());
+        CLIO_CO_AWAIT(vfut);
+        if (vfut->GetReturnCode() != 0) {
+          HLOG(kError,
+               "faiss_ivf: VERIFY_SHM rpc get failed list {} (rc={}, {} B)",
+               l, vfut->GetReturnCode(), vbytes);
+          ++verify_rpcfail;
+        } else if (std::memcmp(slabs[slot_of[i]].ptr_, vslab.ptr_,
+                               static_cast<size_t>(vbytes)) != 0) {
+          HLOG(kError,
+               "faiss_ivf: VERIFY_SHM DIVERGENCE list {} ({} B): shm fast "
+               "path bytes != RPC GetBlob bytes",
+               l, vbytes);
+          ++verify_diverge;
+        }
+        vfut = clio::run::Future<clio::cte::core::GetBlobTask>();
+      }
       if (!fast[i] && futs[i]->GetReturnCode() != 0) {
-        HLOG(kError, "faiss_ivf: GetBlob('list/{}') failed (rc={})", l,
-             futs[i]->GetReturnCode());
+        HLOG(kError, "faiss_ivf: GetBlob('list/{}') failed (rc={}, {} B)", l,
+             futs[i]->GetReturnCode(),
+             static_cast<clio::run::u64>(sz) * (code_size + sizeof(int64_t)));
         task->SetReturnCode(5);
       } else {
         stat_lists_fetched_ += 1;
@@ -493,11 +538,38 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
       }
     }
     if (!progressed && completed < issued) {
-      CLIO_CO_AWAIT(clio::run::yield());
+      // No list became ready this sweep — await the OLDEST still-pending
+      // RPC future directly. On dev >= d7b1f053 (#856) the event-resume
+      // guard is strict: a suspended fiber is resumed only by the exact
+      // future it awaits, and the old poll-then-yield pattern can starve
+      // (observed as an infinite cold-pass hang at nb100M: the yielded
+      // Search fiber pinned worker 0 while its lane was rescue-adopted
+      // away, GetBlob completions no longer resume a yield-parked
+      // parent). Direct await of a pending subtask future is the pattern
+      // the CTE core itself uses on this HEAD, and #856's exactly-once
+      // completion makes it safe (no spurious double-resume of this
+      // frame — the pre-#856 SIGSEGV hazard this loop was originally
+      // designed around).
+      for (size_t i = 0; i < issued; ++i) {
+        if (!done[i] && !fast[i]) {
+          CLIO_CO_AWAIT(futs[i]);
+          break;
+        }
+      }
     }
   }
   for (size_t s = 0; s < nslabs; ++s) {
     ipc->FreeBuffer(slabs[s]);
+  }
+  if (verify_shm) {
+    HLOG(kInfo,
+         "faiss_ivf: VERIFY_SHM summary: {} divergence(s), {} rpc "
+         "failure(s) across fast-path hits",
+         verify_diverge, verify_rpcfail);
+    if (verify_diverge > 0 || verify_rpcfail > 0) {
+      task->SetReturnCode(6);  // distinct rc: fast path diverged from RPC
+    }
+    ipc->FreeBuffer(vslab);
   }
   const clio::run::u64 loop_us = NowUs() - t_loop0;
   stat_scan_us_ += scan_us;

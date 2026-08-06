@@ -176,3 +176,89 @@ Upstream-worthy dev bug.
   list) remains — dev is zero-IPC, not zero-copy; the view/pin API proposed
   in `docs/UPSTREAM_PROPOSAL_IOWARP.md` is still the path to removing the
   remaining read_s entirely.
+
+---
+
+# 2026-08-05 campaign — dev `8715591a`: corruption fixed, full verification, 2-node evaluation
+
+clio-core dev updated `4cc0d780` → `8715591a` (~24k lines, incl. the #910
+allocator-race serialization family). Contribution hardened with two
+instruments addressing the maintainers' usage-error hypotheses:
+
+* **`ivf_to_iowarp --verify all`** — after ingest, every non-empty list is
+  read back through the RPC `GetBlob` API and byte-compared against the
+  source. Any failure here is corruption inside the tiering engine under
+  provably API-correct writes (put → Wait → rc==0).
+* **`FAISS_IVF_VERIFY_SHM=1`** — diagnostic search mode: every zero-IPC
+  fast-path read is cross-checked byte-for-byte against the RPC path.
+
+## The gate: the large-spill corruption is FIXED on latest dev
+
+nb178M mixed-tier (RAM 30 GB + 57 GB NVMe spill, job 22786) — the exact
+scenario that corrupted twice on `4cc0d780` (footnote ⁴ above):
+
+* verify-all: **16 384 / 16 384 lists byte-identical** right after ingest
+  (previously 42 GetBlob rc=1 failures / silent garbage);
+* all passes complete: **8.8 / 9.4 / 9.4 QPS** (v2.1.0 scalar baseline
+  4.0 / 3.9; file-tier-only workaround was 8.7 / 6.6);
+* di_hash `b1bda05cb0b86813` on every pass — identical to the file-tier-only
+  run 22497 from `4cc0d780`: cross-config, cross-version byte-correctness.
+
+**The planned upstream corruption issue is therefore NOT needed.**
+
+## 1-node reruns on `8715591a` (all with verify-all = 0 failures)
+
+| Volume | QPS cold/warm0/warm1 | di_hash | Job |
+|---|---|---|---|
+| nb10M | 237.2 / 268.9 / 276.0 | `0e04f8171f7d1898` exact | 22753 |
+| nb50M | 51.2 / 53.6 / 54.0 | `32085d09bb65391b` exact | 22757 |
+| nb100M | 18.1 / 21.1 / 21.4 | `4d0bb1d73138720a` | 22784 |
+| nb178M (RAM 30 + 57 NVMe) | 8.8 / 9.4 / 9.4 | `b1bda05cb0b86813` | 22786 |
+
+**Fifth dev-semantics adaptation:** `d7b1f053` (#856) made the event-resume
+guard strict — a suspended fiber is resumed only by the exact future it
+awaits. The ChiMod's poll-then-yield read loop therefore starved (nb100M
+cold pass hung 8 h, job 22758: yielded Search fiber pinned worker 0 while
+its lane was rescue-adopted away). Fixed by directly awaiting the oldest
+pending RPC future — the pattern the CTE core itself uses on this HEAD;
+#856's exactly-once completion is precisely what makes that safe (it was
+the pre-#856 double-resume SIGSEGV that forced yield-polling originally).
+RAM-only volumes never hit the branch, which is why nb10M/nb50M passed.
+
+## 2-node evaluation
+
+Support added (commit-local): `networking.hostfile` + `swim: enabled: false`
+rendered into the config, one `clio_run` per node via srun with per-host TCP
+readiness polls, per-node tier prep/teardown, `AsyncOpenIndex` broadcast to
+all containers, `AsyncSearch` sub-batches fanned by `DirectHash(i)` (one
+SearchTask with 8 scan threads per node at `--inflight 2`), Stats broadcast
+with summed aggregation. Submit: `sbatch --nodes=2 --ntasks=2
+--ntasks-per-node=1 …`. Single-node behavior is unchanged (verified, job
+22789).
+
+| Volume | 1-node QPS (warm) | 2-node QPS (warm) | Verdict |
+|---|---|---|---|
+| nb10M (job 22791) | 269–276 | 22.5 | correct, network-bound |
+| nb50M (job 22793) | 54 | 4.6 | correct, network-bound |
+| nb100M (jobs 22795, 22818) | 21 | — | ingest+verify-all pass; search OOMs node 1 |
+
+* **Correctness is perfect**: cluster forms, blobs hash-spread ~50/50,
+  verify-all passes over cross-node reads, and both nb10M and nb50M produce
+  the exact single-node di_hash — bitwise-identical distributed search.
+* **Performance is network-bound by design of the fan-out.** The zero-IPC
+  fast path is node-local, and each query sub-batch probes nearly the whole
+  index, so every node reads ~half its lists from the peer over the RPC
+  fabric (~215 MB/s effective) — read_wait 124 s (nb10M) / 615 s (nb50M)
+  cluster-total vs 3.8 / 7.2 s single-node. Splitting by QUERY cannot
+  exploit combined RAM; a data-local design (scan each list on its owner
+  node, merge partial top-k heaps) is the actual multi-node architecture —
+  future ChiMod work.
+* **nb100M is additionally blocked by an upstream limit**: daemon-side shm
+  segments grow with bytes moved cross-node and never recycle (the receive
+  staging / serving path — 131 segments ≈ 18 GB after ingest, 188 ≈ 26 GB
+  during the first search pass) until the OOM killer takes the peer daemon
+  (`srun: task 1: Killed`, jobs 22795 and 22818, the latter with tier caps
+  lowered to 22 GB). At nb50M's ~12 GB/node the growth fits; at nb100M's
+  ~24 GB/node it cannot. Worth raising with the maintainers alongside the
+  #856 starvation note — both are documented here with per-node daemon logs
+  (`clio_run_*_node1.log`).

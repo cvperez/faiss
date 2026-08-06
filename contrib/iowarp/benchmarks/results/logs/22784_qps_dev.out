@@ -1,0 +1,88 @@
+=== IOWarp QPS (DEV)  volume=ondisk_nb100M  RAM_tier=30g
+=== job=22784  host=ares-comp-15  started=Wed Aug  5 12:24:00 PM CDT 2026
+=== clio dev: /home/cvazquezperezdelacru/clio-core-dev-install   build: /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/build-dev
+clio_run(dev) OK
+MemAvailable: 45.00 GiB
+clio-core dev HEAD: 8715591a
+
+########## ondisk_nb100M ##########
+=== clio provider: bin=/home/cvazquezperezdelacru/clio-core-dev-install/bin lib=/home/cvazquezperezdelacru/clio-core-dev-install/lib build=/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/build-dev
+=== cleared stale bdev perf stats (RAM placement for the zero-IPC path)
+=== stopping any existing clio_run
+=== starting clio_run (conf: /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/benchmarks/results/ares_cte_rendered_20260805_122400.yaml, log: /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/benchmarks/results/clio_run_ondisk_nb100M_20260805_122400.log)
+clio_run up (pid 641703) after 15s grace
+=== ingesting ondisk_nb100M -> tag 'faiss_ivf::ondisk_nb100M' (verify all lists; log: /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/benchmarks/results/ingest_ondisk_nb100M_20260805_122400.log)
+[ingest] reading /mnt/common/cvazquezperezdelacru/faiss/slurm_bench/work/ondisk_nb100M.index (mmap)
+[ingest] nlist=16384 code_size=512 ntotal=100000000
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:137 INFO 641780 ClientInit RuntimeManager::ClientInit[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/config_manager.cc:144 INFO 641780 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:219 INFO 641780 ClientInit IpcManager::ClientInit: IPC mode = SHM (auto-selected)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:231 INFO 641780 ClientInit IpcManager::ClientInit: retry_timeout = 1200s[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:239 INFO 641780 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:152 INFO 641780 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:292 INFO 641780 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:322 INFO 641780 ClientInit IpcManager: client response listener bound to port 40579[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1388 INFO 641780 WaitForLocalServer Waiting for runtime via lightbeam (timeout=120s)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1496 INFO 641780 WaitForLocalServer Successfully connected to runtime (generation=1354637445540728, server_pid=641703, shm_in_shards=1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1202 INFO 641780 ClientInitShm ClientInitShm: attached metadata segment 'chi_metadata_segment_cvazquezperezdelacru_9413'[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1228 INFO 641780 ClientInitShm ClientInitShm: response SHM ring 'clio-641780-shm-out' (1MB)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2447 INFO 641780 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_641780_0 with size 570425344 (536870912 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2492 INFO 641780 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_641780_0 with ID (641780.0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:175 INFO 641780 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:178 INFO 641780 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[ingest] done: 48.43 GiB compact (tag faiss_ivf::ondisk_nb100M)
+[verify] reading back 16384 list(s) via RPC GetBlob
+[verify] ... 2048/16384 checked (getfail=0 mismatch=0)
+[verify] ... 4096/16384 checked (getfail=0 mismatch=0)
+[verify] ... 6144/16384 checked (getfail=0 mismatch=0)
+[verify] ... 8192/16384 checked (getfail=0 mismatch=0)
+[verify] ... 10240/16384 checked (getfail=0 mismatch=0)
+[verify] ... 12288/16384 checked (getfail=0 mismatch=0)
+[verify] ... 14336/16384 checked (getfail=0 mismatch=0)
+[verify] ... 16384/16384 checked (getfail=0 mismatch=0)
+[verify] PASS — 16384 lists byte-identical
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2348 INFO 641780 ClearClientPool [ClientPool] Clearing 0 persistent connections[0m
+=== ingest OK — runtime left running (pid 641703)
+Error processing line 1 of /home/cvazquezperezdelacru/.local/lib/python3.10/site-packages/iowarp_core.pth:
+
+  Traceback (most recent call last):
+    File "/usr/lib/python3.10/site.py", line 192, in addpackage
+      exec(line)
+    File "<string>", line 1, in <module>
+    File "/home/cvazquezperezdelacru/.local/lib/python3.10/site-packages/iowarp_core/__init__.py", line 127, in <module>
+      _setup()
+    File "/home/cvazquezperezdelacru/.local/lib/python3.10/site-packages/iowarp_core/__init__.py", line 103, in _setup
+      ctypes.CDLL(_lib_path, mode=ctypes.RTLD_GLOBAL)
+    File "/usr/lib/python3.10/ctypes/__init__.py", line 374, in __init__
+      self._handle = _dlopen(self._name, mode)
+  OSError: /home/cvazquezperezdelacru/clio-core-dev-install/lib/libclio_run_cxx.so.1: undefined symbol: _ZN3ctp10SystemInfo22GetProcessMemoryBudgetEv
+
+Remainder of file ignored
+volume pages evicted via fadvise (14.3 GiB avail)
+--- inflight=1
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:137 INFO 641970 ClientInit RuntimeManager::ClientInit[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/config_manager.cc:144 INFO 641970 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:219 INFO 641970 ClientInit IpcManager::ClientInit: IPC mode = SHM (auto-selected)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:231 INFO 641970 ClientInit IpcManager::ClientInit: retry_timeout = 1200s[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:239 INFO 641970 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:152 INFO 641970 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:292 INFO 641970 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:322 INFO 641970 ClientInit IpcManager: client response listener bound to port 43943[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1388 INFO 641970 WaitForLocalServer Waiting for runtime via lightbeam (timeout=120s)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1496 INFO 641970 WaitForLocalServer Successfully connected to runtime (generation=1354637445540728, server_pid=641703, shm_in_shards=1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1202 INFO 641970 ClientInitShm ClientInitShm: attached metadata segment 'chi_metadata_segment_cvazquezperezdelacru_9413'[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1228 INFO 641970 ClientInitShm ClientInitShm: response SHM ring 'clio-641970-shm-out' (1MB)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2447 INFO 641970 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_641970_0 with size 570425344 (536870912 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2492 INFO 641970 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_641970_0 with ID (641970.0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:175 INFO 641970 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:178 INFO 641970 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[bench] volume=ondisk_nb100M nlist=16384 nprobe=256 nq=500 k=10 threads=8 ntotal=100000000
+  cold   qps=     18.1  elapsed=  27.651s  majflt/q=     0.1  read_MB=     0.0  di_hash=4d0bb1d73138720a
+  warm0  qps=     21.1  elapsed=  23.730s  majflt/q=     0.0  read_MB=     0.0  di_hash=4d0bb1d73138720a
+  warm1  qps=     21.4  elapsed=  23.417s  majflt/q=     0.0  read_MB=     0.1  di_hash=4d0bb1d73138720a
+[stats] searches=1500 lists_read=48867 GB_read=144.83 read_wait_s=31.45 scan_s=42.51
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2348 INFO 641970 ClearClientPool [ClientPool] Clearing 0 persistent connections[0m
+rows appended to /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/benchmarks/results/qps_dev_ondisk_nb100M.csv
+=== NVMe file-tier occupancy after run (RAM placement if ~0) ===
+ares-comp-15: 19G	total
+Finished: Wed Aug  5 12:34:12 PM CDT 2026

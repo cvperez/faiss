@@ -339,10 +339,17 @@ struct StatsTask : public clio::run::Task {
     scan_us_ = other->scan_us_;
   }
 
-  /** Aggregate replica results into this task */
+  /** Aggregate replica results into this task. Counters are SUMMED across
+   *  containers (a broadcast Stats on N nodes must report cluster totals;
+   *  Copy would report only the last replica's). */
   void AggregateOut(const ctp::ipc::FullPtr<clio::run::Task>& other_base) {
     Task::AggregateOut(other_base);
-    Copy(other_base.template Cast<StatsTask>());
+    auto other = other_base.template Cast<StatsTask>();
+    searches_ += other->searches_;
+    lists_fetched_ += other->lists_fetched_;
+    bytes_fetched_ += other->bytes_fetched_;
+    fetch_wait_us_ += other->fetch_wait_us_;
+    scan_us_ += other->scan_us_;
   }
 };
 

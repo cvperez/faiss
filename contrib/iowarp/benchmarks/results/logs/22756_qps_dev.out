@@ -1,0 +1,13 @@
+=== IOWarp QPS (DEV)  volume=ondisk_nb50M  RAM_tier=30g
+=== job=22756  host=ares-comp-15  started=Wed Aug  5 04:12:42 AM CDT 2026
+=== clio dev: /home/cvazquezperezdelacru/clio-core-dev-install   build: /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/build-dev
+clio_run(dev) OK
+MemAvailable: 44.99 GiB
+clio-core dev HEAD: 8715591a
+
+########## ondisk_nb50M ##########
+=== clio provider: bin=/home/cvazquezperezdelacru/clio-core-dev-install/bin lib=/home/cvazquezperezdelacru/clio-core-dev-install/lib build=/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/build-dev
+=== cleared stale bdev perf stats (RAM placement for the zero-IPC path)
+=== stopping any existing clio_run
+Terminated
+Terminated

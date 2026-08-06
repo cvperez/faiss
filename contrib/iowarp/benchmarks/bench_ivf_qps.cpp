@@ -183,8 +183,12 @@ bool chimod_search_parallel(
         s.dd = CLIO_IPC->AllocateBuffer(s.cnt * k * sizeof(float));
         s.ii = CLIO_IPC->AllocateBuffer(s.cnt * k * sizeof(idx_t));
         std::memcpy(s.q.ptr_, xq + s.off * d, s.cnt * d * sizeof(float));
+        // DirectHash(i): sub-batch i lands on container i % num_containers.
+        // Single node this is container 0 (== the old Local behavior);
+        // multi-node it fans one SearchTask (with its 8 scan threads) out
+        // to each node's container — use --inflight <num nodes>.
         s.fut = client.AsyncSearch(
-                clio::run::PoolQuery::Local(),
+                clio::run::PoolQuery::DirectHash(static_cast<clio::run::u32>(i)),
                 static_cast<clio::run::u32>(s.cnt),
                 static_cast<clio::run::u32>(k),
                 static_cast<clio::run::u32>(nprobe),
@@ -356,8 +360,12 @@ int run_timed(const Args& a) {
                     "faiss_ivf_bench",
                     clio::run::PoolId(600, 0))
             .Wait();
+    // Broadcast: EVERY node's container must open the index (per-container
+    // state) — with Local, a second node's container would fail every
+    // search routed to it with rc=1. Single-node this degenerates to the
+    // one local container.
     auto open_fut = chimod_client.AsyncOpenIndex(
-            clio::run::PoolQuery::Local(), a.index_path, a.tag);
+            clio::run::PoolQuery::Broadcast(), a.index_path, a.tag);
     open_fut.Wait();
     FAISS_THROW_IF_NOT_FMT(
             open_fut->GetReturnCode() == 0,
@@ -466,7 +474,8 @@ int run_timed(const Args& a) {
     if (csv) {
         fclose(csv);
     }
-    auto sf = chimod_client.AsyncStats(clio::run::PoolQuery::Local(), 1);
+    // Broadcast + summing AggregateOut => cluster-total counters.
+    auto sf = chimod_client.AsyncStats(clio::run::PoolQuery::Broadcast(), 1);
     sf.Wait();
     if (sf->GetReturnCode() == 0) {
         std::printf(

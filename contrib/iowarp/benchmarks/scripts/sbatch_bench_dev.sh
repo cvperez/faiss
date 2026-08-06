@@ -22,11 +22,33 @@
 #   FAISS_VOLUME     index volume (default ondisk_nb10M)
 #   CTE_RAM_TIER_GB  RAM-tier cap (default 30; 0 = file-tier only)
 #   CHIMOD_INFLIGHTS concurrent SearchTasks (default 8)
+#   VERIFY_N         ingest verify: N sampled lists or "all" (default 16)
+#
+# Multi-node: submit with `sbatch --nodes=2 --ntasks-per-node=1 ...`. The
+# script detects SLURM_JOB_NUM_NODES>1, renders a hostfile for clio-core
+# (networking.hostfile) and 20_ingest_cte.sh starts one clio_run per node.
+# Use CHIMOD_INFLIGHTS=<num nodes> so the search fans one SearchTask (with
+# its 8 scan threads) out to each node's container.
 
 set -euo pipefail
 
 ROOT="${IOWARP_CONTRIB_ROOT:-/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp}"
 export FAISS_VOLUME="${FAISS_VOLUME:-ondisk_nb10M}"
+
+# --- multi-node wiring --------------------------------------------------------
+if [ "${SLURM_JOB_NUM_NODES:-1}" -gt 1 ]; then
+    export IOWARP_HOSTFILE="$ROOT/benchmarks/results/hostfile_${SLURM_JOB_ID}"
+    scontrol show hostnames "$SLURM_JOB_NODELIST" > "$IOWARP_HOSTFILE"
+    echo "=== multi-node allocation: $(tr '\n' ' ' < "$IOWARP_HOSTFILE")"
+fi
+# Run a command on every node of the allocation (or just locally, 1-node).
+on_all_nodes() {
+    if [ "${SLURM_JOB_NUM_NODES:-1}" -gt 1 ]; then
+        srun --ntasks-per-node=1 --nodes="$SLURM_JOB_NUM_NODES" --export=ALL bash -c "$*"
+    else
+        bash -c "$*"
+    fi
+}
 
 # --- dev provider wiring (consumed by 20/30) --------------------------------
 CLIO_DEV_PREFIX="${CLIO_DEV_PREFIX:-$HOME/clio-core-dev-install}"
@@ -71,16 +93,17 @@ python3 "$ROOT/benchmarks/scripts/telemetry_sampler.py" \
     --out "$TELEMETRY_CSV" --phase-file "$TELEMETRY_PHASE_FILE" \
     --interval 5 --tier-dir "/mnt/nvme/$USER/cte_tier" &
 TELEMETRY_PID=$!
-trap 'echo done > "$TELEMETRY_PHASE_FILE" 2>/dev/null; kill "$TELEMETRY_PID" 2>/dev/null; pkill -u "$USER" -f clio_run 2>/dev/null || true' EXIT
+trap 'echo done > "$TELEMETRY_PHASE_FILE" 2>/dev/null; kill "$TELEMETRY_PID" 2>/dev/null; on_all_nodes "pkill -u $USER -f clio_[r]un 2>/dev/null || true"' EXIT
 
 bash "$ROOT/benchmarks/scripts/30_run_bench.sh" "$FAISS_VOLUME"
 
 # Placement check: how much of the volume spilled to the NVMe file tier.
 # ~0 => blobs are RAM-resident => the zero-IPC RAM direct-read path can serve
 # them; a large number => they landed on NVMe (fast path cannot apply).
+# Multi-node: per-node occupancy (each node has its own cte_tier_node<i>).
 echo "=== NVMe file-tier occupancy after run (RAM placement if ~0) ==="
-du -shc /mnt/nvme/"$USER"/cte_tier* 2>/dev/null | tail -1 || echo "  (no NVMe tier files)"
+on_all_nodes "echo \"\$(hostname): \$(du -shc /mnt/nvme/$USER/cte_tier* 2>/dev/null | tail -1 || echo 'no NVMe tier files')\""
 
-pkill -u "$USER" -f clio_run 2>/dev/null || true
-rm -rf /mnt/nvme/"$USER"/cte_tier*
+on_all_nodes "pkill -u $USER -f clio_[r]un 2>/dev/null || true"
+on_all_nodes "rm -rf /mnt/nvme/$USER/cte_tier*"
 echo "Finished: $(date)"

@@ -1,0 +1,41 @@
+=== multi-node allocation: ares-comp-31 ares-comp-32 
+=== IOWarp QPS (DEV)  volume=ondisk_nb100M  RAM_tier=30g
+=== job=22795  host=ares-comp-31  started=Wed Aug  5 01:15:18 PM CDT 2026
+=== clio dev: /home/cvazquezperezdelacru/clio-core-dev-install   build: /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/build-dev
+clio_run(dev) OK
+MemAvailable: 45.00 GiB
+clio-core dev HEAD: 8715591a
+
+########## ondisk_nb100M ##########
+=== clio provider: bin=/home/cvazquezperezdelacru/clio-core-dev-install/bin lib=/home/cvazquezperezdelacru/clio-core-dev-install/lib build=/mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/build-dev
+=== multi-node: 2 nodes (ares-comp-31 ares-comp-32 ), swim off
+=== cleared stale bdev perf stats (RAM placement for the zero-IPC path)
+=== stopping any existing clio_run
+=== starting clio_run on 2 nodes (conf: /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/benchmarks/results/ares_cte_rendered_20260805_131519.yaml)
+clio_run up on ares-comp-31:9413
+clio_run up on ares-comp-32:9413
+=== ingesting ondisk_nb100M -> tag 'faiss_ivf::ondisk_nb100M' (verify all lists; log: /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/benchmarks/results/ingest_ondisk_nb100M_20260805_131519.log)
+[ingest] reading /mnt/common/cvazquezperezdelacru/faiss/slurm_bench/work/ondisk_nb100M.index (mmap)
+[ingest] nlist=16384 code_size=512 ntotal=100000000
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:137 INFO 3750315 ClientInit RuntimeManager::ClientInit[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/config_manager.cc:144 INFO 3750315 ClientInit Config at: /mnt/common/cvazquezperezdelacru/IOWARP/faiss/contrib/iowarp/benchmarks/results/ares_cte_rendered_20260805_131519.yaml[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:219 INFO 3750315 ClientInit IpcManager::ClientInit: IPC mode = SHM (auto-selected)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:231 INFO 3750315 ClientInit IpcManager::ClientInit: retry_timeout = 1200s[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:239 INFO 3750315 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:152 INFO 3750315 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:292 INFO 3750315 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:322 INFO 3750315 ClientInit IpcManager: client response listener bound to port 42115[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1388 INFO 3750315 WaitForLocalServer Waiting for runtime via lightbeam (timeout=120s)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1496 INFO 3750315 WaitForLocalServer Successfully connected to runtime (generation=1356737698948456, server_pid=3750252, shm_in_shards=1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1202 INFO 3750315 ClientInitShm ClientInitShm: attached metadata segment 'chi_metadata_segment_cvazquezperezdelacru_9413'[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1228 INFO 3750315 ClientInitShm ClientInitShm: response SHM ring 'clio-3750315-shm-out' (1MB)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2447 INFO 3750315 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_3750315_0 with size 570425344 (536870912 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2492 INFO 3750315 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_3750315_0 with ID (3750315.0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:175 INFO 3750315 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:178 INFO 3750315 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[verify] GETFAIL list 9476 (rc=-1000, 2934360 bytes)
+srun: error: ares-comp-32: task 1: Killed
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd-ares-comp-31: error: *** JOB 22795 ON ares-comp-31 CANCELLED AT 2026-08-05T21:15:27 DUE TO TIME LIMIT ***
+srun: error: Slurm job 22795 has expired
+srun: Check SLURM_JOB_ID environment variable. Expired or invalid job 22795
