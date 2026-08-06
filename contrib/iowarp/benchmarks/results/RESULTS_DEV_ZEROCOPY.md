@@ -75,6 +75,48 @@ and trails only at 24 GB (54 vs 93, was 27 vs 93 on v2.1.0);
 **out-of-core** (49 GB+), CTE is 4–24× ahead warm (21.1 vs 5.5; 9.4 vs
 0.4) with zero page-ins versus ~535 k–2.7 M per pass.
 
+### Why 24 GB warm sits at ~54 QPS
+
+nb50M is not underperforming — it runs at the same per-byte speed as every
+other size; there is simply 5× more data per query batch than at 4.8 GB.
+Per warm pass (job 22757 vs 22753):
+
+| Per warm pass | nb10M (4.8 GB) | nb50M (24 GB) |
+|---|---|---|
+| copy from tier (read_wait/3) | ~0.5 s | ~2.4 s |
+| scan (scan_s/3) | ~1.4 s | ~6.8 s |
+| total → QPS | ~1.86 s → 269 | ~9.3 s → 54 |
+| **scan throughput** | **3.5 GB/s** | **3.5 GB/s** |
+
+The QPS ratio (269/54 ≈ 5.0) equals the volume ratio (24.2/4.8 ≈ 5.0):
+with `nprobe = nlist/64` the 500-query batch probes ~8 150 of 8 192 lists
+— effectively a full index sweep per pass — so throughput is "how fast can
+8 threads move and scan N GB", and QPS falls linearly with N. 54 QPS is
+what 24 GB costs at 3.5 GB/s.
+
+The remaining gap to warm mmap at this size (54 vs 93 in the table; the
+in-repo mmap re-measurement gave 70–72, so the honest gap is ~1.3×)
+decomposes into the two known structural costs:
+
+1. **The copy tax** (~2.4 s of the 9.3 s pass, ~26 %). Dev is zero-IPC but
+   not zero-copy — every list is still memcpy'd from the RAM tier into a
+   slab before scanning, while warm mmap scans the page cache in place.
+   This is exactly what the view/pin zero-copy API
+   (`docs/UPSTREAM_PROPOSAL_IOWARP.md`) removes: scanning tier bytes in
+   place drops the pass to ~6.9 s ≈ **72 QPS — mmap-warm parity** from a
+   tiered store.
+2. **The scan-parallelization shape** (3.5 vs ~4.5 GB/s effective). Stock
+   FAISS parallelizes across queries (8 threads, each fully busy); the
+   ChiMod parallelizes *within* each list across the ~8 probe-pairs that
+   touch it, list by list — ~8.1 k OMP fork/joins per pass, and
+   single-probe lists run on one thread. Restructuring the scan to
+   parallelize over (query, list) work items globally would close most of
+   this — a ChiMod-side change, no clio-core help needed.
+
+Both levers together put 24 GB warm at roughly 85–95 QPS (at or above
+mmap warm) while keeping the 5× cold advantage (51 vs 11) and the
+out-of-core dominance.
+
 ## 2-node evaluation
 
 Implementation walkthrough with code: `docs/MULTINODE.md`. Summary:
