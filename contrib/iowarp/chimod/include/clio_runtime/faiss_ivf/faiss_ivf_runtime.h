@@ -38,6 +38,12 @@ class Runtime : public clio::run::Container {
   std::unique_ptr<faiss::Index> index_owner_;
   faiss::IndexIVF* ivf_ = nullptr;
   std::vector<int64_t> sizes_;  // per-list sizes, from the "sizes" blob
+  // Owner-mode locality map, precomputed at OpenIndex: list_local_[l] != 0
+  // iff blob "list/<l>"'s placement hash % num_containers == container_id_
+  // (== this node, since ContainerId == NodeId). Partitions the lists
+  // exactly-once across the pool's containers; on one node every list is
+  // local.
+  std::vector<uint8_t> list_local_;
   clio::cte::core::TagId tag_id_;
   bool opened_ = false;
   std::string opened_index_path_;  // volume identity: OpenIndex with a

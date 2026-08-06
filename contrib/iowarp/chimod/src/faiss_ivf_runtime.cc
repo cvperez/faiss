@@ -13,6 +13,7 @@
 #include "../include/clio_runtime/faiss_ivf/faiss_ivf_runtime.h"
 
 #include <clio_ctp/serialize/msgpack_wrapper.h>
+#include <clio_runtime/pool_manager.h>
 
 #include <faiss/IndexIVF.h>
 #include <faiss/impl/FaissAssert.h>
@@ -26,6 +27,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <limits>
 #include <string>
 #include <unordered_map>
@@ -159,6 +161,7 @@ clio::run::TaskResume Runtime::OpenIndex(clio::run::shared_ptr<OpenIndexTask>& t
   ivf_ = nullptr;
   index_owner_.reset();
   sizes_.clear();
+  list_local_.clear();
 
   // Load index metadata only; the IVF data lives in CTE. SKIP_IVF_DATA
   // works for OnDisk ("ilod") index files; plain ArrayInvertedLists
@@ -242,6 +245,48 @@ clio::run::TaskResume Runtime::OpenIndex(clio::run::shared_ptr<OpenIndexTask>& t
   // The inverted lists stay in CTE; Search reads each probed list on
   // demand. OpenIndex only binds the tag and records the list sizes.
 
+  // Owner-mode locality map. The faiss pool and the CTE pool are created
+  // independently but with the same rule (one container per node,
+  // ContainerId == NodeId), so hash % num_containers resolves to the same
+  // node in both — an invariant to assert, not assume (a pool created
+  // while the host list differed would silently break locality).
+  auto* pm = CLIO_POOL_MANAGER;
+  const clio::run::PoolInfo* faiss_pi = pm->GetPoolInfo(pool_id_);
+  const clio::run::PoolInfo* cte_pi =
+      pm->GetPoolInfo(clio::cte::core::kCtePoolId);
+  if (faiss_pi == nullptr || cte_pi == nullptr ||
+      faiss_pi->num_containers_ == 0 ||
+      faiss_pi->num_containers_ != cte_pi->num_containers_) {
+    HLOG(kError,
+         "faiss_ivf: pool layout mismatch (faiss containers={} cte "
+         "containers={})",
+         faiss_pi ? faiss_pi->num_containers_ : 0,
+         cte_pi ? cte_pi->num_containers_ : 0);
+    task->SetReturnCode(7);
+    CLIO_CO_RETURN;
+  }
+  // Same hash as the CTE core's HashBlobToContainer (owner routing) — it
+  // is private to the core Runtime, so replicate it, as the cte cache
+  // module does (cache_runtime.cc IsBlobOwnerLocal). If core ever changes
+  // the hash only LOCALITY degrades (lists still partition exactly-once
+  // across containers); correctness is unaffected.
+  {
+    const clio::run::u32 num_containers = faiss_pi->num_containers_;
+    std::hash<std::string> string_hasher;
+    std::hash<clio::run::u32> u32_hasher;
+    list_local_.assign(nlist, 0);
+    for (size_t l = 0; l < nlist; ++l) {
+      clio::run::u32 h =
+          static_cast<clio::run::u32>(u32_hasher(tag_id.major_));
+      h ^= static_cast<clio::run::u32>(u32_hasher(tag_id.minor_)) +
+           0x9e3779b9 + (h << 6) + (h >> 2);
+      h ^= static_cast<clio::run::u32>(
+               string_hasher(std::string("list/") + std::to_string(l))) +
+           0x9e3779b9 + (h << 6) + (h >> 2);
+      list_local_[l] = ((h % num_containers) == container_id_) ? 1 : 0;
+    }
+  }
+
   // Commit state.
   index_owner_ = std::move(owner);
   ivf_ = ivf;
@@ -279,6 +324,19 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
   if (nprobe > ivf_->nlist) {
     nprobe = static_cast<clio::run::u32>(ivf_->nlist);
   }
+  // Owner-filtered broadcast mode: scan only the lists this container
+  // owns; export sorted partials for the origin-side AggregateOut merge.
+  const bool owner_mode = SearchOwnerMode(task->mode_);
+  const bool metric_is_l2 = (ivf_->metric_type == faiss::METRIC_L2);
+  if (owner_mode &&
+      (((task->mode_ & kSearchModeIP) != 0) == metric_is_l2)) {
+    // The IP bit drives the merge direction in AggregateOut, which cannot
+    // see the index — a mismatch would merge in the wrong order silently.
+    HLOG(kError, "faiss_ivf: mode/metric mismatch (mode={:#x}, metric={})",
+         task->mode_, static_cast<int>(ivf_->metric_type));
+    task->SetReturnCode(7);
+    CLIO_CO_RETURN;
+  }
   auto* ipc = CLIO_IPC;
   // NOTE: ShmPtr -> raw pointer via CLIO_IPC->ToFullPtr, as done for
   // blob_data_ in clio-core's compressor_runtime.cc.
@@ -315,6 +373,9 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
       if (l < 0 || sizes_[l] <= 0) {
         continue;
       }
+      if (owner_mode && !list_local_[l]) {
+        continue;  // peer-owned list: its owner's replica scans it
+      }
       auto& vec = probes[l];
       if (vec.empty()) {
         lists.push_back(l);
@@ -326,10 +387,11 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
 
   const size_t code_size = ivf_->code_size;
   const size_t ntoscan = lists.size();
-  HLOG(kInfo, "faiss_ivf: Search nq={} k={} nprobe={} unique_lists={}", nq,
-       k, nprobe, ntoscan);
+  HLOG(kInfo,
+       "faiss_ivf: Search nq={} k={} nprobe={} unique_lists={} owner_mode={}",
+       nq, k, nprobe, ntoscan, owner_mode ? 1 : 0);
   task->SetReturnCode(0);
-  const bool is_l2 = (ivf_->metric_type == faiss::METRIC_L2);
+  const bool is_l2 = metric_is_l2;
 
   // Per-query result heaps live directly in the output buffers.
   const float init_dis = is_l2 ? std::numeric_limits<float>::max()
@@ -586,6 +648,20 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
     }
   }
 
+  if (owner_mode && task->IsRemote()) {
+    // Broadcast replica on a remote daemon: D_out/I_out here are
+    // daemon-local EXPOSE scratch (LoadTaskArchive::bulk allocated them,
+    // freed by ~SearchTask via TASK_DATA_OWNER) — the client never sees
+    // them. Export the sorted per-query partials; they travel back via
+    // SerializeOut and merge in AggregateOut on the origin. When executed
+    // locally (single-node broadcast short-circuit, or legacy routing)
+    // D_out/I_out ARE the client's buffers and part_* stays empty — the
+    // bench falls back to the buffers when the vectors are empty.
+    const size_t n = static_cast<size_t>(nq) * k;
+    task->part_d_.assign(D_out, D_out + n);
+    task->part_i_.assign(I_out, I_out + n);
+  }
+
   stat_searches_ += nq;
   CLIO_CO_RETURN;
   CLIO_TASK_BODY_END
@@ -649,6 +725,7 @@ clio::run::TaskResume Runtime::Destroy(clio::run::shared_ptr<DestroyTask>& task)
   ivf_ = nullptr;
   index_owner_.reset();
   sizes_.clear();
+  list_local_.clear();
   opened_ = false;
 
   HLOG(kDebug, "faiss_ivf: Container destroyed successfully");

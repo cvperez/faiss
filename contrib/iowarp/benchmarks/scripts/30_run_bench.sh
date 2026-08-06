@@ -15,7 +15,12 @@
 # Inputs:
 #   $1  volume name (e.g. ondisk_nb50M)
 #   Env overrides: IOWARP_WORK_DIR, FAISS_INSTALL, QUERIES,
-#                  CHIMOD_INFLIGHTS (concurrent SearchTasks per pass; default 8)
+#                  CHIMOD_INFLIGHTS (concurrent SearchTasks per pass; default 8;
+#                    with CHIMOD_ROUTE=owner this is PER-NODE concurrency — use 1)
+#                  CHIMOD_ROUTE (owner|split, default owner: broadcast +
+#                    owner-filtered data-local scan; split = historical
+#                    query-split DirectHash fan-out)
+#                  RUN_SELFTEST (1 = run --selftest-chimod after ingest)
 #
 # Outputs:
 #   results/qps_<volume>.csv   one row per pass, appended
@@ -78,13 +83,25 @@ echo
 echo "########## $VOLUME ##########"
 
 bash "$SCRIPT_DIR/20_ingest_cte.sh" "$VOLUME" "faiss_ivf::$VOLUME"
+
+# Optional correctness gate against stock FAISS (tiny synthetic index,
+# needs the runtime 20_ingest just started).
+if [ "${RUN_SELFTEST:-0}" = "1" ]; then
+    echo "--- selftest"
+    "$BUILD_DIR/bench_ivf_qps" --selftest-chimod 2>&1 | tee -a "$LOG"
+fi
+
 drop_page_cache
 
 # CHIMOD_INFLIGHTS: space-separated list of concurrent SearchTask counts
 # (the CPU-budget knob). Default: 8 = the 8-thread scan budget.
+# CHIMOD_ROUTE=owner broadcasts each task to all nodes (data-local scan).
+CHIMOD_ROUTE="${CHIMOD_ROUTE:-owner}"
+DUMP_DIR="$RESULTS/dumps"
+mkdir -p "$DUMP_DIR"
 [ -n "${TELEMETRY_PHASE_FILE:-}" ] && echo "bench_chimod" > "$TELEMETRY_PHASE_FILE" || true
 for INFLIGHT in ${CHIMOD_INFLIGHTS:-8}; do
-    echo "--- inflight=$INFLIGHT"
+    echo "--- inflight=$INFLIGHT route=$CHIMOD_ROUTE"
     "$BUILD_DIR/bench_ivf_qps" \
         --protocol step3 \
         --index "$INDEX" \
@@ -92,6 +109,8 @@ for INFLIGHT in ${CHIMOD_INFLIGHTS:-8}; do
         --tag "faiss_ivf::$VOLUME" \
         --label "$VOLUME" \
         --inflight "$INFLIGHT" \
+        --route "$CHIMOD_ROUTE" \
+        --dump-di "$DUMP_DIR/${VOLUME}_${CHIMOD_ROUTE}_${SLURM_JOB_NUM_NODES:-1}n" \
         --csv "$CSV" 2>&1 | tee -a "$LOG"
 done
 

@@ -10,3 +10,9 @@
 1785953473,ondisk_nb50M,cold,500,10,128,8,108.9284,4.6,66,0.132,0,dihash=32085d09bb65391b;inflight=2
 1785953582,ondisk_nb50M,warm0,500,10,128,8,108.6762,4.6,0,0.000,0,dihash=32085d09bb65391b;inflight=2
 1785953690,ondisk_nb50M,warm1,500,10,128,8,108.7558,4.6,0,0.000,0,dihash=32085d09bb65391b;inflight=2
+1786027939,ondisk_nb50M,cold,500,10,128,8,9.4165,53.1,63,0.126,0,dihash=32085d09bb65391b;canon=b3e14dd79e32cd77;inflight=1;route=owner
+1786027948,ondisk_nb50M,warm0,500,10,128,8,9.0039,55.5,0,0.000,0,dihash=32085d09bb65391b;canon=b3e14dd79e32cd77;inflight=1;route=owner
+1786027957,ondisk_nb50M,warm1,500,10,128,8,8.9129,56.1,0,0.000,0,dihash=32085d09bb65391b;canon=b3e14dd79e32cd77;inflight=1;route=owner
+1786028155,ondisk_nb50M,cold,500,10,128,8,5.0269,99.5,63,0.126,0,dihash=32085d09bb65391b;canon=b3e14dd79e32cd77;inflight=1;route=owner
+1786028159,ondisk_nb50M,warm0,500,10,128,8,4.7862,104.5,2,0.004,0,dihash=32085d09bb65391b;canon=b3e14dd79e32cd77;inflight=1;route=owner
+1786028164,ondisk_nb50M,warm1,500,10,128,8,4.7357,105.6,2,0.004,0,dihash=32085d09bb65391b;canon=b3e14dd79e32cd77;inflight=1;route=owner

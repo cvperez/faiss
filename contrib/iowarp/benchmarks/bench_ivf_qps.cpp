@@ -12,23 +12,31 @@
  *   bench_ivf_qps --protocol step3 --index populated.index --tag faiss_ivf::vol
  *                 --queries bigann_query.bvecs [--csv out.csv] [--label vol]
  *                 [--nq 500] [--threads 8] [--k 10] [--passes 3]
- *                 [--nprobe N] [--inflight N]
+ *                 [--nprobe N] [--inflight N] [--route owner|split]
+ *                 [--dump-di prefix]
  *     Drives the ChiMod with one batched search per pass; passes are
  *     labeled cold, warm0, warm1... Per pass: QPS, majflt delta,
- *     /proc/self/io read_bytes delta, and an FNV-1a hash of (D, I).
+ *     /proc/self/io read_bytes delta, an FNV-1a hash of (D, I), and a
+ *     canonical order-independent hash (per-query-sorted pairs).
+ *     --route owner (default): broadcast + owner-filtered scan, results
+ *     merged in AggregateOut (data-local multi-node). --route split:
+ *     historical query-split DirectHash fan-out.
  */
 
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cinttypes>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <memory>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <omp.h>
@@ -153,6 +161,13 @@ bool chimod_search(
 // Split a query batch into `nsplit` concurrently in-flight SearchTasks —
 // the CPU-budget knob (nsplit tasks across the runtime's workers). Per-query
 // results are independent, so the split cannot change any output.
+//
+// Routing: owner_route=false preserves the historical query-split fan-out
+// (sub-batch i -> DirectHash(i) -> container i % num_containers).
+// owner_route=true broadcasts each sub-batch to EVERY container with the
+// owner-filter mode bits: each node scans only the lists it owns and the
+// partial top-k merge happens in SearchTask::AggregateOut — --inflight then
+// means per-node concurrency, independent of node count.
 bool chimod_search_parallel(
         clio::run::faiss_ivf::Client& client,
         size_t nq,
@@ -160,6 +175,8 @@ bool chimod_search_parallel(
         int nprobe,
         int d,
         int nsplit,
+        uint32_t mode,
+        bool owner_route,
         const float* xq,
         float* D,
         idx_t* I) {
@@ -183,17 +200,20 @@ bool chimod_search_parallel(
         s.dd = CLIO_IPC->AllocateBuffer(s.cnt * k * sizeof(float));
         s.ii = CLIO_IPC->AllocateBuffer(s.cnt * k * sizeof(idx_t));
         std::memcpy(s.q.ptr_, xq + s.off * d, s.cnt * d * sizeof(float));
-        // DirectHash(i): sub-batch i lands on container i % num_containers.
-        // Single node this is container 0 (== the old Local behavior);
-        // multi-node it fans one SearchTask (with its 8 scan threads) out
-        // to each node's container — use --inflight <num nodes>.
+        // owner_route: Broadcast — every container gets the sub-batch,
+        // scans only its owned lists, partials merge in AggregateOut.
+        // Otherwise DirectHash(i): sub-batch i lands on container
+        // i % num_containers (single node: container 0 == old Local).
         s.fut = client.AsyncSearch(
-                clio::run::PoolQuery::DirectHash(static_cast<clio::run::u32>(i)),
+                owner_route
+                        ? clio::run::PoolQuery::Broadcast()
+                        : clio::run::PoolQuery::DirectHash(
+                                  static_cast<clio::run::u32>(i)),
                 static_cast<clio::run::u32>(s.cnt),
                 static_cast<clio::run::u32>(k),
                 static_cast<clio::run::u32>(nprobe),
                 static_cast<clio::run::u32>(d),
-                0,
+                mode,
                 s.q.shm_.template Cast<void>(),
                 s.dd.shm_.template Cast<void>(),
                 s.ii.shm_.template Cast<void>());
@@ -208,8 +228,20 @@ bool chimod_search_parallel(
                     s.fut->GetReturnCode());
             ok = false;
         } else {
-            std::memcpy(D + s.off * k, s.dd.ptr_, s.cnt * k * sizeof(float));
-            std::memcpy(I + s.off * k, s.ii.ptr_, s.cnt * k * sizeof(idx_t));
+            const size_t n = s.cnt * static_cast<size_t>(k);
+            if (s.fut->part_d_.size() == n && s.fut->part_i_.size() == n) {
+                // Multi-node owner path: the merged global top-k arrived
+                // as serialized vectors (replica D/I never travels back).
+                std::memcpy(D + s.off * k, s.fut->part_d_.data(),
+                            n * sizeof(float));
+                std::memcpy(I + s.off * k, s.fut->part_i_.data(),
+                            n * sizeof(idx_t));
+            } else {
+                // Legacy routing or single-node-degenerate broadcast: the
+                // handler wrote the shm buffers directly (part_* empty).
+                std::memcpy(D + s.off * k, s.dd.ptr_, n * sizeof(float));
+                std::memcpy(I + s.off * k, s.ii.ptr_, n * sizeof(idx_t));
+            }
         }
         CLIO_IPC->FreeBuffer(s.q);
         CLIO_IPC->FreeBuffer(s.dd);
@@ -301,8 +333,8 @@ int run_selftest_chimod() {
     // Split-batch path (4 concurrent subtasks) must also be identical.
     {
         bool ok = chimod_search_parallel(
-                client, nq, k, nprobe, d, 4, xq.data(), D_new.data(),
-                I_new.data());
+                client, nq, k, nprobe, d, 4, 0, false, xq.data(),
+                D_new.data(), I_new.data());
         bool eq = ok &&
                 !std::memcmp(
                         D_ref.data(),
@@ -314,6 +346,28 @@ int run_selftest_chimod() {
                         I_ref.size() * sizeof(idx_t));
         std::printf(
                 "[selftest chimod split4] %s\n",
+                eq ? "D and I identical" : "MISMATCH");
+        all_ok = all_ok && eq;
+    }
+    // Owner-filtered broadcast path. On one node it must degenerate to the
+    // exact legacy behavior (all lists local, handler writes the client
+    // buffers, part_* empty) — bitwise identical to stock FAISS.
+    {
+        bool ok = chimod_search_parallel(
+                client, nq, k, nprobe, d, 2,
+                clio::run::faiss_ivf::kSearchModeOwner, true, xq.data(),
+                D_new.data(), I_new.data());
+        bool eq = ok &&
+                !std::memcmp(
+                        D_ref.data(),
+                        D_new.data(),
+                        D_ref.size() * sizeof(float)) &&
+                !std::memcmp(
+                        I_ref.data(),
+                        I_new.data(),
+                        I_ref.size() * sizeof(idx_t));
+        std::printf(
+                "[selftest chimod owner2] %s\n",
                 eq ? "D and I identical" : "MISMATCH");
         all_ok = all_ok && eq;
     }
@@ -335,9 +389,60 @@ struct Args {
     int k = 10;
     int passes = 3;
     int nprobe_override = 0;
-    // Concurrent SearchTasks per pass (0 = match --threads).
+    // Concurrent SearchTasks per pass (0 = default: 1 for owner route,
+    // --threads for split route).
     int inflight = 0;
+    // "owner": broadcast + owner-filtered scan + AggregateOut merge
+    // (data-local; the default). "split": historical query-split
+    // DirectHash fan-out, kept for A/B comparison.
+    std::string route = "owner";
+    // Non-empty: write raw (D, I) per pass to <prefix>.<pass>.bin.
+    std::string dump_di;
 };
+
+// Canonical (order-independent) hash of the results: per query, sort the k
+// (D, I) pairs by (D, then I) and FNV-1a the sorted stream. Owner-route
+// merging can legitimately reorder equal-distance ties vs the single-node
+// heap order, so di_hash may differ while the result SET is identical —
+// canon compares the sets.
+uint64_t canon_hash(const float* D, const idx_t* I, size_t nq, int k) {
+    uint64_t h = 1469598103934665603ULL;
+    auto fnv = [&h](const void* p, size_t n) {
+        const uint8_t* b = static_cast<const uint8_t*>(p);
+        for (size_t i = 0; i < n; ++i) {
+            h = (h ^ b[i]) * 1099511628211ULL;
+        }
+    };
+    std::vector<std::pair<float, idx_t>> row(k);
+    for (size_t qi = 0; qi < nq; ++qi) {
+        for (int j = 0; j < k; ++j) {
+            row[j] = {D[qi * k + j], I[qi * k + j]};
+        }
+        std::sort(row.begin(), row.end());
+        for (int j = 0; j < k; ++j) {
+            fnv(&row[j].first, sizeof(float));
+            fnv(&row[j].second, sizeof(idx_t));
+        }
+    }
+    return h;
+}
+
+// Dump raw results: magic "DIQ1", u64 nq, u64 k, float D[nq*k], i64 I[nq*k].
+void dump_di_file(const std::string& path, const float* D, const idx_t* I,
+                  size_t nq, int k) {
+    FILE* f = fopen(path.c_str(), "wb");
+    if (!f) {
+        std::fprintf(stderr, "WARN: cannot write %s\n", path.c_str());
+        return;
+    }
+    uint64_t nq64 = nq, k64 = static_cast<uint64_t>(k);
+    fwrite("DIQ1", 1, 4, f);
+    fwrite(&nq64, sizeof(nq64), 1, f);
+    fwrite(&k64, sizeof(k64), 1, f);
+    fwrite(D, sizeof(float), nq * k, f);
+    fwrite(I, sizeof(idx_t), nq * k, f);
+    fclose(f);
+}
 
 int run_timed(const Args& a) {
     FAISS_THROW_IF_NOT_MSG(!a.index_path.empty(), "--index required");
@@ -382,15 +487,34 @@ int run_timed(const Args& a) {
             : std::max<size_t>(1, ivf->nlist / 64);
     omp_set_num_threads(a.threads);
 
+    FAISS_THROW_IF_NOT_MSG(
+            a.route == "owner" || a.route == "split",
+            "--route must be owner or split");
+    const bool owner_route = (a.route == "owner");
+    const uint32_t mode = owner_route
+            ? (clio::run::faiss_ivf::kSearchModeOwner |
+               (ivf->metric_type == faiss::METRIC_L2
+                        ? 0u
+                        : clio::run::faiss_ivf::kSearchModeIP))
+            : 0u;
+    // Owner route broadcasts every sub-batch to all nodes, so inflight is
+    // per-node concurrency: default 1 (one SearchTask x 8 scan threads per
+    // node). Split route keeps the historical default of --threads.
+    const int nsplit = a.inflight > 0
+            ? a.inflight
+            : (owner_route ? 1 : a.threads);
+
     std::printf(
             "[bench] volume=%s nlist=%zu nprobe=%d nq=%zu k=%d threads=%d "
-            "ntotal=%" PRId64 "\n",
+            "route=%s inflight=%d ntotal=%" PRId64 "\n",
             a.label.c_str(),
             ivf->nlist,
             nprobe,
             a.nq,
             a.k,
             a.threads,
+            a.route.c_str(),
+            nsplit,
             (int64_t)open_fut->ntotal_);
 
     FILE* csv = nullptr;
@@ -420,7 +544,9 @@ int run_timed(const Args& a) {
                         a.k,
                         nprobe,
                         d,
-                        a.inflight > 0 ? a.inflight : a.threads,
+                        nsplit,
+                        mode,
+                        owner_route,
                         xq.data(),
                         D.data(),
                         I.data()),
@@ -440,20 +566,33 @@ int run_timed(const Args& a) {
         };
         fnv(D.data(), D.size() * sizeof(float));
         fnv(I.data(), I.size() * sizeof(idx_t));
+        uint64_t chash = canon_hash(D.data(), I.data(), a.nq, a.k);
         std::printf(
                 "  %-6s qps=%9.1f  elapsed=%8.3fs  majflt/q=%8.1f  "
-                "read_MB=%8.1f  di_hash=%016llx\n",
+                "read_MB=%8.1f  di_hash=%016llx  canon=%016llx\n",
                 pass.c_str(),
                 qps,
                 el,
                 mf / (double)a.nq,
                 rb / (1024.0 * 1024),
-                (unsigned long long)rhash);
+                (unsigned long long)rhash,
+                (unsigned long long)chash);
+        if (!a.dump_di.empty()) {
+            dump_di_file(
+                    a.dump_di + "." + pass + ".bin",
+                    D.data(),
+                    I.data(),
+                    a.nq,
+                    a.k);
+        }
         if (csv) {
-            char notes[64];
-            snprintf(notes, sizeof(notes), "dihash=%016llx;inflight=%d",
+            char notes[128];
+            snprintf(notes, sizeof(notes),
+                     "dihash=%016llx;canon=%016llx;inflight=%d;route=%s",
                      (unsigned long long)rhash,
-                     a.inflight > 0 ? a.inflight : a.threads);
+                     (unsigned long long)chash,
+                     nsplit,
+                     a.route.c_str());
             fprintf(csv,
                     "%ld,%s,%s,%zu,%d,%d,%d,%.4f,%.1f,%ld,%.3f,%lld,%s\n",
                     (long)time(nullptr),
@@ -524,6 +663,8 @@ int main(int argc, char** argv) {
         else if (s == "--passes") a.passes = atoi(next("--passes").c_str());
         else if (s == "--nprobe") a.nprobe_override = atoi(next("--nprobe").c_str());
         else if (s == "--inflight") a.inflight = atoi(next("--inflight").c_str());
+        else if (s == "--route") a.route = next("--route");
+        else if (s == "--dump-di") a.dump_di = next("--dump-di");
         else {
             std::fprintf(stderr, "unknown arg: %s\n", s.c_str());
             return 2;

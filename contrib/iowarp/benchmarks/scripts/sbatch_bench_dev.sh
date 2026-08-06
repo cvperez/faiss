@@ -21,14 +21,21 @@
 # Inputs (via --export=ALL,...):
 #   FAISS_VOLUME     index volume (default ondisk_nb10M)
 #   CTE_RAM_TIER_GB  RAM-tier cap (default 30; 0 = file-tier only)
-#   CHIMOD_INFLIGHTS concurrent SearchTasks (default 8)
+#   CHIMOD_INFLIGHTS concurrent SearchTasks (default 8; with
+#                    CHIMOD_ROUTE=owner this is per-node concurrency — use 1)
+#   CHIMOD_ROUTE     owner|split (default owner). owner = broadcast +
+#                    owner-filtered data-local scan (partial top-k merged in
+#                    AggregateOut); split = historical query-split fan-out.
+#   RUN_SELFTEST     1 = run bench_ivf_qps --selftest-chimod after ingest
 #   VERIFY_N         ingest verify: N sampled lists or "all" (default 16)
 #
-# Multi-node: submit with `sbatch --nodes=2 --ntasks-per-node=1 ...`. The
-# script detects SLURM_JOB_NUM_NODES>1, renders a hostfile for clio-core
+# Multi-node: submit with `sbatch --nodes=2 --ntasks=2 --ntasks-per-node=1`
+# (all three flags on the command line). The script detects
+# SLURM_JOB_NUM_NODES>1, renders a hostfile for clio-core
 # (networking.hostfile) and 20_ingest_cte.sh starts one clio_run per node.
-# Use CHIMOD_INFLIGHTS=<num nodes> so the search fans one SearchTask (with
-# its 8 scan threads) out to each node's container.
+# With CHIMOD_ROUTE=owner every SearchTask reaches every node (data-local
+# scan), so CHIMOD_INFLIGHTS stays 1; with CHIMOD_ROUTE=split use
+# CHIMOD_INFLIGHTS=<num nodes> (query-split fan-out).
 
 set -euo pipefail
 
@@ -60,6 +67,8 @@ export BUILD_DIR="${BUILD_DIR:-$ROOT/build-dev}"
 export FAISS_INSTALL="${FAISS_INSTALL:-$HOME/faiss-install}"
 # Keep dev rows in their own CSV so the v2.1.0 baseline CSVs are preserved.
 export QPS_CSV="$ROOT/benchmarks/results/qps_dev_${FAISS_VOLUME}.csv"
+# Search routing (see header). Exported so 30_run_bench.sh sees it.
+export CHIMOD_ROUTE="${CHIMOD_ROUTE:-owner}"
 
 # A whole search pass at the large sizes takes longer than the client's default
 # 60 s request timeout (v2.1.0 nb100M/nb178M passes ran 56-130 s), so the client
@@ -67,7 +76,7 @@ export QPS_CSV="$ROOT/benchmarks/results/qps_dev_${FAISS_VOLUME}.csv"
 export CLIO_CLIENT_RETRY_TIMEOUT="${CLIO_CLIENT_RETRY_TIMEOUT:-1200}"
 export CLIO_WAIT_SERVER="${CLIO_WAIT_SERVER:-120}"
 
-echo "=== IOWarp QPS (DEV)  volume=${FAISS_VOLUME}  RAM_tier=${CTE_RAM_TIER_GB:-30}g"
+echo "=== IOWarp QPS (DEV)  volume=${FAISS_VOLUME}  RAM_tier=${CTE_RAM_TIER_GB:-30}g  route=${CHIMOD_ROUTE}"
 echo "=== job=${SLURM_JOB_ID:-?}  host=$(hostname)  started=$(date)"
 echo "=== clio dev: $CLIO_DEV_PREFIX   build: $BUILD_DIR"
 # Sanity-check clio_run with the runtime lib path the real run uses. The dep

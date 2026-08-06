@@ -23,3 +23,6 @@ timestamp,volume,pass,nq,k,nprobe,threads,elapsed_s,qps,majflt,majflt_per_q,read
 1785952900,ondisk_nb10M,cold,500,10,64,8,22.4816,22.2,66,0.132,0,dihash=0e04f8171f7d1898;inflight=2
 1785952923,ondisk_nb10M,warm0,500,10,64,8,22.2509,22.5,0,0.000,0,dihash=0e04f8171f7d1898;inflight=2
 1785952945,ondisk_nb10M,warm1,500,10,64,8,22.2151,22.5,0,0.000,0,dihash=0e04f8171f7d1898;inflight=2
+1786027747,ondisk_nb10M,cold,500,10,64,8,2.0196,247.6,63,0.126,0,dihash=0e04f8171f7d1898;canon=0cf50715b1b8e818;inflight=1;route=owner
+1786027749,ondisk_nb10M,warm0,500,10,64,8,1.9887,251.4,0,0.000,0,dihash=0e04f8171f7d1898;canon=0cf50715b1b8e818;inflight=1;route=owner
+1786027751,ondisk_nb10M,warm1,500,10,64,8,1.9735,253.4,0,0.000,0,dihash=0e04f8171f7d1898;canon=0cf50715b1b8e818;inflight=1;route=owner

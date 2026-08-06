@@ -145,7 +145,8 @@ Single-node behavior unchanged (verified, job 22789).
   (nb50M) cluster-total vs 3.8 / 7.2 s single-node. Splitting by QUERY
   cannot exploit combined RAM; a data-local design (scan each list on its
   owner node, merge partial top-k heaps) is the actual multi-node
-  architecture — future ChiMod work.
+  architecture — implemented in the 2026-08-06 campaign below (this
+  query-split path is preserved as `--route split` for A/B).
 * **nb100M is additionally blocked by an upstream limit**: daemon-side shm
   segments grow with bytes moved cross-node and never recycle (the receive
   staging / serving path — 131 segments ≈ 18 GB after ingest, 188 ≈ 26 GB
@@ -154,6 +155,45 @@ Single-node behavior unchanged (verified, job 22789).
   lowered to 22 GB). At nb50M's ~12 GB/node the growth fits; at nb100M's
   ~24 GB/node it cannot. Worth raising with the maintainers alongside the
   #856 strict-event-resume note (see `ISSUES_RESOLVED_DEV_ANALYSIS.md`).
+
+## 2-node, owner-filtered broadcast (2026-08-06 campaign)
+
+The data-local design flagged above as future work is now implemented
+(mechanics: `docs/MULTINODE.md` §7): `--route owner` broadcasts each
+SearchTask to every container; each node scans only the lists whose
+placement hash it owns (all fetches zero-IPC-local by construction) and
+returns its sorted partial top-k as serialized vectors, merged per query in
+`SearchTask::AggregateOut`. Same protocol as above, `CHIMOD_INFLIGHTS=1`
+at every node count, `VERIFY_N=16` (the write path is unchanged since the
+verify-all campaign above).
+
+| Volume | 1-node QPS c/w0/w1 (job) | 2-node QPS c/w0/w1 (job) | warm scaling |
+|---|---|---|---|
+| nb10M | 247.6 / 251.4 / 253.4 (22821) | — (smoke only) | — |
+| nb50M | 53.1 / 55.5 / 56.1 (22822) | **99.5 / 104.5 / 105.6** (22823) | **1.88×** (was 0.08× query-split) |
+| nb100M | 17.7 / 20.4 / 20.7 (22824) | **50.6 / 52.5 / 52.8** (22825) | **2.55×, super-linear** (was OOM) |
+
+* **Correctness is bitwise.** Every pass of every run reproduces the
+  historical single-node di_hash (nb10M `0e04f8171f7d1898`, nb50M
+  `32085d09bb65391b`, nb100M `4d0bb1d73138720a`) — the deterministic merge
+  hit no k-boundary ties, so even raw ordering is preserved.
+  `compare_di.py` over the `--dump-di` artifacts: 500/500 queries exact on
+  all six 1-node-vs-2-node pass pairs. `bench_ivf_qps --selftest-chimod`
+  gained an owner-route leg (broadcast, 2 subtasks), bitwise-identical to
+  stock FAISS (job 22821).
+* **The network bottleneck is gone.** `lists_read` equals the 1-node total
+  at both sizes (24 462 / 48 867 — each list scanned exactly once,
+  cluster-wide), and cluster read_wait fell from 615 s to 7.2 s (nb50M).
+  Cross-node traffic per pass is queries out (≈256 KB/node) + merged
+  partials back (≈60 KB/node) instead of ~half the index.
+* **nb100M super-linear (2.55×): capacity, not just bandwidth.** 1-node
+  spills 19 GB to NVMe; on 2 nodes the 49 GB volume is fully RAM-resident
+  (2 × 30 GB tiers, NVMe occupancy 0 on both nodes), so each node scans
+  ~half the lists at RAM speed with no io_uring share. The peer-daemon OOM
+  is gone with the cross-node byte flow that caused it.
+* nb50M's 1.88× (not 2.0×) is the residual fixed cost per pass (coarse
+  quantization duplicated per node, broadcast/merge overhead) on a
+  4.8 s pass; the per-node scan halves cleanly.
 
 ## Provenance and caveats
 

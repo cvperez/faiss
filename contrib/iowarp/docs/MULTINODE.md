@@ -1,9 +1,12 @@
 # Running the FAISS IVF ChiMod on two (or more) nodes
 
 How the multi-node scenario is implemented, layer by layer, with the actual
-code. Measured results and limitations are in
-[`../benchmarks/results/RESULTS_DEV_ZEROCOPY.md`](../benchmarks/results/RESULTS_DEV_ZEROCOPY.md)
-(§"2026-08-05 campaign"); this document explains *how it works*.
+code. §§1–6 cover the infrastructure and the original query-split fan-out
+(2026-08-05 campaign); §7 covers the owner-filtered broadcast that replaced
+it as the default (2026-08-06 campaign — data-local scan, ~2× warm QPS per
+added node). Measured results are in
+[`../benchmarks/results/RESULTS_DEV_ZEROCOPY.md`](../benchmarks/results/RESULTS_DEV_ZEROCOPY.md);
+this document explains *how it works*.
 
 ## 1. What clio-core gives us
 
@@ -34,7 +37,8 @@ One important asymmetry: the **zero-IPC shared-memory read is node-local by
 construction** (`ShmBlobRecord.node_id_` — "only local is cacheable"). A
 container can fast-path only the blobs its own node owns; peer-owned blobs
 always go through the RPC path. This is what makes the query-split fan-out
-network-bound (see §6).
+network-bound (§6) — and what the owner-filtered broadcast exploits by
+scanning every list on the node that owns it (§7).
 
 ## 2. Config rendering — `benchmarks/scripts/20_ingest_cte.sh`
 
@@ -129,10 +133,14 @@ fi
 
 ## 4. Client-side changes — `benchmarks/bench_ivf_qps.cpp`
 
-Only two routing decisions had to change; the ChiMod runtime itself
-(`faiss_ivf_runtime.cc`) needed **no** multi-node changes — its per-list
-CTE fetch already falls back from the node-local shm fast path to the RPC
-path, which routes cross-node transparently.
+The first 2-node implementation (2026-08-05) changed only two client
+routing decisions; the ChiMod runtime needed **no** multi-node changes for
+this path — its per-list CTE fetch already falls back from the node-local
+shm fast path to the RPC path, which routes cross-node transparently.
+Of the three pieces below, **(a) and (c) apply to both routes and are
+still current**; **(b) is the query-split fan-out, now the non-default
+`--route split`** — §7's owner-filtered broadcast replaced it after the
+measurements in §6 showed it network-bound.
 
 **(a) `OpenIndex` must reach every container.** The index handle
 (`ivf_`, `sizes_`, `tag_id_`) is per-container state, and `Search` fails
@@ -152,10 +160,10 @@ auto open_fut = chimod_client.AsyncOpenIndex(
 (`OpenIndex` reads only the index *metadata* from the shared filesystem —
 `/mnt/common` on Ares — the inverted lists come from CTE.)
 
-**(b) Search sub-batches fan out by container id.** The bench splits the
-query batch into `--inflight N` independent SearchTasks; sub-batch `i` is
-routed with `DirectHash(i)`, which resolves to container `i %
-num_containers` — so `--inflight 2` on two nodes puts exactly one
+**(b) Search sub-batches fan out by container id (`--route split`).** The
+bench splits the query batch into `--inflight N` independent SearchTasks;
+sub-batch `i` is routed with `DirectHash(i)`, which resolves to container
+`i % num_containers` — so `--inflight 2` on two nodes puts exactly one
 SearchTask (with its 8 scan threads) on each node. On one node,
 `hash % 1 = 0` reproduces the old `Local()` behavior exactly:
 
@@ -198,12 +206,17 @@ broadcast itself.)
 
 ## 5. How to run
 
+Owner-filtered broadcast (the default route, §7):
+
 ```bash
 cd contrib/iowarp/benchmarks/scripts
 sbatch --wait --nodes=2 --ntasks=2 --ntasks-per-node=1 \
-    --export=ALL,FAISS_VOLUME=ondisk_nb50M,CHIMOD_INFLIGHTS=2,VERIFY_N=all \
+    --export=ALL,FAISS_VOLUME=ondisk_nb50M,CHIMOD_INFLIGHTS=1,VERIFY_N=16 \
     sbatch_bench_dev.sh
 ```
+
+The historical query-split fan-out for A/B comparison: add
+`CHIMOD_ROUTE=split` and set `CHIMOD_INFLIGHTS=<node count>`.
 
 Notes:
 
@@ -211,26 +224,36 @@ Notes:
   on the command line: the script's `#SBATCH --ntasks=1` directive
   otherwise constrains SLURM into shrinking the allocation back to one
   node (observed: job 22790 silently ran single-node).
-* `CHIMOD_INFLIGHTS` should equal the node count — one SearchTask with 8
-  scan threads per node preserves the per-node thread contract of the
-  1-node baseline.
+* `CHIMOD_INFLIGHTS` is per-node concurrency on the owner route (every
+  broadcast reaches every node) — keep it 1 at any node count to preserve
+  the 1-node baseline's one-SearchTask × 8-scan-threads contract. Only on
+  the split route must it equal the node count.
+* Optional: `RUN_SELFTEST=1` runs `bench_ivf_qps --selftest-chimod` after
+  ingest (four legs, including an owner-route broadcast leg, all bitwise
+  vs stock FAISS); `--dump-di` artifacts land in `results/dumps/` and two
+  runs are compared with `scripts/compare_di.py A.bin B.bin`.
 * Everything degrades to the unchanged 1-node behavior when the
-  allocation has a single node (verified: job 22789).
+  allocation has a single node (verified: jobs 22789 query-split,
+  22821/22822/22824 owner route — historical di_hash reproduced exactly).
 
-What a healthy 2-node run prints:
+What a healthy 2-node owner-route run prints (job 22823):
 
 ```
-=== multi-node allocation: ares-comp-31 ares-comp-32
-=== multi-node: 2 nodes (ares-comp-31 ares-comp-32 ), swim off
-clio_run up on ares-comp-31:9413
-clio_run up on ares-comp-32:9413
-[verify] PASS — 8192 lists byte-identical        <- includes cross-node reads
-  cold   qps=...  di_hash=32085d09bb65391b       <- same hash as 1-node
-ares-comp-31: 0  total                            <- per-node tier occupancy
-ares-comp-32: 0  total
+=== multi-node allocation: ares-comp-10 ares-comp-11
+=== multi-node: 2 nodes (ares-comp-10 ares-comp-11 ), swim off
+clio_run up on ares-comp-10:9413
+clio_run up on ares-comp-11:9413
+[verify] PASS — 16 lists byte-identical          <- includes cross-node reads
+--- inflight=1 route=owner
+  cold   qps=     99.5  ...  di_hash=32085d09bb65391b  canon=b3e14dd79e32cd77
+  warm0  qps=    104.5  ...  di_hash=32085d09bb65391b  canon=b3e14dd79e32cd77
+                              ^ same di_hash AND canon as the 1-node run
+[stats] searches=3000 lists_read=24462 ...       <- lists_read == 1-node total:
+ares-comp-10: 0  total                              each list scanned once
+ares-comp-11: 0  total                           <- per-node tier occupancy
 ```
 
-## 6. What the measurements showed (summary)
+## 6. What the query-split measurements showed (2026-08-05 campaign)
 
 | Volume | 1-node warm QPS | 2-node warm QPS | Correctness |
 |---|---|---|---|
@@ -248,11 +271,9 @@ ares-comp-32: 0  total
   exploitable this way.
 * **The scalable design is data-local**: route the *scan* to the node that
   owns each list (split by list ownership, not by query), return partial
-  top-k heaps, and merge k results per query at the client. That turns the
-  cross-node traffic from ~half the index per pass into `nq × k × 12
-  bytes`, and lets both nodes scan at local-RAM speed. This is the natural
-  next evolution of the ChiMod (`SearchTask` would gain an owner-filter
-  mode and the client a heap-merge step) — future work.
+  top-k heaps, and merge k results per query. That turns the cross-node
+  traffic from ~half the index per pass into `nq × k × 12 bytes`, and lets
+  both nodes scan at local-RAM speed. **Implemented — see §7.**
 * **Upstream limit at scale**: daemon-side shm segments grow with the
   bytes moved cross-node (remote-put staging and remote-read serving) and
   are never recycled — at nb100M (~24 GB/node) the peer daemon is
@@ -260,3 +281,128 @@ ares-comp-32: 0  total
   `clio_run_ondisk_nb100M_*_node1.log`). nb10M/nb50M scales fit. Worth
   raising with the clio-core maintainers together with the #856
   strict-event-resume note.
+
+## 7. Owner-filtered broadcast — the data-local implementation
+
+The design of §6's last bullet, implemented (2026-08-06 campaign; measured
+results in `../benchmarks/results/RESULTS_DEV_ZEROCOPY.md` §"2-node,
+owner-filtered broadcast"). The query-split path of §4 is preserved as
+`bench_ivf_qps --route split`; the new path is `--route owner` (the
+default). Warm QPS: nb50M 105.6 on 2 nodes vs 56.1 on 1 (1.88×; the
+query-split fan-out managed 4.6); nb100M 52.8 vs 20.7 (2.55×,
+super-linear — see "capacity" below; query-split OOM'd the peer daemon).
+Every pass reproduced the single-node `di_hash` bit-for-bit.
+
+### Mechanics
+
+**(a) Ownership is computed locally from the placement hash.** clio-core
+routes a blob to its owner container with `HashBlobToContainer(tag_id,
+blob_name)` → `DirectHash(h)` → `h % num_containers`. That function is
+private to the CTE core runtime, but the CTE *cache* module sets the
+precedent of replicating its four hash lines in module code
+(`cache_runtime.cc IsBlobOwnerLocal`). `OpenIndex` does the same once per
+volume, precomputing `list_local_[l]` for every list
+(`faiss_ivf_runtime.cc`); it also asserts that the faiss pool (600.0) and
+the CTE pool (512.0) have identical container counts — both are created
+with one container per node (`ContainerId == NodeId`), which is what makes
+`h % N` name the same node in both pools. If core ever changes the hash,
+only locality degrades (visible as `bytes_fetched_` blowing up); the
+lists still partition exactly-once, so correctness holds. On one node
+`h % 1 == 0` — every list is local and the path degenerates to §4's
+behavior automatically.
+
+**(b) The search is broadcast; each node scans only what it owns.**
+`SearchTask::mode_` — a previously ignored wire slot — carries two bits:
+`kSearchModeOwner` (filter to owned lists) and `kSearchModeIP` (merge
+direction; the merge runs where the faiss index is not visible). The bench
+sends each sub-batch with `PoolQuery::Broadcast()`; the probe-map build in
+`Runtime::Search` drops non-owned lists:
+
+```cpp
+if (l < 0 || sizes_[l] <= 0) continue;
+if (owner_mode && !list_local_[l]) continue;  // peer's replica scans it
+```
+
+Every list a node scans is therefore one it owns — every fetch is eligible
+for the zero-IPC shm fast path, and the RPC pipeline degenerates to
+local-NVMe misses. `--inflight` becomes per-node concurrency (each
+broadcast reaches all nodes), so `CHIMOD_INFLIGHTS=1` at any node count.
+
+**(c) Partials return as serialized vectors, NOT via the D/I buffers.**
+This is the critical wire-level change. A broadcast task is replicated
+with `NewCopyTask` → `Copy()`, which copies the raw `ShmPtr`s — so every
+replica subtask on the origin node aliases the client's `distances_out_`/
+`labels_out_`. Had `SerializeOut` kept bulk-XFERing D/I, each returning
+replica would memcpy over the same client buffer: a last-writer-wins race
+(no clio-core broadcast task uses bulk OUT regions; the endorsed shape is
+`SemanticSearchTask`'s serialized-vector merge). So in owner mode the
+handler exports its sorted per-query partials into new OUT fields and
+`SerializeOut` ships those instead (`faiss_ivf_tasks.h`):
+
+```cpp
+ar(mode_);                      // wire-carried branch selector
+if (SearchOwnerMode(mode_)) ar(part_d_, part_i_);   // no bulk on D/I
+else { ar.bulk(distances_out_, ...); ar.bulk(labels_out_, ...); }
+```
+
+The handler fills `part_*` only when `task->IsRemote()` — true iff the
+task arrived through the network receive path, which on a multi-node
+broadcast is every replica (loopback included: `SendIn` has no local
+shortcut). On a single node the broadcast short-circuits (`IsTaskLocal`),
+the origin runs the handler directly with `IsRemote() == false`, and the
+handler writes the client's shm buffers exactly as before — the
+single-node path is byte-identical to §4's.
+
+**(d) The merge lives in `SearchTask::AggregateOut`** — the same hook
+`StatsTask` uses to sum counters, called once per replica, serially, on
+the origin node. First replica's partials are adopted wholesale;
+each subsequent replica is merged per query (two-pointer merge of two
+sorted k-lists, keep best k) under a strict total order — distance, then
+id — so the result is independent of replica arrival order. Sentinel
+slots (`FLT_MAX`/-1) sort last and fall out naturally. A failed replica's
+non-zero rc propagates through `Task::AggregateOut` and fails the search.
+The bench harvests `part_*` from the completed future when present
+(multi-node) and falls back to the shm buffers when empty (single node /
+legacy route).
+
+### What the campaign showed
+
+| Volume | 1-node warm QPS | 2-node warm QPS | Cross-check |
+|---|---|---|---|
+| nb50M (22822/22823) | 55.5–56.1 | 104.5–105.6 | bitwise di_hash; compare_di 500/500 exact |
+| nb100M (22824/22825) | 20.4–20.7 | 52.5–52.8 | bitwise di_hash; compare_di 500/500 exact |
+
+* `lists_read` equals the 1-node total at both sizes (24 462 / 48 867):
+  each list is scanned exactly once across the cluster — the hash filter
+  is a true partition. Cluster read_wait: 7.2 s vs 615 s for query-split
+  (nb50M). (`searches` doubles vs 1-node — every node's replica processes
+  the full query batch, and broadcast Stats sums per-container counters.)
+* **nb100M is super-linear (2.55×) because 2 nodes add capacity, not just
+  bandwidth**: 1-node spills 19 GB to NVMe; on 2 nodes the 49 GB volume is
+  fully RAM-resident (NVMe occupancy 0 on both nodes). The peer-daemon
+  OOM of jobs 22795/22818 is gone with the cross-node byte flow that fed
+  it (per pass: ~256 KB of queries out + ~60 KB of partials back per node,
+  instead of ~half the index).
+* Correctness tooling: `bench_ivf_qps` now prints a canonical
+  order-independent hash (`canon=`) next to `di_hash`, dumps raw (D, I)
+  per pass with `--dump-di`, and `scripts/compare_di.py` classifies any
+  1-node-vs-2-node differences (exact / order-only / k-boundary-tie /
+  mismatch). In this campaign no ties were hit: all passes bitwise exact.
+  The selftest gained an owner-route broadcast leg
+  (`[selftest chimod owner2]`), bitwise-identical to stock FAISS.
+
+### Limits
+
+* Broadcast resolves to one query per container only for
+  `N ≤ neighborhood_size` (default 32) nodes; beyond that clio-core
+  delivers multi-container ranges to only the first container of each
+  range — a latent cliff far above this campaign's scale.
+* A non-colocated (TCP) client on a single-node cluster would get empty
+  `part_*` and unwritten local buffers in owner mode; the bench is always
+  a colocated shm client. Multi-node owner mode works for any client
+  (results travel as serialized vectors).
+* The replicated placement hash depends on libstdc++'s
+  `std::hash<std::string>` — stable here (daemon and ChiMod are built with
+  the same toolchain), fragile as a cross-toolchain contract; a public
+  `HashBlobToContainer` in clio-core would remove the duplication (worth
+  adding to the upstream list).

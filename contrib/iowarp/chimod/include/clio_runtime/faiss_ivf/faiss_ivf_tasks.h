@@ -16,6 +16,9 @@
 // Include admin tasks for GetOrCreatePoolTask / DestroyTask / MonitorTask
 #include <clio_runtime/admin/admin_tasks.h>
 
+#include <cstdint>
+#include <vector>
+
 /**
  * Task struct definitions for faiss_ivf
  *
@@ -28,6 +31,23 @@ using MonitorTask = clio::run::admin::MonitorTask;
 
 /** Sentinel for SearchTask::mode_: use the container default. */
 GLOBAL_CROSS_CONST clio::run::u32 kSearchModeDefault = 0xFFFFFFFF;
+
+/** SearchTask::mode_ bit: owner-filtered broadcast — each container scans
+ *  only the inverted lists whose placement hash lands on it, and returns
+ *  per-query partial top-k via part_d_/part_i_ (merged in AggregateOut).
+ *  Pair this bit with PoolQuery::Broadcast(); with a single-target query
+ *  it returns only that node's partial results. */
+GLOBAL_CROSS_CONST clio::run::u32 kSearchModeOwner = 0x1;
+/** SearchTask::mode_ bit: metric is inner product (merge keeps LARGEST
+ *  distances). AggregateOut has no access to the faiss index, so the
+ *  merge direction must ride on the task. */
+GLOBAL_CROSS_CONST clio::run::u32 kSearchModeIP = 0x2;
+
+/** True iff mode selects owner-filtered search. The legacy sentinel
+ *  (all bits set) must stay legacy, so test it explicitly. */
+CTP_CROSS_FUN inline bool SearchOwnerMode(clio::run::u32 mode) {
+  return mode != kSearchModeDefault && (mode & kSearchModeOwner) != 0;
+}
 
 /**
  * CreateParams for faiss_ivf chimod
@@ -161,10 +181,20 @@ struct SearchTask : public clio::run::Task {
   IN clio::run::u32 k_;                        // Neighbors per query
   IN clio::run::u32 nprobe_;                   // Lists probed per query
   IN clio::run::u32 d_;                        // Query dimensionality
-  IN clio::run::u32 mode_;                     // retained for compat; IGNORED
+  IN clio::run::u32 mode_;               // kSearchMode* bits (or the sentinel)
   IN ctp::ipc::ShmPtr<> queries_;        // nq*d float32 (shared memory)
   IN ctp::ipc::ShmPtr<> distances_out_;  // nq*k float32, client-preallocated
   IN ctp::ipc::ShmPtr<> labels_out_;     // nq*k int64, client-preallocated
+  // Owner mode only: per-query partial top-k, nq*k each, per-query-major,
+  // sorted per query (L2 ascending / IP descending). Plain serialized
+  // vectors, NOT bulk regions: broadcast replica subtasks share the
+  // origin's ShmPtrs (Copy copies them raw), so bulk-XFERing D/I back
+  // would land every replica on the client's buffers — a last-writer-wins
+  // race. Vector OUT fields are the clio-core-endorsed broadcast shape
+  // (see cte SemanticSearchTask); they live on whichever process owns the
+  // task instance and cross boundaries only via SerializeOut.
+  OUT std::vector<float> part_d_;
+  OUT std::vector<int64_t> part_i_;
 
   /** SHM default constructor */
   CTP_CROSS_FUN SearchTask()
@@ -242,14 +272,27 @@ struct SearchTask : public clio::run::Task {
 
   /** Serialize OUT and INOUT parameters. Only the result buffers travel
    * back — the IN-only ShmPtr fields must not be echoed (see cte
-   * PutBlobTask::SerializeOut comment). */
+   * PutBlobTask::SerializeOut comment). mode_ is serialized FIRST so the
+   * save and load sides branch identically from the wire, whatever their
+   * local state (bulk framing follows call order, so both sides must
+   * execute the same ar()/ar.bulk() sequence). */
   template <typename Archive>
   CTP_CROSS_FUN void SerializeOut(Archive& ar) {
     Task::SerializeOut(ar);
-    ar.bulk(distances_out_,
-            static_cast<clio::run::u64>(nq_) * k_ * sizeof(float), BULK_XFER);
-    ar.bulk(labels_out_,
-            static_cast<clio::run::u64>(nq_) * k_ * sizeof(int64_t), BULK_XFER);
+    ar(mode_);
+    if (SearchOwnerMode(mode_)) {
+      // Partial top-k travels as plain serialized vectors; no bulk on
+      // D/I (see part_d_ comment — replica bulk would alias the client
+      // buffers and race).
+      ar(part_d_, part_i_);
+    } else {
+      ar.bulk(distances_out_,
+              static_cast<clio::run::u64>(nq_) * k_ * sizeof(float),
+              BULK_XFER);
+      ar.bulk(labels_out_,
+              static_cast<clio::run::u64>(nq_) * k_ * sizeof(int64_t),
+              BULK_XFER);
+    }
   }
 
   /** Copy from another SearchTask */
@@ -264,12 +307,70 @@ struct SearchTask : public clio::run::Task {
     queries_ = other->queries_;
     distances_out_ = other->distances_out_;
     labels_out_ = other->labels_out_;
+    part_d_ = other->part_d_;
+    part_i_ = other->part_i_;
   }
 
-  /** Aggregate replica results into this task */
+  /** Aggregate replica results into this task.
+   *
+   * Owner mode: MERGE the replica's per-query sorted partial top-k into
+   * this task's part_d_/part_i_ (Copy would keep only the last replica —
+   * the bug cte SemanticSearchTask documents). Runs serially per replica
+   * on the origin node's net-recv thread, so no locking; the strict total
+   * order (distance, then id) makes the merged result independent of
+   * replica arrival order. Single-node broadcast short-circuits locally
+   * and never calls this. */
   void AggregateOut(const ctp::ipc::FullPtr<clio::run::Task>& other_base) {
-    Task::AggregateOut(other_base);
-    Copy(other_base.template Cast<SearchTask>());
+    Task::AggregateOut(other_base);  // rc / completer propagation
+    auto other = other_base.template Cast<SearchTask>();
+    if (!SearchOwnerMode(mode_)) {
+      Copy(other);  // legacy last-writer semantics (single-target routing)
+      return;
+    }
+    const size_t n = static_cast<size_t>(nq_) * k_;
+    if (other->part_d_.size() != n || other->part_i_.size() != n) {
+      return;  // failed/empty replica; its rc was propagated above
+    }
+    if (part_d_.size() != n) {
+      // First replica to arrive: adopt wholesale.
+      part_d_ = other->part_d_;
+      part_i_ = other->part_i_;
+      return;
+    }
+    // Per query: two-pointer merge of two sorted k-lists, keep best k.
+    // Sentinel slots (L2: FLT_MAX/-1, IP: lowest()/-1) sort last and fall
+    // out of the merge naturally.
+    const bool ip = (mode_ & kSearchModeIP) != 0;
+    std::vector<float> md(k_);
+    std::vector<int64_t> mi(k_);
+    for (clio::run::u32 qi = 0; qi < nq_; ++qi) {
+      float* ad = part_d_.data() + static_cast<size_t>(qi) * k_;
+      int64_t* ai = part_i_.data() + static_cast<size_t>(qi) * k_;
+      const float* bd = other->part_d_.data() + static_cast<size_t>(qi) * k_;
+      const int64_t* bi = other->part_i_.data() + static_cast<size_t>(qi) * k_;
+      clio::run::u32 x = 0, y = 0;
+      for (clio::run::u32 j = 0; j < k_; ++j) {
+        bool take_a;
+        if (ad[x] != bd[y]) {
+          take_a = ip ? (ad[x] > bd[y]) : (ad[x] < bd[y]);
+        } else {
+          take_a = ai[x] <= bi[y];  // deterministic tie-break: smaller id
+        }
+        if (take_a) {
+          md[j] = ad[x];
+          mi[j] = ai[x];
+          ++x;
+        } else {
+          md[j] = bd[y];
+          mi[j] = bi[y];
+          ++y;
+        }
+      }
+      for (clio::run::u32 j = 0; j < k_; ++j) {
+        ad[j] = md[j];
+        ai[j] = mi[j];
+      }
+    }
   }
 };
 
