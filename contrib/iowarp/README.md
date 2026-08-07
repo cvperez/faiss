@@ -1,4 +1,4 @@
-# FAISS × IOWarp: IVF search inside the CLIO runtime
+# CLIORAG: IVF search inside the CLIO runtime
 
 This folder hosts FAISS IVF vector search inside the [IOWarp](https://github.com/iowarp)
 CLIO runtime as a module (a "ChiMod"), with the inverted lists stored in the
