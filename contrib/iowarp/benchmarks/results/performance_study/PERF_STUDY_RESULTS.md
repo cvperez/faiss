@@ -51,13 +51,23 @@ MB/s in parentheses; mmap study values in brackets:
 tier boundary sits lower (57.7 vs 92.3 M/node), so its n4-370M carries a
 larger NVMe share.
 
+*Device-class caveat.* The two studies' disk tiers are different devices:
+the mmap study staged shards on `/mnt/ssd` (saturating at ~560 MB/s per
+node, a SATA-class ceiling), while ClioRAG's file tier lives on the
+node-local NVMe (`nvme0n1`, measured 1.0–4.3 GB/s aggregate here). Part
+of the raw out-of-core QPS gap therefore reflects the faster device. The
+architecture-only comparison is the *utilization* column: mmap pins its
+device at 99.6–99.9 % (bandwidth-bound on any device), while ClioRAG runs
+at 21–68 % — the RAM tier absorbs the hot share, so it would not saturate
+even a slower disk.
+
 **Findings:**
 
 1. **The knee is gone.** mmap collapses at the per-node RAM boundary
    (123 → 8.9 → 0.8 QPS at 0.5×/1×/2×; disk `%util` snapping 0 → 99.9).
    ClioRAG *degrades*: 62 → 26.7 → 4.5 over the same span with disk
    `%util` rising gradually (0 → 21 → 67 %) and NVMe reads at
-   1.0–4.3 GB/s aggregate — the SSDs never saturate because the RAM tier
+   1.0–4.3 GB/s aggregate — the NVMe drives never saturate because the RAM tier
    keeps serving the resident share deliberately.
 2. **Out-of-core, ClioRAG is 3–5.6× mmap** at every measured
    disk-bound cell (26.7 vs 8.9; 7.5 vs 2.2; 4.5 vs 0.8; 7.2 vs 2.2;
@@ -156,8 +166,8 @@ mmap values in brackets:
 | `perf_study_exp1_panel_b.{png,pdf}` | Read-only QPS vs. size, 2/4/8 nodes |
 | `perf_study_exp2_panel_a.{png,pdf}` | Mixed 80/20 sustained QPS vs. size, 1 node |
 | `perf_study_exp2_panel_b.{png,pdf}` | Mixed 80/20 sustained QPS, 2/4/8 nodes |
-| `perf_study_active_time_exp{1,2}_{1node,multinode}.{png,pdf}` | Per-node disk active time vs. size |
-| `perf_study_disk_throughput_exp{1,2}_{1node,multinode}.{png,pdf}` | Aggregate SSD transfer rate vs. size |
+| `perf_study_active_time_exp{1,2}_{1node,multinode}.{png,pdf}` | Per-node NVMe active time vs. size |
+| `perf_study_disk_throughput_exp{1,2}_{1node,multinode}.{png,pdf}` | Aggregate NVMe transfer rate vs. size |
 
 Raw per-cell records: `perf_study_exp{1,2}_nb{N}M_n{K}.json` (this
 directory; `source` fields mark telemetry-derived disk metrics where a

@@ -280,9 +280,9 @@ def fig_active_time(records, exp_num, out_dir, nodes, tag, tag_title):
                 label=NODE_LABELS.get(n, f"{n} nodes"))
     ax.axvline(RAM_THRESHOLD_M, color="gray", linestyle="--", alpha=0.5, lw=1.0)
     ax.set_ylim(0, 105)
-    ax.set_ylabel("Per-node disk active time (% of wall time,\nmean over the N shard disks)")
+    ax.set_ylabel("Per-node disk active time (% of wall time,\nmean over the N nodes' NVMe)")
     workload = "read-only workload" if exp_num == 1 else "mixed read/write workload"
-    ax.set_title(f"Per-node SSD active time vs. database size\n{workload}, {tag_title}",
+    ax.set_title(f"Per-node NVMe active time vs. database size\n{workload}, {tag_title}",
                  fontsize=10)
     style_size_axis(ax)
     if len(by_n) > 1:
@@ -316,9 +316,9 @@ def fig_disk_throughput(records, exp_num, out_dir, nodes, tag, tag_title):
                     color=color, lw=1.2, ms=4, alpha=0.75, label=f"{lbl} write")
     ax.axvline(RAM_THRESHOLD_M, color="gray", linestyle="--", alpha=0.5, lw=1.0)
     workload = "read-only workload" if exp_num == 1 else "mixed read/write workload"
-    ax.set_title(f"Aggregate SSD transfer rate vs. database size\n{workload}, {tag_title}",
+    ax.set_title(f"Aggregate NVMe transfer rate vs. database size\n{workload}, {tag_title}",
                  fontsize=10)
-    ax.set_ylabel("SSD transfer rate (MB/s, summed over N disks)")
+    ax.set_ylabel("NVMe transfer rate (MB/s, summed over N nodes)")
     style_size_axis(ax)
     ax.legend(fontsize=7, ncol=2)
     ax.grid(True, alpha=0.3, which="both")
