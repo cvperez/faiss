@@ -6,28 +6,32 @@
  *   bench_ivf_qps --selftest-chimod
  *     Builds a small IVF,Flat index, ingests its lists into CTE, opens it
  *     in the ChiMod, and requires the ChiMod's (D, I) to be bitwise-
- *     identical to stock FAISS (single-batch and split-batch searches).
+ *     identical to stock FAISS (single-batch, split-batch, owner-broadcast
+ *     and post-Add searches).
  *
  * Timed mode:
  *   bench_ivf_qps --protocol step3 --index populated.index --tag faiss_ivf::vol
  *                 --queries bigann_query.bvecs [--csv out.csv] [--label vol]
  *                 [--nq 500] [--threads 8] [--k 10] [--passes 3]
  *                 [--nprobe N] [--inflight N] [--route owner|split]
- *                 [--dump-di prefix]
+ *                 [--dump-di prefix] [--json-out out.json]
+ *                 [--nb-m N] [--nodes K]
  *     Drives the ChiMod with one batched search per pass; passes are
  *     labeled cold, warm0, warm1... Per pass: QPS, majflt delta,
- *     /proc/self/io read_bytes delta, an FNV-1a hash of (D, I), and a
- *     canonical order-independent hash (per-query-sorted pairs).
+ *     /proc/self/io read_bytes delta, an FNV-1a hash of (D, I), a
+ *     canonical order-independent hash (per-query-sorted pairs), and a
+ *     cluster-Stats bracket yielding /proc/diskstats deltas with the mmap
+ *     study's semantics (per-node mean active %, summed MB/s).
+ *     --json-out additionally writes a performance-study record
+ *     (perf_study_exp1) with plot-compatible field names; --nb-m/--nodes
+ *     stamp the record's nb_M / n_nodes.
  *     --route owner (default): broadcast + owner-filtered scan, results
  *     merged in AggregateOut (data-local multi-node). --route split:
  *     historical query-split DirectHash fan-out.
  */
 
-#include <sys/resource.h>
-#include <sys/time.h>
 #include <unistd.h>
 
-#include <algorithm>
 #include <cinttypes>
 #include <cstdint>
 #include <cstdio>
@@ -36,7 +40,6 @@
 #include <memory>
 #include <random>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include <omp.h>
@@ -50,6 +53,8 @@
 #include "cte_client.h"
 #include "ivf_cte_ingest.h"
 
+#include "bench_common.h"
+
 #ifdef HAVE_FAISS_IVF_CHIMOD
 #include <clio_runtime/faiss_ivf/faiss_ivf_client.h>
 #endif
@@ -58,197 +63,21 @@ using faiss::idx_t;
 
 namespace {
 
-/*** ------------------------- utilities -------------------------------- ***/
-
-long majflt_now() {
-    struct rusage ru;
-    getrusage(RUSAGE_SELF, &ru);
-    return ru.ru_majflt;
-}
-
-long long io_read_bytes_now() {
-    std::ifstream f("/proc/self/io");
-    std::string key;
-    long long val;
-    while (f >> key >> val) {
-        if (key == "read_bytes:") {
-            return val;
-        }
-    }
-    return -1;
-}
-
-double now_s() {
-    struct timeval tv;
-    gettimeofday(&tv, nullptr);
-    return tv.tv_sec + tv.tv_usec * 1e-6;
-}
-
-// Load the first nq vectors of a .bvecs file (int32 dim + uint8[dim] per
-// record) as float32.
-std::vector<float> load_bvecs_queries(const std::string& path, size_t nq,
-                                      int& d_out) {
-    FILE* f = fopen(path.c_str(), "rb");
-    FAISS_THROW_IF_NOT_FMT(f, "cannot open %s", path.c_str());
-    std::vector<float> out;
-    int d = 0;
-    for (size_t i = 0; i < nq; ++i) {
-        int32_t dim;
-        if (fread(&dim, sizeof(dim), 1, f) != 1) {
-            break;
-        }
-        if (i == 0) {
-            d = dim;
-            out.reserve(nq * d);
-        }
-        FAISS_THROW_IF_NOT_MSG(dim == d, "inconsistent bvecs dims");
-        std::vector<uint8_t> rec(d);
-        FAISS_THROW_IF_NOT(fread(rec.data(), 1, d, f) == (size_t)d);
-        for (int j = 0; j < d; ++j) {
-            out.push_back(static_cast<float>(rec[j]));
-        }
-    }
-    fclose(f);
-    d_out = d;
-    FAISS_THROW_IF_NOT_MSG(
-            out.size() == nq * (size_t)d, "bvecs file shorter than nq");
-    return out;
-}
+using bench_common::canon_hash;
+using bench_common::load_bvecs_queries;
+using bench_common::now_s;
 
 #ifdef HAVE_FAISS_IVF_CHIMOD
 
-/*** ------------------------- chimod drivers --------------------------- ***/
-
-// One batched search through the chimod; D/I sized nq*k by the caller.
-bool chimod_search(
-        clio::run::faiss_ivf::Client& client,
-        size_t nq,
-        int k,
-        int nprobe,
-        int d,
-        const float* xq,
-        float* D,
-        idx_t* I) {
-    auto qbuf = CLIO_IPC->AllocateBuffer(nq * d * sizeof(float));
-    auto dbuf = CLIO_IPC->AllocateBuffer(nq * k * sizeof(float));
-    auto ibuf = CLIO_IPC->AllocateBuffer(nq * k * sizeof(idx_t));
-    std::memcpy(qbuf.ptr_, xq, nq * d * sizeof(float));
-    auto fut = client.AsyncSearch(
-            clio::run::PoolQuery::Local(),
-            static_cast<clio::run::u32>(nq),
-            static_cast<clio::run::u32>(k),
-            static_cast<clio::run::u32>(nprobe),
-            static_cast<clio::run::u32>(d),
-            0,
-            qbuf.shm_.template Cast<void>(),
-            dbuf.shm_.template Cast<void>(),
-            ibuf.shm_.template Cast<void>());
-    fut.Wait();
-    bool ok = fut->GetReturnCode() == 0;
-    if (ok) {
-        std::memcpy(D, dbuf.ptr_, nq * k * sizeof(float));
-        std::memcpy(I, ibuf.ptr_, nq * k * sizeof(idx_t));
-    } else {
-        std::fprintf(
-                stderr, "chimod search rc=%u\n", fut->GetReturnCode());
-    }
-    CLIO_IPC->FreeBuffer(qbuf);
-    CLIO_IPC->FreeBuffer(dbuf);
-    CLIO_IPC->FreeBuffer(ibuf);
-    return ok;
-}
-
-// Split a query batch into `nsplit` concurrently in-flight SearchTasks —
-// the CPU-budget knob (nsplit tasks across the runtime's workers). Per-query
-// results are independent, so the split cannot change any output.
-//
-// Routing: owner_route=false preserves the historical query-split fan-out
-// (sub-batch i -> DirectHash(i) -> container i % num_containers).
-// owner_route=true broadcasts each sub-batch to EVERY container with the
-// owner-filter mode bits: each node scans only the lists it owns and the
-// partial top-k merge happens in SearchTask::AggregateOut — --inflight then
-// means per-node concurrency, independent of node count.
-bool chimod_search_parallel(
-        clio::run::faiss_ivf::Client& client,
-        size_t nq,
-        int k,
-        int nprobe,
-        int d,
-        int nsplit,
-        uint32_t mode,
-        bool owner_route,
-        const float* xq,
-        float* D,
-        idx_t* I) {
-    if (nsplit < 1) {
-        nsplit = 1;
-    }
-    if (static_cast<size_t>(nsplit) > nq) {
-        nsplit = static_cast<int>(nq);
-    }
-    struct Sub {
-        ctp::ipc::FullPtr<char> q, dd, ii;
-        clio::run::Future<clio::run::faiss_ivf::SearchTask> fut;
-        size_t off = 0, cnt = 0;
-    };
-    std::vector<Sub> subs(nsplit);
-    for (int i = 0; i < nsplit; ++i) {
-        Sub& s = subs[i];
-        s.off = nq * i / nsplit;
-        s.cnt = nq * (i + 1) / nsplit - s.off;
-        s.q = CLIO_IPC->AllocateBuffer(s.cnt * d * sizeof(float));
-        s.dd = CLIO_IPC->AllocateBuffer(s.cnt * k * sizeof(float));
-        s.ii = CLIO_IPC->AllocateBuffer(s.cnt * k * sizeof(idx_t));
-        std::memcpy(s.q.ptr_, xq + s.off * d, s.cnt * d * sizeof(float));
-        // owner_route: Broadcast — every container gets the sub-batch,
-        // scans only its owned lists, partials merge in AggregateOut.
-        // Otherwise DirectHash(i): sub-batch i lands on container
-        // i % num_containers (single node: container 0 == old Local).
-        s.fut = client.AsyncSearch(
-                owner_route
-                        ? clio::run::PoolQuery::Broadcast()
-                        : clio::run::PoolQuery::DirectHash(
-                                  static_cast<clio::run::u32>(i)),
-                static_cast<clio::run::u32>(s.cnt),
-                static_cast<clio::run::u32>(k),
-                static_cast<clio::run::u32>(nprobe),
-                static_cast<clio::run::u32>(d),
-                mode,
-                s.q.shm_.template Cast<void>(),
-                s.dd.shm_.template Cast<void>(),
-                s.ii.shm_.template Cast<void>());
-    }
-    bool ok = true;
-    for (auto& s : subs) {
-        s.fut.Wait();
-        if (s.fut->GetReturnCode() != 0) {
-            std::fprintf(
-                    stderr,
-                    "chimod subtask rc=%u\n",
-                    s.fut->GetReturnCode());
-            ok = false;
-        } else {
-            const size_t n = s.cnt * static_cast<size_t>(k);
-            if (s.fut->part_d_.size() == n && s.fut->part_i_.size() == n) {
-                // Multi-node owner path: the merged global top-k arrived
-                // as serialized vectors (replica D/I never travels back).
-                std::memcpy(D + s.off * k, s.fut->part_d_.data(),
-                            n * sizeof(float));
-                std::memcpy(I + s.off * k, s.fut->part_i_.data(),
-                            n * sizeof(idx_t));
-            } else {
-                // Legacy routing or single-node-degenerate broadcast: the
-                // handler wrote the shm buffers directly (part_* empty).
-                std::memcpy(D + s.off * k, s.dd.ptr_, n * sizeof(float));
-                std::memcpy(I + s.off * k, s.ii.ptr_, n * sizeof(idx_t));
-            }
-        }
-        CLIO_IPC->FreeBuffer(s.q);
-        CLIO_IPC->FreeBuffer(s.dd);
-        CLIO_IPC->FreeBuffer(s.ii);
-    }
-    return ok;
-}
+using bench_common::chimod_search;
+using bench_common::chimod_search_parallel;
+using bench_common::dump_di_file;
+using bench_common::fetch_cluster_stats;
+using bench_common::fprint_pass_json;
+using bench_common::AddSender;
+using bench_common::group_add_batch;
+using bench_common::PassResult;
+using bench_common::run_one_pass;
 
 /*** ------------------------- selftest --------------------------------- ***/
 
@@ -280,8 +109,12 @@ int run_selftest_chimod() {
 
     std::string tag = "faiss_ivf::selftest_chimod_" + std::to_string(getpid());
     faiss_iowarp::IngestIvfToCte(index.invlists, tag);
-    std::string index_file =
-            "/tmp/faiss_ivf_selftest_" + std::to_string(getpid()) + ".index";
+    // SHARED filesystem, not /tmp: the broadcast OpenIndex makes every
+    // node's container read this file — a node-local path leaves remote
+    // containers unopened (rc=1 on every routed search/add).
+    const char* home = getenv("HOME");
+    std::string index_file = std::string(home ? home : "/tmp") +
+            "/.faiss_ivf_selftest_" + std::to_string(getpid()) + ".index";
     faiss::write_index(&index, index_file.c_str());
 
     clio::run::faiss_ivf::Client client;
@@ -290,8 +123,12 @@ int run_selftest_chimod() {
             "faiss_ivf_bench",
             clio::run::PoolId(600, 0));
     create_fut.Wait();
+    // Broadcast: on a multi-node cluster EVERY container must open the
+    // index — the split4 leg routes sub-batches to every container, and
+    // an unopened container fails its search with rc=1 (exactly what the
+    // first n4 run showed with a Local open).
     auto open_fut = client.AsyncOpenIndex(
-            clio::run::PoolQuery::Local(), index_file, tag);
+            clio::run::PoolQuery::Broadcast(), index_file, tag);
     open_fut.Wait();
     if (open_fut->GetReturnCode() != 0) {
         std::fprintf(
@@ -300,11 +137,20 @@ int run_selftest_chimod() {
                 open_fut->GetReturnCode());
         return 1;
     }
+    uint32_t ncont = 1;
+    {
+        auto cs = fetch_cluster_stats(client);
+        if (cs.ok && cs.containers > 0) {
+            ncont = static_cast<uint32_t>(cs.containers);
+        }
+    }
     std::printf(
-            "[selftest chimod] opened: ntotal=%" PRIu64 " d=%u nlist=%u\n",
+            "[selftest chimod] opened: ntotal=%" PRIu64
+            " d=%u nlist=%u containers=%u\n",
             (uint64_t)open_fut->ntotal_,
             open_fut->d_,
-            open_fut->nlist_);
+            open_fut->nlist_,
+            ncont);
 
     bool all_ok = true;
     // Two consecutive searches: each reads its lists from CTE fresh, so
@@ -371,6 +217,64 @@ int run_selftest_chimod() {
                 eq ? "D and I identical" : "MISMATCH");
         all_ok = all_ok && eq;
     }
+    // Add leg: append 10k fresh vectors through the AddTask client path
+    // (grouped by owner container with the cluster's real container
+    // count) AND through stock faiss; the post-add searches must again
+    // match bitwise. Per-list append order equals input order on both
+    // sides. The post-add search MUST run in owner-broadcast mode: after
+    // an add, each container's in-memory sizes_ is current only for its
+    // OWNED lists (a legacy full scan from one container would size
+    // peer-owned reads with stale pre-add sizes). Gaussian float
+    // distances make exact ties vanishingly unlikely, so the owner merge
+    // is bitwise-deterministic here even multi-node.
+    {
+        const size_t nb2 = 10000;
+        std::vector<float> xb2(nb2 * d);
+        for (auto& v : xb2) v = nd(rng);
+        std::vector<int64_t> ids2(nb2);
+        for (size_t i = 0; i < nb2; ++i) {
+            ids2[i] = static_cast<int64_t>(nb + i);
+        }
+        // Owner grouping needs the CTE tag identity (same hash inputs the
+        // runtime uses for list_local_).
+        auto tag_fut = CLIO_CTE_CLIENT->AsyncGetOrCreateTag(tag);
+        tag_fut.Wait();
+        auto tag_id = tag_fut->tag_id_;
+        const size_t code_size = index.code_size;
+        auto shares = group_add_batch(
+                xb2.data(), ids2.data(), nb2, d, &quantizer,
+                static_cast<uint32_t>(tag_id.major_),
+                static_cast<uint32_t>(tag_id.minor_), ncont);
+        AddSender sender(client, d, code_size, 256ull << 20);
+        int64_t added = sender.send(shares);
+        bool ok = added == static_cast<int64_t>(nb2);
+        if (!ok) {
+            std::fprintf(
+                    stderr, "[selftest chimod add] appended %" PRId64
+                            " of %zu\n",
+                    added, nb2);
+        }
+        index.add(nb2, xb2.data());
+        index.search(nq, xq.data(), k, D_ref.data(), I_ref.data());
+        ok = ok &&
+                chimod_search_parallel(
+                        client, nq, k, nprobe, d, 2,
+                        clio::run::faiss_ivf::kSearchModeOwner, true,
+                        xq.data(), D_new.data(), I_new.data());
+        bool eq = ok &&
+                !std::memcmp(
+                        D_ref.data(),
+                        D_new.data(),
+                        D_ref.size() * sizeof(float)) &&
+                !std::memcmp(
+                        I_ref.data(),
+                        I_new.data(),
+                        I_ref.size() * sizeof(idx_t));
+        std::printf(
+                "[selftest chimod add] %s\n",
+                eq ? "D and I identical after add" : "MISMATCH");
+        all_ok = all_ok && eq;
+    }
     unlink(index_file.c_str());
     std::printf("[selftest chimod] %s\n", all_ok ? "PASS" : "FAIL");
     return all_ok ? 0 : 1;
@@ -398,50 +302,69 @@ struct Args {
     std::string route = "owner";
     // Non-empty: write raw (D, I) per pass to <prefix>.<pass>.bin.
     std::string dump_di;
+    // Performance-study JSON record (perf_study_exp1).
+    std::string json_out;
+    long nb_m = 0;   // total DB size in millions of vectors (JSON metadata)
+    int nodes = 0;   // topology (JSON metadata; cross-checked vs Stats)
 };
 
-// Canonical (order-independent) hash of the results: per query, sort the k
-// (D, I) pairs by (D, then I) and FNV-1a the sorted stream. Owner-route
-// merging can legitimately reorder equal-distance ties vs the single-node
-// heap order, so di_hash may differ while the result SET is identical —
-// canon compares the sets.
-uint64_t canon_hash(const float* D, const idx_t* I, size_t nq, int k) {
-    uint64_t h = 1469598103934665603ULL;
-    auto fnv = [&h](const void* p, size_t n) {
-        const uint8_t* b = static_cast<const uint8_t*>(p);
-        for (size_t i = 0; i < n; ++i) {
-            h = (h ^ b[i]) * 1099511628211ULL;
-        }
-    };
-    std::vector<std::pair<float, idx_t>> row(k);
-    for (size_t qi = 0; qi < nq; ++qi) {
-        for (int j = 0; j < k; ++j) {
-            row[j] = {D[qi * k + j], I[qi * k + j]};
-        }
-        std::sort(row.begin(), row.end());
-        for (int j = 0; j < k; ++j) {
-            fnv(&row[j].first, sizeof(float));
-            fnv(&row[j].second, sizeof(idx_t));
-        }
+// Load index metadata only (the lists live in CTE, read by the ChiMod).
+// SKIP_IVF_DATA works for OnDisk ("ilod") index files; plain
+// ArrayInvertedLists ("ilar") files — e.g. the study's trained-only
+// quantizer skeletons — reject it, so fall back to a full read (the
+// loaded lists are never scanned here). Mirrors Runtime::OpenIndex.
+std::unique_ptr<faiss::Index> read_index_skeleton(const std::string& path) {
+    try {
+        return std::unique_ptr<faiss::Index>(faiss::read_index(
+                path.c_str(), faiss::IO_FLAG_SKIP_IVF_DATA));
+    } catch (const std::exception&) {
+        return std::unique_ptr<faiss::Index>(
+                faiss::read_index(path.c_str()));
     }
-    return h;
 }
 
-// Dump raw results: magic "DIQ1", u64 nq, u64 k, float D[nq*k], i64 I[nq*k].
-void dump_di_file(const std::string& path, const float* D, const idx_t* I,
-                  size_t nq, int k) {
-    FILE* f = fopen(path.c_str(), "wb");
-    if (!f) {
-        std::fprintf(stderr, "WARN: cannot write %s\n", path.c_str());
-        return;
+// Per-node RAM threshold used across the study for the ratio metadata
+// (the mmap study's page-cache boundary on 46.6 GiB nodes).
+constexpr double kRamThresholdM = 92.3;
+
+void write_exp1_json(
+        const Args& a,
+        const faiss::IndexIVF* ivf,
+        uint64_t ntotal,
+        int nprobe,
+        int nsplit,
+        const std::vector<PassResult>& passes) {
+    FILE* f = fopen(a.json_out.c_str(), "w");
+    FAISS_THROW_IF_NOT_FMT(f, "cannot write %s", a.json_out.c_str());
+    const double per_node =
+            a.nodes > 0 ? static_cast<double>(a.nb_m) / a.nodes : 0.0;
+    fprintf(f, "{\n");
+    fprintf(f, "  \"experiment\": \"perf_study_exp1\",\n");
+    fprintf(f, "  \"nb_M\": %ld,\n", a.nb_m);
+    fprintf(f, "  \"n_nodes\": %d,\n", a.nodes);
+    fprintf(f, "  \"nb_M_per_node\": %.3f,\n", per_node);
+    fprintf(f, "  \"per_node_ram_ratio\": %.4f,\n",
+            per_node / kRamThresholdM);
+    fprintf(f, "  \"backend\": \"cte_chimod\",\n");
+    fprintf(f, "  \"volume\": \"%s\",\n", a.label.c_str());
+    fprintf(f, "  \"factory\": \"IVF%zu,Flat\",\n", ivf->nlist);
+    fprintf(f, "  \"nlist\": %zu,\n", ivf->nlist);
+    fprintf(f, "  \"nprobe\": %d,\n", nprobe);
+    fprintf(f, "  \"ntotal\": %" PRIu64 ",\n", ntotal);
+    fprintf(f, "  \"nq\": %zu,\n", a.nq);
+    fprintf(f, "  \"k\": %d,\n", a.k);
+    fprintf(f, "  \"threads\": %d,\n", a.threads);
+    fprintf(f, "  \"route\": \"%s\",\n", a.route.c_str());
+    fprintf(f, "  \"inflight\": %d,\n", nsplit);
+    fprintf(f, "  \"warm_runs\": %d,\n",
+            a.passes > 1 ? a.passes - 1 : 0);
+    fprintf(f, "  \"passes\": [\n");
+    for (size_t i = 0; i < passes.size(); ++i) {
+        fprint_pass_json(f, passes[i], i + 1 == passes.size());
     }
-    uint64_t nq64 = nq, k64 = static_cast<uint64_t>(k);
-    fwrite("DIQ1", 1, 4, f);
-    fwrite(&nq64, sizeof(nq64), 1, f);
-    fwrite(&k64, sizeof(k64), 1, f);
-    fwrite(D, sizeof(float), nq * k, f);
-    fwrite(I, sizeof(idx_t), nq * k, f);
+    fprintf(f, "  ]\n}\n");
     fclose(f);
+    std::printf("[bench] wrote %s\n", a.json_out.c_str());
 }
 
 int run_timed(const Args& a) {
@@ -449,10 +372,8 @@ int run_timed(const Args& a) {
     FAISS_THROW_IF_NOT_MSG(!a.queries_path.empty(), "--queries required");
     FAISS_THROW_IF_NOT_MSG(!a.tag.empty(), "--tag required");
 
-    // Load index metadata only (the lists live in CTE, read by the ChiMod);
-    // the client needs d / nlist / nprobe here.
-    std::unique_ptr<faiss::Index> owner(faiss::read_index(
-            a.index_path.c_str(), faiss::IO_FLAG_SKIP_IVF_DATA));
+    // The client needs d / nlist / nprobe here.
+    std::unique_ptr<faiss::Index> owner = read_index_skeleton(a.index_path);
     auto* ivf = dynamic_cast<faiss::IndexIVF*>(owner.get());
     FAISS_THROW_IF_NOT_MSG(ivf, "not an IVF index");
 
@@ -517,6 +438,21 @@ int run_timed(const Args& a) {
             nsplit,
             (int64_t)open_fut->ntotal_);
 
+    // Cross-check --nodes against the cluster's container count.
+    {
+        auto s = fetch_cluster_stats(chimod_client);
+        if (s.ok && a.nodes > 0 &&
+            s.containers != static_cast<uint64_t>(a.nodes)) {
+            std::fprintf(
+                    stderr,
+                    "[bench] FATAL: --nodes %d but cluster reports %" PRIu64
+                    " containers\n",
+                    a.nodes,
+                    s.containers);
+            return 4;
+        }
+    }
+
     FILE* csv = nullptr;
     if (!a.csv.empty()) {
         bool fresh = !std::ifstream(a.csv).good();
@@ -531,52 +467,36 @@ int run_timed(const Args& a) {
 
     std::vector<float> D(a.nq * a.k);
     std::vector<idx_t> I(a.nq * a.k);
+    std::vector<PassResult> results;
     for (int p = 0; p < a.passes; ++p) {
         std::string pass =
                 p == 0 ? "cold" : ("warm" + std::to_string(p - 1));
-        long mf0 = majflt_now();
-        long long rb0 = io_read_bytes_now();
-        double t0 = now_s();
-        FAISS_THROW_IF_NOT_MSG(
-                chimod_search_parallel(
-                        chimod_client,
-                        a.nq,
-                        a.k,
-                        nprobe,
-                        d,
-                        nsplit,
-                        mode,
-                        owner_route,
-                        xq.data(),
-                        D.data(),
-                        I.data()),
-                "chimod search failed");
-        double el = now_s() - t0;
-        long mf = majflt_now() - mf0;
-        long long rb = io_read_bytes_now() - rb0;
-        double qps = a.nq / el;
-        // FNV-1a over the (D, I) buffers: a cheap bitwise-integrity gate at
-        // real-volume scale (identical searches produce identical hashes).
-        uint64_t rhash = 1469598103934665603ULL;
-        auto fnv = [&rhash](const void* p, size_t n) {
-            const uint8_t* b = static_cast<const uint8_t*>(p);
-            for (size_t i = 0; i < n; ++i) {
-                rhash = (rhash ^ b[i]) * 1099511628211ULL;
-            }
-        };
-        fnv(D.data(), D.size() * sizeof(float));
-        fnv(I.data(), I.size() * sizeof(idx_t));
-        uint64_t chash = canon_hash(D.data(), I.data(), a.nq, a.k);
+        PassResult r = run_one_pass(
+                chimod_client,
+                pass,
+                a.nq,
+                a.k,
+                nprobe,
+                d,
+                nsplit,
+                mode,
+                owner_route,
+                xq.data(),
+                D.data(),
+                I.data());
         std::printf(
                 "  %-6s qps=%9.1f  elapsed=%8.3fs  majflt/q=%8.1f  "
-                "read_MB=%8.1f  di_hash=%016llx  canon=%016llx\n",
+                "read_MB=%8.1f  disk_act=%5.1f%%  disk_rd_MBps=%7.1f  "
+                "di_hash=%016llx  canon=%016llx\n",
                 pass.c_str(),
-                qps,
-                el,
-                mf / (double)a.nq,
-                rb / (1024.0 * 1024),
-                (unsigned long long)rhash,
-                (unsigned long long)chash);
+                r.qps,
+                r.elapsed_s,
+                r.majflt / (double)a.nq,
+                r.read_bytes / (1024.0 * 1024),
+                r.disk.ok ? r.disk.active_pct : -1.0,
+                r.disk.ok ? r.disk.read_mbps : -1.0,
+                (unsigned long long)r.dihash,
+                (unsigned long long)r.canon);
         if (!a.dump_di.empty()) {
             dump_di_file(
                     a.dump_di + "." + pass + ".bin",
@@ -589,8 +509,8 @@ int run_timed(const Args& a) {
             char notes[128];
             snprintf(notes, sizeof(notes),
                      "dihash=%016llx;canon=%016llx;inflight=%d;route=%s",
-                     (unsigned long long)rhash,
-                     (unsigned long long)chash,
+                     (unsigned long long)r.dihash,
+                     (unsigned long long)r.canon,
                      nsplit,
                      a.route.c_str());
             fprintf(csv,
@@ -602,16 +522,21 @@ int run_timed(const Args& a) {
                     a.k,
                     nprobe,
                     a.threads,
-                    el,
-                    qps,
-                    mf,
-                    mf / (double)a.nq,
-                    rb,
+                    r.elapsed_s,
+                    r.qps,
+                    r.majflt,
+                    r.majflt / (double)a.nq,
+                    r.read_bytes,
                     notes);
         }
+        results.push_back(std::move(r));
     }
     if (csv) {
         fclose(csv);
+    }
+    if (!a.json_out.empty()) {
+        write_exp1_json(
+                a, ivf, open_fut->ntotal_, nprobe, nsplit, results);
     }
     // Broadcast + summing AggregateOut => cluster-total counters.
     auto sf = chimod_client.AsyncStats(clio::run::PoolQuery::Broadcast(), 1);
@@ -619,12 +544,13 @@ int run_timed(const Args& a) {
     if (sf->GetReturnCode() == 0) {
         std::printf(
                 "[stats] searches=%llu lists_read=%llu GB_read=%.2f "
-                "read_wait_s=%.2f scan_s=%.2f\n",
+                "read_wait_s=%.2f scan_s=%.2f nodes=%llu\n",
                 (unsigned long long)sf->searches_,
                 (unsigned long long)sf->lists_fetched_,
                 sf->bytes_fetched_ / (1024.0 * 1024 * 1024),
                 sf->fetch_wait_us_ / 1e6,
-                sf->scan_us_ / 1e6);
+                sf->scan_us_ / 1e6,
+                (unsigned long long)sf->containers_);
     }
     return 0;
 }
@@ -665,6 +591,9 @@ int main(int argc, char** argv) {
         else if (s == "--inflight") a.inflight = atoi(next("--inflight").c_str());
         else if (s == "--route") a.route = next("--route");
         else if (s == "--dump-di") a.dump_di = next("--dump-di");
+        else if (s == "--json-out") a.json_out = next("--json-out");
+        else if (s == "--nb-m") a.nb_m = atol(next("--nb-m").c_str());
+        else if (s == "--nodes") a.nodes = atoi(next("--nodes").c_str());
         else {
             std::fprintf(stderr, "unknown arg: %s\n", s.c_str());
             return 2;

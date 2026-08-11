@@ -17,6 +17,8 @@
 #include <clio_runtime/admin/admin_tasks.h>
 
 #include <cstdint>
+#include <functional>
+#include <string>
 #include <vector>
 
 /**
@@ -47,6 +49,27 @@ GLOBAL_CROSS_CONST clio::run::u32 kSearchModeIP = 0x2;
  *  (all bits set) must stay legacy, so test it explicitly. */
 CTP_CROSS_FUN inline bool SearchOwnerMode(clio::run::u32 mode) {
   return mode != kSearchModeDefault && (mode & kSearchModeOwner) != 0;
+}
+
+/** Owner container of blob "list/<l>" — the CTE core's private
+ *  HashBlobToContainer replicated (see the cache module's
+ *  IsBlobOwnerLocal precedent). SHARED between Runtime::OpenIndex (the
+ *  list_local_ map) and the Add client's routing so the two can never
+ *  drift apart. Takes the TagId's members as u32 to avoid a core_client
+ *  include here; callers pass tag_id.major_/tag_id.minor_. */
+inline clio::run::u32 ListOwnerContainer(clio::run::u32 tag_major,
+                                         clio::run::u32 tag_minor,
+                                         int64_t l,
+                                         clio::run::u32 num_containers) {
+  std::hash<std::string> string_hasher;
+  std::hash<clio::run::u32> u32_hasher;
+  clio::run::u32 h = static_cast<clio::run::u32>(u32_hasher(tag_major));
+  h ^= static_cast<clio::run::u32>(u32_hasher(tag_minor)) + 0x9e3779b9 +
+       (h << 6) + (h >> 2);
+  h ^= static_cast<clio::run::u32>(
+           string_hasher(std::string("list/") + std::to_string(l))) +
+       0x9e3779b9 + (h << 6) + (h >> 2);
+  return h % num_containers;
 }
 
 /**
@@ -375,6 +398,139 @@ struct SearchTask : public clio::run::Task {
 };
 
 /**
+ * AddTask - Append vectors to this container's OWNED inverted lists.
+ *
+ * The client computes the coarse assignment locally (every node has the
+ * quantizer), groups the batch by list, and sends each container exactly
+ * the segments whose lists it owns (PoolQuery::DirectHash(container_id),
+ * lists routed via ListOwnerContainer — the same hash OpenIndex uses for
+ * list_local_). The runtime read-modify-writes each "list/<l>" blob:
+ * codes_old‖codes_new‖ids_old‖ids_new, preserving the single codes||ids
+ * split Search parses.
+ *
+ * Payload: codes_ = n * code_size bytes of new codes (raw float32 vectors
+ * for IVF-Flat), grouped by list in list_ids_ order; ids_ = n int64 ids in
+ * the same order. list_offs_ (nlists+1 prefix offsets, in vectors) maps
+ * segment j to payload range [list_offs_[j], list_offs_[j+1]).
+ */
+struct AddTask : public clio::run::Task {
+  IN clio::run::u32 n_;          // Vectors in this task
+  IN clio::run::u32 d_;          // Vector dimensionality
+  IN clio::run::u32 code_size_;  // Bytes per code (d*4 for IVF-Flat)
+  IN std::vector<int64_t> list_ids_;   // Distinct target lists, ascending
+  IN std::vector<int64_t> list_offs_;  // Prefix offsets, size nlists+1
+  IN ctp::ipc::ShmPtr<> codes_;  // n*code_size bytes (shared memory)
+  IN ctp::ipc::ShmPtr<> ids_;    // n int64 (shared memory)
+  OUT clio::run::u64 added_;         // Vectors appended by this container
+  OUT clio::run::u64 ntotal_after_;  // Container's view of ntotal after
+
+  /** SHM default constructor */
+  CTP_CROSS_FUN AddTask()
+      : clio::run::Task(),
+        n_(0),
+        d_(0),
+        code_size_(0),
+        codes_(ctp::ipc::ShmPtr<>::GetNull()),
+        ids_(ctp::ipc::ShmPtr<>::GetNull()),
+        added_(0),
+        ntotal_after_(0) {}
+
+  /** Emplace constructor */
+  CTP_CROSS_FUN explicit AddTask(
+      const clio::run::TaskId& task_node,
+      const clio::run::PoolId& pool_id,
+      const clio::run::PoolQuery& pool_query,
+      clio::run::u32 n, clio::run::u32 d, clio::run::u32 code_size,
+      std::vector<int64_t> list_ids,
+      std::vector<int64_t> list_offs,
+      ctp::ipc::ShmPtr<> codes,
+      ctp::ipc::ShmPtr<> ids)
+      : clio::run::Task(task_node, pool_id, pool_query, Method::kAdd),
+        n_(n),
+        d_(d),
+        code_size_(code_size),
+        list_ids_(std::move(list_ids)),
+        list_offs_(std::move(list_offs)),
+        codes_(codes),
+        ids_(ids),
+        added_(0),
+        ntotal_after_(0) {
+    // Initialize task
+    task_id_ = task_node;
+    pool_id_ = pool_id;
+    method_ = Method::kAdd;
+    task_flags_.Clear();
+    pool_query_ = pool_query;
+  }
+
+  /** Destructor — frees payload buffers when this task owns them
+   * (receiver-side copies made by LoadTaskArchive::bulk); client-created
+   * tasks have task_flags_.Clear() so the client's buffers are left
+   * alone. Same rationale as ~SearchTask. */
+  CTP_CROSS_FUN ~AddTask() {
+#if !CTP_IS_DEVICE_PASS
+    if (task_flags_.Any(TASK_DATA_OWNER)) {
+      auto* ipc_manager = CLIO_CPU_IPC;
+      if (ipc_manager) {
+        if (!codes_.IsNull()) {
+          ipc_manager->FreeBuffer(codes_.template Cast<char>());
+        }
+        if (!ids_.IsNull()) {
+          ipc_manager->FreeBuffer(ids_.template Cast<char>());
+        }
+      }
+    }
+#endif
+  }
+
+  /** Serialize IN and INOUT parameters. Scalars precede the bulk calls so
+   * both sides compute identical bulk lengths from the wire. */
+  template <typename Archive>
+  CTP_CROSS_FUN void SerializeIn(Archive& ar) {
+    Task::SerializeIn(ar);
+    ar(n_, d_, code_size_, list_ids_, list_offs_, codes_, ids_);
+    ar.bulk(codes_,
+            static_cast<clio::run::u64>(n_) * code_size_, BULK_XFER);
+    ar.bulk(ids_,
+            static_cast<clio::run::u64>(n_) * sizeof(int64_t), BULK_XFER);
+  }
+
+  /** Serialize OUT parameters. The IN-only ShmPtr fields must not be
+   * echoed (see cte PutBlobTask::SerializeOut). */
+  template <typename Archive>
+  CTP_CROSS_FUN void SerializeOut(Archive& ar) {
+    Task::SerializeOut(ar);
+    ar(added_, ntotal_after_);
+  }
+
+  /** Copy from another AddTask */
+  void Copy(const ctp::ipc::FullPtr<AddTask>& other) {
+    Task::Copy(other.template Cast<Task>());
+    n_ = other->n_;
+    d_ = other->d_;
+    code_size_ = other->code_size_;
+    list_ids_ = other->list_ids_;
+    list_offs_ = other->list_offs_;
+    codes_ = other->codes_;
+    ids_ = other->ids_;
+    added_ = other->added_;
+    ntotal_after_ = other->ntotal_after_;
+  }
+
+  /** Aggregate replica results: SUM appended counts, keep the largest
+   * ntotal view. (Adds are normally single-target DirectHash sends, so
+   * this only matters if a caller broadcasts.) */
+  void AggregateOut(const ctp::ipc::FullPtr<clio::run::Task>& other_base) {
+    Task::AggregateOut(other_base);
+    auto other = other_base.template Cast<AddTask>();
+    added_ += other->added_;
+    if (other->ntotal_after_ > ntotal_after_) {
+      ntotal_after_ = other->ntotal_after_;
+    }
+  }
+};
+
+/**
  * StatsTask - Report (and optionally reset) container statistics.
  */
 struct StatsTask : public clio::run::Task {
@@ -384,6 +540,22 @@ struct StatsTask : public clio::run::Task {
   OUT clio::run::u64 bytes_fetched_;  // Bytes fetched from CTE
   OUT clio::run::u64 fetch_wait_us_;  // Microseconds spent waiting on CTE fetches
   OUT clio::run::u64 scan_us_;        // Microseconds spent scanning codes
+  // Add-path counters (kAdd).
+  OUT clio::run::u64 adds_;         // AddTasks processed
+  OUT clio::run::u64 add_vectors_;  // Vectors appended
+  OUT clio::run::u64 add_bytes_;    // Bytes written back to CTE by adds
+  OUT clio::run::u64 add_us_;       // Microseconds inside Add handlers
+  // Node-local /proc/diskstats snapshot for the tier device (env
+  // FAISS_IVF_DISK_DEV, default nvme0n1) — CUMULATIVE kernel counters,
+  // deltas are the caller's job. Summed by AggregateOut like everything
+  // else, so a broadcast Stats yields: containers_ = N nodes,
+  // Σ io_ticks_ms / (elapsed*N) = per-node mean active fraction, and
+  // Σ sectors = cluster transfer volume — exactly the mmap study's
+  // /proc/diskstats semantics.
+  OUT clio::run::u64 containers_;        // 1 per replica; N after aggregate
+  OUT clio::run::u64 disk_io_ticks_ms_;  // field 12: ms with I/O in flight
+  OUT clio::run::u64 disk_rd_sectors_;   // field 5: sectors read
+  OUT clio::run::u64 disk_wr_sectors_;   // field 9: sectors written
 
   /** SHM default constructor */
   StatsTask()
@@ -393,7 +565,15 @@ struct StatsTask : public clio::run::Task {
         lists_fetched_(0),
         bytes_fetched_(0),
         fetch_wait_us_(0),
-        scan_us_(0) {}
+        scan_us_(0),
+        adds_(0),
+        add_vectors_(0),
+        add_bytes_(0),
+        add_us_(0),
+        containers_(0),
+        disk_io_ticks_ms_(0),
+        disk_rd_sectors_(0),
+        disk_wr_sectors_(0) {}
 
   /** Emplace constructor */
   explicit StatsTask(
@@ -407,7 +587,15 @@ struct StatsTask : public clio::run::Task {
         lists_fetched_(0),
         bytes_fetched_(0),
         fetch_wait_us_(0),
-        scan_us_(0) {
+        scan_us_(0),
+        adds_(0),
+        add_vectors_(0),
+        add_bytes_(0),
+        add_us_(0),
+        containers_(0),
+        disk_io_ticks_ms_(0),
+        disk_rd_sectors_(0),
+        disk_wr_sectors_(0) {
     // Initialize task
     task_id_ = task_node;
     pool_id_ = pool_id;
@@ -425,7 +613,9 @@ struct StatsTask : public clio::run::Task {
   template <typename Archive>
   CTP_CROSS_FUN void SerializeOut(Archive& ar) {
     Task::SerializeOut(ar);
-    ar(searches_, lists_fetched_, bytes_fetched_, fetch_wait_us_, scan_us_);
+    ar(searches_, lists_fetched_, bytes_fetched_, fetch_wait_us_, scan_us_,
+       adds_, add_vectors_, add_bytes_, add_us_, containers_,
+       disk_io_ticks_ms_, disk_rd_sectors_, disk_wr_sectors_);
   }
 
   /** Copy from another StatsTask */
@@ -438,6 +628,14 @@ struct StatsTask : public clio::run::Task {
     bytes_fetched_ = other->bytes_fetched_;
     fetch_wait_us_ = other->fetch_wait_us_;
     scan_us_ = other->scan_us_;
+    adds_ = other->adds_;
+    add_vectors_ = other->add_vectors_;
+    add_bytes_ = other->add_bytes_;
+    add_us_ = other->add_us_;
+    containers_ = other->containers_;
+    disk_io_ticks_ms_ = other->disk_io_ticks_ms_;
+    disk_rd_sectors_ = other->disk_rd_sectors_;
+    disk_wr_sectors_ = other->disk_wr_sectors_;
   }
 
   /** Aggregate replica results into this task. Counters are SUMMED across
@@ -451,6 +649,14 @@ struct StatsTask : public clio::run::Task {
     bytes_fetched_ += other->bytes_fetched_;
     fetch_wait_us_ += other->fetch_wait_us_;
     scan_us_ += other->scan_us_;
+    adds_ += other->adds_;
+    add_vectors_ += other->add_vectors_;
+    add_bytes_ += other->add_bytes_;
+    add_us_ += other->add_us_;
+    containers_ += other->containers_;
+    disk_io_ticks_ms_ += other->disk_io_ticks_ms_;
+    disk_rd_sectors_ += other->disk_rd_sectors_;
+    disk_wr_sectors_ += other->disk_wr_sectors_;
   }
 };
 

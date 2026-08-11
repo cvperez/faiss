@@ -1,0 +1,37 @@
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:137 INFO 3387175 ClientInit RuntimeManager::ClientInit[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/config_manager.cc:144 INFO 3387175 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:219 INFO 3387175 ClientInit IpcManager::ClientInit: IPC mode = SHM (auto-selected)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:231 INFO 3387175 ClientInit IpcManager::ClientInit: retry_timeout = 1200s[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:239 INFO 3387175 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:152 INFO 3387175 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:292 INFO 3387175 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:322 INFO 3387175 ClientInit IpcManager: client response listener bound to port 37499[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1388 INFO 3387175 WaitForLocalServer Waiting for runtime via lightbeam (timeout=120s)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1496 INFO 3387175 WaitForLocalServer Successfully connected to runtime (generation=674157671037701, server_pid=3386226, shm_in_shards=1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1202 INFO 3387175 ClientInitShm ClientInitShm: attached metadata segment 'chi_metadata_segment_cvazquezperezdelacru_9413'[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1228 INFO 3387175 ClientInitShm ClientInitShm: response SHM ring 'clio-3387175-shm-out' (1MB)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2447 INFO 3387175 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_3387175_0 with size 570425344 (536870912 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2492 INFO 3387175 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_3387175_0 with ID (3387175.0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:175 INFO 3387175 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:178 INFO 3387175 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[mixed] volume=perf_nb92M_n2 nlist=16384 nprobe=256 nq=500 k=10 t_read=4 batch=2500000 wf=0.20 duration=3600s ntotal=92000000
+  [baseline] cold   qps=     54.5 canon=43acbe2a1ed8d6d2
+  [baseline] warm0  qps=     57.4 canon=43acbe2a1ed8d6d2
+  [baseline] warm1  qps=     58.0 canon=43acbe2a1ed8d6d2
+[mixed] wrote 2500000 vecs in 9.1s (next window in 36s)
+[mixed] wrote 2500000 vecs in 8.3s (next window in 33s)
+[mixed] wrote 2500000 vecs in 8.6s (next window in 34s)
+[mixed] wrote 2500000 vecs in 8.6s (next window in 34s)
+[mixed] wrote 2500000 vecs in 8.4s (next window in 33s)
+[mixed] wrote 2500000 vecs in 8.4s (next window in 34s)
+[mixed] wrote 2500000 vecs in 8.6s (next window in 34s)
+[mixed] wrote 2500000 vecs in 8.9s (next window in 36s)
+[mixed] wrote 2500000 vecs in 8.7s (next window in 35s)
+[mixed] wrote 2500000 vecs in 8.5s (next window in 34s)
+[mixed] wrote 2500000 vecs in 9.0s (next window in 36s)
+[mixed] wrote 2500000 vecs in 8.8s (next window in 35s)
+[mixed] stage done: 3600s, 30741 completions, 12 writes, 30000000 vectors added, wf=0.029
+  [postwrite] post_cold  qps=     44.2 canon=e5c49fc6589d26b0
+  [postwrite] post_warm0 qps=     44.4 canon=e5c49fc6589d26b0
+  [postwrite] post_warm1 qps=     44.5 canon=e5c49fc6589d26b0
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2348 INFO 3387175 ClearClientPool [ClientPool] Clearing 0 persistent connections[0m

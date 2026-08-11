@@ -1,0 +1,34 @@
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:137 INFO 1640538 ClientInit RuntimeManager::ClientInit[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/config_manager.cc:144 INFO 1640538 ClientInit Config at: /home/cvazquezperezdelacru/.clio/clio.yaml[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:219 INFO 1640538 ClientInit IpcManager::ClientInit: IPC mode = SHM (auto-selected)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:231 INFO 1640538 ClientInit IpcManager::ClientInit: retry_timeout = 1200s[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:239 INFO 1640538 ClientInit IpcManager::ClientInit: try_new_servers = 0[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/../../context-transport-primitives/include/clio_ctp/lightbeam/zmq_transport.h:152 INFO 1640538 GetSharedContext [ZeroMqTransport] Created shared context with 8 I/O threads[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:292 INFO 1640538 ClientInit IpcManager: DEALER transport connected to port 9416[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:322 INFO 1640538 ClientInit IpcManager: client response listener bound to port 42337[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1388 INFO 1640538 WaitForLocalServer Waiting for runtime via lightbeam (timeout=120s)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1496 INFO 1640538 WaitForLocalServer Successfully connected to runtime (generation=1586469383355504, server_pid=1640391, shm_in_shards=1)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1202 INFO 1640538 ClientInitShm ClientInitShm: attached metadata segment 'chi_metadata_segment_cvazquezperezdelacru_9413'[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:1228 INFO 1640538 ClientInitShm ClientInitShm: response SHM ring 'clio-1640538-shm-out' (1MB)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2447 INFO 1640538 IncreaseClientShm IpcManager::IncreaseClientShm: Creating clio_1640538_0 with size 570425344 (536870912 + 33554432 overhead)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2492 INFO 1640538 IncreaseClientShm IpcManager::IncreaseClientShm: Created allocator clio_1640538_0 with ID (1640538.0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:175 INFO 1640538 ClientInit ClientInit: Creating admin client with kAdminPoolId=PoolId(major:1, minor:0)[0m
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/manager.cc:178 INFO 1640538 ClientInit ClientInit: Admin client created, pool_id_=PoolId(major:1, minor:0)[0m
+[mixed] volume=perf_nb44M_n1 nlist=8192 nprobe=128 nq=500 k=10 t_read=4 batch=2500000 wf=0.20 duration=1800s ntotal=44000000
+  [baseline] cold   qps=     60.2 canon=15145ba6f5142bbd
+  [baseline] warm0  qps=     61.2 canon=15145ba6f5142bbd
+  [baseline] warm1  qps=     62.3 canon=15145ba6f5142bbd
+[mixed] wrote 2500000 vecs in 2.7s (next window in 11s)
+[mixed] wrote 2500000 vecs in 3.7s (next window in 15s)
+[mixed] wrote 2500000 vecs in 2.8s (next window in 11s)
+[mixed] wrote 2500000 vecs in 2.8s (next window in 11s)
+[mixed] wrote 2500000 vecs in 3.1s (next window in 12s)
+[mixed] wrote 2500000 vecs in 2.9s (next window in 12s)
+[mixed] wrote 2500000 vecs in 3.1s (next window in 13s)
+[mixed] wrote 2500000 vecs in 3.8s (next window in 15s)
+[mixed] wrote 2500000 vecs in 3.9s (next window in 16s)
+[mixed] stage done: 1801s, 33254 completions, 9 writes, 22500000 vectors added, wf=0.016
+  [postwrite] post_cold  qps=     39.0 canon=99de9e2aea2257da
+  [postwrite] post_warm0 qps=     38.7 canon=99de9e2aea2257da
+  [postwrite] post_warm1 qps=     36.1 canon=99de9e2aea2257da
+[97m/home/cvazquezperezdelacru/clio-core/context-runtime/src/ipc_manager.cc:2348 INFO 1640538 ClearClientPool [ClientPool] Clearing 0 persistent connections[0m

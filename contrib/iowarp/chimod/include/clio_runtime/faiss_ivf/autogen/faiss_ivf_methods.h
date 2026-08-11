@@ -21,8 +21,9 @@ GLOBAL_CROSS_CONST clio::run::u32 kMonitor = 9;
 GLOBAL_CROSS_CONST clio::run::u32 kOpenIndex = 10;
 GLOBAL_CROSS_CONST clio::run::u32 kSearch = 11;
 GLOBAL_CROSS_CONST clio::run::u32 kStats = 12;
+GLOBAL_CROSS_CONST clio::run::u32 kAdd = 13;
 
-GLOBAL_CROSS_CONST clio::run::u32 kMaxMethodId = 13;
+GLOBAL_CROSS_CONST clio::run::u32 kMaxMethodId = 14;
 
 inline const std::vector<std::string>& GetMethodNames() {
   static const std::vector<std::string> names = [] {
@@ -33,6 +34,7 @@ inline const std::vector<std::string>& GetMethodNames() {
     v[10] = "OpenIndex";
     v[11] = "Search";
     v[12] = "Stats";
+    v[13] = "Add";
     return v;
   }();
   return names;

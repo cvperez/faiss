@@ -125,6 +125,46 @@ class Client : public clio::run::ContainerClient {
   }
 
   /**
+   * Append vectors to a container's owned inverted lists (asynchronous)
+   *
+   * The caller groups the batch by target list (ascending list ids) and
+   * routes each container ONLY the lists it owns:
+   * PoolQuery::DirectHash(ListOwnerContainer(tag major/minor, l, N)).
+   * codes_shm holds n*code_size bytes of new codes (raw float32 vectors
+   * for IVF-Flat) in list_ids_ order; ids_shm holds the n int64 ids in
+   * the same order; list_offs (size list_ids.size()+1) are prefix
+   * offsets in vectors. Buffers must stay alive until the future
+   * completes. The container must not have searches in flight (the
+   * runtime returns rc=9 on Search during an add — the caller drains
+   * searches first, mirroring the mmap study's write windows).
+   *
+   * @param pool_query Pool routing information (DirectHash(owner))
+   * @param n Number of vectors
+   * @param d Vector dimensionality
+   * @param code_size Bytes per code (d*4 for IVF-Flat)
+   * @param list_ids Distinct target lists, ascending
+   * @param list_offs Prefix offsets into the payload, size nlists+1
+   * @param codes_shm Shared-memory pointer to codes
+   * @param ids_shm Shared-memory pointer to ids
+   * @return Future for the AddTask
+   */
+  clio::run::Future<AddTask> AsyncAdd(const clio::run::PoolQuery& pool_query,
+                                clio::run::u32 n, clio::run::u32 d,
+                                clio::run::u32 code_size,
+                                std::vector<int64_t> list_ids,
+                                std::vector<int64_t> list_offs,
+                                ctp::ipc::ShmPtr<> codes_shm,
+                                ctp::ipc::ShmPtr<> ids_shm) {
+    auto* ipc_manager = CLIO_CPU_IPC;
+
+    auto task = ipc_manager->NewTask<AddTask>(
+        clio::run::CreateTaskId(), pool_id_, pool_query, n, d, code_size,
+        std::move(list_ids), std::move(list_offs), codes_shm, ids_shm);
+
+    return ipc_manager->Send(task);
+  }
+
+  /**
    * Fetch container statistics (asynchronous)
    * @param pool_query Pool routing information
    * @param reset Non-zero: reset counters after reading

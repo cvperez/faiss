@@ -20,6 +20,12 @@
 #                       "all" = every non-empty list via RPC GetBlob — the
 #                       write-path corruption gate)
 #     CLIO_START_WAIT   seconds to wait for clio_run startup (default: 15)
+#     INGEST_SHARDS     space-separated shard .index files: ingest them as
+#                       ONE volume (ivf_to_iowarp --shards; per-list blobs
+#                       hold every shard's codes then every shard's ids).
+#                       <volume> then only names the tag/logs — no
+#                       $IOWARP_WORK_DIR/<volume>.{index,ivfdata} needed.
+#     INGEST_EXPECT_NTOTAL  assert the shards' summed ntotal (--expect-ntotal)
 #
 # Outputs:
 #   results/clio_run_<volume>_<ts>.log   runtime stdout/stderr
@@ -45,10 +51,16 @@ VERIFY_N="${VERIFY_N:-16}"
 CLIO_START_WAIT="${CLIO_START_WAIT:-15}"
 TS="$(date +%Y%m%d_%H%M%S)"
 
-INDEX="$IOWARP_WORK_DIR/$VOLUME.index"
-IVFDATA="$IOWARP_WORK_DIR/$VOLUME.ivfdata"
-[ -f "$INDEX" ]   || { echo "ERROR: missing $INDEX" >&2; exit 1; }
-[ -f "$IVFDATA" ] || { echo "ERROR: missing $IVFDATA" >&2; exit 1; }
+if [ -n "${INGEST_SHARDS:-}" ]; then
+    for s in $INGEST_SHARDS; do
+        [ -f "$s" ] || { echo "ERROR: missing shard $s" >&2; exit 1; }
+    done
+else
+    INDEX="$IOWARP_WORK_DIR/$VOLUME.index"
+    IVFDATA="$IOWARP_WORK_DIR/$VOLUME.ivfdata"
+    [ -f "$INDEX" ]   || { echo "ERROR: missing $INDEX" >&2; exit 1; }
+    [ -f "$IVFDATA" ] || { echo "ERROR: missing $IVFDATA" >&2; exit 1; }
+fi
 mkdir -p "$RESULTS"
 
 # --- runtime environment -----------------------------------------------------
@@ -123,10 +135,44 @@ if [ "${KEEP_BDEV_PERF:-0}" != "1" ]; then
 fi
 
 # --- kill-then-restart clio_run ----------------------------------------------
+# Deep-clean any prior runtime state. Back-to-back lane cells hit
+# IdentifyThisHost FATALs at startup (~30% of multi-node cells) when a
+# previous cell's daemon/state survives its dying allocation's trap —
+# broad kill patterns + a settle delay, and the multi-node start below
+# retries once after an even deeper clean.
+deep_clean_runtime() {
+    on_all_nodes "pkill -u $USER -f clio_[r]un 2>/dev/null || true"
+    sleep 2
+    on_all_nodes "pkill -9 -u $USER -f clio_[r]un 2>/dev/null || true; \
+                  pkill -9 -u $USER '^clio' 2>/dev/null || true; \
+                  rm -f /dev/shm/chi_*_${USER}_* /dev/shm/clio-*-shm-* \
+                        /tmp/${USER}_restart_*.bin 2>/dev/null || true"
+    sleep 3
+}
 echo "=== stopping any existing clio_run"
-on_all_nodes "pkill -u $USER -f clio_[r]un 2>/dev/null || true"
-sleep 2
-on_all_nodes "pkill -9 -u $USER -f clio_[r]un 2>/dev/null || true"
+deep_clean_runtime
+
+start_multi() {  # -> 0 if every node's daemon came up, else 1
+    local ts_suffix="$1"
+    srun --ntasks-per-node=1 --nodes="$SLURM_JOB_NUM_NODES" --export=ALL \
+         --output="$RESULTS/clio_run_${VOLUME}_${TS}${ts_suffix}_node%n.log" \
+         bash -c "export CLIO_RESTART_LOG=/tmp/${USER}_restart_\$(hostname).bin; exec clio_run start" &
+    CLIO_PID=$!
+    disown "$CLIO_PID"
+    local PORT h ok i
+    PORT="$(awk '/^  port:/{print $2; exit}' "$RENDERED")"
+    while read -r h; do
+        ok=0
+        for i in $(seq 1 60); do
+            if timeout 1 bash -c "</dev/tcp/$h/$PORT" 2>/dev/null; then ok=1; break; fi
+            kill -0 "$CLIO_PID" 2>/dev/null || break
+            sleep 1
+        done
+        [ "$ok" = 1 ] || { echo "WARN: clio_run on $h:$PORT not up" >&2; return 1; }
+        echo "clio_run up on $h:$PORT"
+    done < "$IOWARP_HOSTFILE"
+    return 0
+}
 
 if [ "$MULTI_NODE" = 1 ]; then
     echo "=== starting clio_run on $SLURM_JOB_NUM_NODES nodes (conf: $RENDERED)"
@@ -135,28 +181,30 @@ if [ "$MULTI_NODE" = 1 ]; then
     # backgrounded child would die when the task exits). Per-node logs.
     # CLIO_RESTART_LOG is pointed at node-local /tmp: the default lives in
     # the SHARED home dir and both daemons would race on one file.
-    srun --ntasks-per-node=1 --nodes="$SLURM_JOB_NUM_NODES" --export=ALL \
-         --output="$RESULTS/clio_run_${VOLUME}_${TS}_node%n.log" \
-         bash -c "export CLIO_RESTART_LOG=/tmp/${USER}_restart_\$(hostname).bin; exec clio_run start" &
-    CLIO_PID=$!
-    disown "$CLIO_PID"
-    # Readiness: poll the run2run ROUTER port on every host (no peer
-    # barrier exists in clio_run; ingest must not start before all bind).
-    PORT="$(awk '/^  port:/{print $2; exit}' "$RENDERED")"
-    while read -r h; do
-        ok=0
-        for i in $(seq 1 60); do
-            if timeout 1 bash -c "</dev/tcp/$h/$PORT" 2>/dev/null; then ok=1; break; fi
-            kill -0 "$CLIO_PID" 2>/dev/null || { echo "ERROR: srun(clio_run) exited — see ${RESULTS}/clio_run_${VOLUME}_${TS}_node*.log" >&2; exit 1; }
-            sleep 1
-        done
-        [ "$ok" = 1 ] || { echo "ERROR: clio_run on $h:$PORT not up after 60s" >&2; exit 1; }
-        echo "clio_run up on $h:$PORT"
-    done < "$IOWARP_HOSTFILE"
+    started=0
+    for attempt in "" "_r2" "_r3"; do
+        if start_multi "$attempt"; then
+            started=1
+            break
+        fi
+        echo "=== startup flake (attempt${attempt:-_r1}) — deep clean, 30s settle, retry"
+        kill "$CLIO_PID" 2>/dev/null || true
+        deep_clean_runtime
+        # A killed predecessor's port-9413 sockets can linger in teardown
+        # for a minute+ (observed: two back-to-back attempts both hit it,
+        # a fresh job minutes later succeeded).
+        sleep 30
+    done
+    [ "$started" = 1 ] || { echo "ERROR: clio_run cluster failed 3x — see ${RESULTS}/clio_run_${VOLUME}_${TS}*_node*.log" >&2; exit 1; }
 else
     CLIO_LOG="$RESULTS/clio_run_${VOLUME}_$TS.log"
     echo "=== starting clio_run (conf: $RENDERED, log: $CLIO_LOG)"
-    CLIO_SERVER_CONF="$RENDERED" clio_run start >"$CLIO_LOG" 2>&1 &
+    # Subshell wrapper: record HOW the daemon dies (exit code / signal) —
+    # crashes were previously silent. Core dumps enabled; cores land in
+    # $RESULTS (the subshell's cwd).
+    ( cd "$RESULTS" && ulimit -c unlimited && \
+      CLIO_SERVER_CONF="$RENDERED" clio_run start; \
+      echo "=== clio_run EXITED rc=$? at $(date)" ) >"$CLIO_LOG" 2>&1 &
     CLIO_PID=$!
     disown "$CLIO_PID"
 
@@ -170,10 +218,35 @@ fi
 # --- ingest -------------------------------------------------------------------
 INGEST_LOG="$RESULTS/ingest_${VOLUME}_$TS.log"
 echo "=== ingesting $VOLUME -> tag '$TAG' (verify $VERIFY_N lists; log: $INGEST_LOG)"
-# NB: the .ivfdata path is recorded inside the .index file; the binary
-# takes only <index> <tag>. $IVFDATA above is validated for existence only.
+# NB: the .ivfdata path is recorded inside each .index file; the binary
+# takes only the index path(s) + tag. $IVFDATA above is validated for
+# existence only.
 [ -n "${TELEMETRY_PHASE_FILE:-}" ] && echo "ingest" > "$TELEMETRY_PHASE_FILE" || true
-"$BUILD_DIR/ivf_to_iowarp" "$INDEX" "$TAG" --verify "$VERIFY_N" 2>&1 | tee "$INGEST_LOG"
+if [ -n "${INGEST_SHARDS:-}" ] && [ "$MULTI_NODE" = 1 ]; then
+    # OWNER-LOCAL parallel ingest: one ivf_to_iowarp per node, each putting
+    # only the lists its container owns — every put is node-local. A single
+    # head-node ingest pushes (N-1)/N of the bytes cross-node and OOMs peer
+    # daemons after ~24 GB/node of recv staging (nb185M/n2, nb262M/n4).
+    # Rank 0 writes the "sizes" blob; srun returns when ALL ranks are done,
+    # so the bench never sees a partial volume.
+    # shellcheck disable=SC2086
+    srun --ntasks-per-node=1 --nodes="$SLURM_JOB_NUM_NODES" --export=ALL \
+         --output="$INGEST_LOG.node%n" \
+         bash -c "\"$BUILD_DIR/ivf_to_iowarp\" --shards $INGEST_SHARDS --tag \"$TAG\" \
+             --verify \"$VERIFY_N\" \
+             ${INGEST_EXPECT_NTOTAL:+--expect-ntotal \"$INGEST_EXPECT_NTOTAL\"} \
+             --owner-only \"\$SLURM_PROCID:$SLURM_JOB_NUM_NODES\""
+    cat "$INGEST_LOG".node* > "$INGEST_LOG" 2>/dev/null || true
+    tail -5 "$INGEST_LOG"
+elif [ -n "${INGEST_SHARDS:-}" ]; then
+    # shellcheck disable=SC2086  # word-splitting of the shard list is intended
+    "$BUILD_DIR/ivf_to_iowarp" --shards $INGEST_SHARDS --tag "$TAG" \
+        --verify "$VERIFY_N" \
+        ${INGEST_EXPECT_NTOTAL:+--expect-ntotal "$INGEST_EXPECT_NTOTAL"} \
+        2>&1 | tee "$INGEST_LOG"
+else
+    "$BUILD_DIR/ivf_to_iowarp" "$INDEX" "$TAG" --verify "$VERIFY_N" 2>&1 | tee "$INGEST_LOG"
+fi
 [ -n "${TELEMETRY_PHASE_FILE:-}" ] && echo "idle" > "$TELEMETRY_PHASE_FILE" || true
 
 echo "=== ingest OK — runtime left running (pid $CLIO_PID)"

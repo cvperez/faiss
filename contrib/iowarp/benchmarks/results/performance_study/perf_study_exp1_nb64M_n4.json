@@ -1,0 +1,24 @@
+{
+  "experiment": "perf_study_exp1",
+  "nb_M": 64,
+  "n_nodes": 4,
+  "nb_M_per_node": 16.000,
+  "per_node_ram_ratio": 0.1733,
+  "backend": "cte_chimod",
+  "volume": "perf_nb64M_n4",
+  "factory": "IVF8192,Flat",
+  "nlist": 8192,
+  "nprobe": 128,
+  "ntotal": 64000000,
+  "nq": 500,
+  "k": 10,
+  "threads": 8,
+  "route": "owner",
+  "inflight": 1,
+  "warm_runs": 2,
+  "passes": [
+    {"label": "cold", "nq": 500, "elapsed_s": 3.304399, "qps": 151.3134, "disk_active_pct": 0.000, "disk_read_mbps": 0.000, "disk_write_mbps": 0.000, "major_faults": 63, "read_bytes": 0, "cte_lists_fetched": 8154, "cte_bytes_fetched": 33158749520, "di_hash": "5e5376a53f64e384", "canon_hash": "658a1443b4e7ade4"},
+    {"label": "warm0", "nq": 500, "elapsed_s": 3.149322, "qps": 158.7643, "disk_active_pct": 0.000, "disk_read_mbps": 0.000, "disk_write_mbps": 0.000, "major_faults": 2, "read_bytes": 0, "cte_lists_fetched": 8154, "cte_bytes_fetched": 33158749520, "di_hash": "5e5376a53f64e384", "canon_hash": "658a1443b4e7ade4"},
+    {"label": "warm1", "nq": 500, "elapsed_s": 3.064888, "qps": 163.1381, "disk_active_pct": 0.000, "disk_read_mbps": 0.000, "disk_write_mbps": 0.000, "major_faults": 2, "read_bytes": 0, "cte_lists_fetched": 8154, "cte_bytes_fetched": 33158749520, "di_hash": "5e5376a53f64e384", "canon_hash": "658a1443b4e7ade4"}
+  ]
+}

@@ -27,8 +27,10 @@
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <functional>
 #include <limits>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -111,6 +113,42 @@ void FetchBurstShm(clio::cte::core::Client& cte,
                   ? 1
                   : 0;
   }
+}
+
+// /proc/diskstats snapshot for one whole-disk device. Whitespace tokens,
+// 0-indexed: [2]=name, [5]=sectors read, [9]=sectors written,
+// [12]=io_ticks ms — the same fields telemetry_sampler.py reads. Returns
+// false (outputs zeroed) if the device line is absent.
+bool ReadDiskstats(const std::string& dev, clio::run::u64* rd_sectors,
+                   clio::run::u64* wr_sectors, clio::run::u64* io_ticks_ms) {
+  *rd_sectors = *wr_sectors = *io_ticks_ms = 0;
+  std::ifstream f("/proc/diskstats");
+  std::string line;
+  while (std::getline(f, line)) {
+    std::istringstream is(line);
+    std::vector<std::string> tok;
+    std::string t;
+    while (is >> t) {
+      tok.push_back(t);
+    }
+    if (tok.size() > 12 && tok[2] == dev) {
+      *rd_sectors = strtoull(tok[5].c_str(), nullptr, 10);
+      *wr_sectors = strtoull(tok[9].c_str(), nullptr, 10);
+      *io_ticks_ms = strtoull(tok[12].c_str(), nullptr, 10);
+      return true;
+    }
+  }
+  return false;
+}
+
+// Tier device to sample in Stats. Env FAISS_IVF_DISK_DEV (set for the
+// daemon by the launch scripts); default matches telemetry_sampler.py.
+const std::string& DiskDev() {
+  static const std::string dev = [] {
+    const char* e = std::getenv("FAISS_IVF_DISK_DEV");
+    return std::string(e ? e : "nvme0n1");
+  }();
+  return dev;
 }
 
 }  // namespace
@@ -269,21 +307,19 @@ clio::run::TaskResume Runtime::OpenIndex(clio::run::shared_ptr<OpenIndexTask>& t
   // is private to the core Runtime, so replicate it, as the cte cache
   // module does (cache_runtime.cc IsBlobOwnerLocal). If core ever changes
   // the hash only LOCALITY degrades (lists still partition exactly-once
-  // across containers); correctness is unaffected.
+  // across containers); correctness is unaffected. ListOwnerContainer is
+  // the one shared definition — the Add client routes with the same
+  // function, so ownership and routing can never drift apart.
   {
     const clio::run::u32 num_containers = faiss_pi->num_containers_;
-    std::hash<std::string> string_hasher;
-    std::hash<clio::run::u32> u32_hasher;
     list_local_.assign(nlist, 0);
     for (size_t l = 0; l < nlist; ++l) {
-      clio::run::u32 h =
-          static_cast<clio::run::u32>(u32_hasher(tag_id.major_));
-      h ^= static_cast<clio::run::u32>(u32_hasher(tag_id.minor_)) +
-           0x9e3779b9 + (h << 6) + (h >> 2);
-      h ^= static_cast<clio::run::u32>(
-               string_hasher(std::string("list/") + std::to_string(l))) +
-           0x9e3779b9 + (h << 6) + (h >> 2);
-      list_local_[l] = ((h % num_containers) == container_id_) ? 1 : 0;
+      list_local_[l] =
+          (ListOwnerContainer(tag_id.major_, tag_id.minor_,
+                              static_cast<int64_t>(l),
+                              num_containers) == container_id_)
+              ? 1
+              : 0;
     }
   }
 
@@ -310,6 +346,14 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
   CLIO_TASK_BODY_BEGIN
   if (!opened_ || ivf_ == nullptr) {
     task->SetReturnCode(1);
+    CLIO_CO_RETURN;
+  }
+  if (adding_.load(std::memory_order_acquire)) {
+    // The client contract is drain-searches-before-add; a Search arriving
+    // mid-add means that contract broke. Fail loudly rather than scan a
+    // half-written blob / torn sizes_.
+    HLOG(kError, "faiss_ivf: Search received while an Add is in flight");
+    task->SetReturnCode(9);
     CLIO_CO_RETURN;
   }
 
@@ -446,13 +490,39 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
   }
   const size_t nslabs = std::min(kMaxInflight, ntoscan);
   std::vector<ctp::ipc::FullPtr<char>> slabs(nslabs);
-  for (size_t s = 0; s < nslabs; ++s) {
-    slabs[s] = ipc->AllocateBuffer(max_bytes);
+  size_t got = 0;
+  {
+    // Reuse cached slabs (see slab_cache_ in the header — per-search
+    // Allocate/Free OOM-kills the daemon at per-query search rates).
+    std::lock_guard<std::mutex> lk(slab_mu_);
+    if (slab_bytes_ < max_bytes) {
+      for (auto& s : slab_cache_) {
+        ipc->FreeBuffer(s);
+      }
+      slab_cache_.clear();
+      // 2x headroom: under a write workload the max probed list grows a
+      // few percent per write window, and every record-high would
+      // otherwise re-key the cache — each re-key strands the freed slabs
+      // in never-recycled segments (~0.9 GB a pop, the daemon-death creep
+      // diagnosed in job 23298). With 2x, ~20 windows of uniform growth
+      // fit without a single re-key.
+      slab_bytes_ = static_cast<clio::run::u64>(max_bytes) * 2;
+    }
+    while (got < nslabs && !slab_cache_.empty()) {
+      slabs[got++] = slab_cache_.back();
+      slab_cache_.pop_back();
+    }
+  }
+  for (size_t s = got; s < nslabs; ++s) {
+    // Allocate at the CACHE capacity (>= max_bytes), so every slab is
+    // interchangeable in the cache regardless of which search made it.
+    slabs[s] = ipc->AllocateBuffer(slab_bytes_);
     if (slabs[s].IsNull()) {
       HLOG(kError, "faiss_ivf: AllocateBuffer({}) failed during search",
-           max_bytes);
+           (clio::run::u64)slab_bytes_);
+      std::lock_guard<std::mutex> lk(slab_mu_);
       for (size_t t = 0; t < s; ++t) {
-        ipc->FreeBuffer(slabs[t]);
+        slab_cache_.push_back(slabs[t]);
       }
       task->SetReturnCode(5);
       CLIO_CO_RETURN;
@@ -467,6 +537,8 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
   // uint8_t (not vector<bool>): written concurrently from the OMP burst.
   std::vector<uint8_t> fast(ntoscan, 0);
   std::vector<bool> done(ntoscan, false);
+  constexpr uint8_t kGetRetries = 3;
+  std::vector<uint8_t> retries(ntoscan, 0);
   // Attach the shm metadata cache ONCE, serially, before any parallel
   // readers: AttachShmCache writes shm_root_ unsynchronized. The env var
   // is a kill-switch back to the pure RPC pipeline, no rebuild needed.
@@ -488,8 +560,9 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
     if (vslab.IsNull()) {
       HLOG(kError, "faiss_ivf: VERIFY_SHM scratch AllocateBuffer failed");
       task->SetReturnCode(5);
+      std::lock_guard<std::mutex> lk(slab_mu_);
       for (size_t t = 0; t < nslabs; ++t) {
-        ipc->FreeBuffer(slabs[t]);
+        slab_cache_.push_back(slabs[t]);
       }
       CLIO_CO_RETURN;
     }
@@ -535,6 +608,25 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
       }
       if (!fast[i]) {
         CLIO_CO_AWAIT(futs[i]);  // completed: returns immediately
+      }
+      // Bounded retry on RPC failure: sustained NVMe-heavy campaigns can
+      // wedge a bdev route transiently (RouteLocal rc=4 storms observed at
+      // nb130M after ~5 volume-scale passes) — re-issue the get up to
+      // kGetRetries times before failing the search.
+      if (!fast[i] && futs[i]->GetReturnCode() != 0 && retries[i] < kGetRetries) {
+        ++retries[i];
+        HLOG(kError,
+             "faiss_ivf: GetBlob('list/{}') rc={} — retry {}/{}",
+             lists[i], futs[i]->GetReturnCode(), retries[i],
+             (clio::run::u32)kGetRetries);
+        const size_t rsz = static_cast<size_t>(sizes_[lists[i]]);
+        const clio::run::u64 rbytes =
+            static_cast<clio::run::u64>(rsz) * (code_size + sizeof(int64_t));
+        futs[i] = cte_.AsyncGetBlob(
+            tag_id_, std::string("list/") + std::to_string(lists[i]), 0,
+            rbytes, 0, slabs[slot_of[i]].shm_.template Cast<void>());
+        progressed = true;
+        continue;  // not done; the re-issued future completes later
       }
       done[i] = true;
       ++completed;
@@ -620,8 +712,20 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
       }
     }
   }
-  for (size_t s = 0; s < nslabs; ++s) {
-    ipc->FreeBuffer(slabs[s]);
+  {
+    // Return the slabs to the cache instead of FreeBuffer (never
+    // recycled). Bounded: at most kSlabCacheCap retained — that is the
+    // peak concurrent demand (4 exp2 readers x 64), and anything beyond
+    // would have been resident at peak anyway.
+    constexpr size_t kSlabCacheCap = 512;
+    std::lock_guard<std::mutex> lk(slab_mu_);
+    for (size_t s = 0; s < nslabs; ++s) {
+      if (slab_cache_.size() < kSlabCacheCap) {
+        slab_cache_.push_back(slabs[s]);
+      } else {
+        ipc->FreeBuffer(slabs[s]);
+      }
+    }
   }
   if (verify_shm) {
     HLOG(kInfo,
@@ -667,6 +771,191 @@ clio::run::TaskResume Runtime::Search(clio::run::shared_ptr<SearchTask>& task) {
   CLIO_TASK_BODY_END
 }
 
+clio::run::TaskResume Runtime::Add(clio::run::shared_ptr<AddTask>& task) {
+  CLIO_TASK_BODY_BEGIN
+  if (!opened_ || ivf_ == nullptr) {
+    task->SetReturnCode(1);
+    CLIO_CO_RETURN;
+  }
+  const clio::run::u32 n = task->n_;
+  const size_t code_size = ivf_->code_size;
+  const size_t nseg = task->list_ids_.size();
+  const size_t nlist = ivf_->nlist;
+  if (n == 0 || nseg == 0 || task->list_offs_.size() != nseg + 1 ||
+      task->d_ != static_cast<clio::run::u32>(ivf_->d) ||
+      task->code_size_ != static_cast<clio::run::u32>(code_size) ||
+      task->list_offs_.front() != 0 ||
+      task->list_offs_.back() != static_cast<int64_t>(n)) {
+    task->SetReturnCode(2);
+    CLIO_CO_RETURN;
+  }
+  auto* ipc = CLIO_IPC;
+  const uint8_t* new_codes = reinterpret_cast<const uint8_t*>(
+      ipc->ToFullPtr<char>(task->codes_.template Cast<char>()).ptr_);
+  const int64_t* new_ids = reinterpret_cast<const int64_t*>(
+      ipc->ToFullPtr<char>(task->ids_.template Cast<char>()).ptr_);
+  if (new_codes == nullptr || new_ids == nullptr) {
+    task->SetReturnCode(2);
+    CLIO_CO_RETURN;
+  }
+  // Validate every segment BEFORE touching any blob: monotone offsets,
+  // in-range list ids, and — the routing contract — this container owns
+  // every target list. A non-owned list means the client's
+  // ListOwnerContainer routing diverged from list_local_: fail the whole
+  // task loudly (rc=8), nothing partially applied.
+  //
+  // The RMW is TAIL-ONLY: in the codes||ids layout an append leaves
+  // [0, old_sz*code_size) untouched — only the tail (new codes + the
+  // shifted old ids + new ids) changes. Reading and putting just that
+  // tail cuts bytes pushed per uniform 2.5M-vector window ~15x (full-blob
+  // rewrites pushed the whole volume every window and grew the daemon to
+  // OOM within 6 windows — allocator gotcha at PutBlob scale).
+  size_t max_tail_bytes = 0;
+  for (size_t j = 0; j < nseg; ++j) {
+    const int64_t l = task->list_ids_[j];
+    const int64_t cnt = task->list_offs_[j + 1] - task->list_offs_[j];
+    if (l < 0 || l >= static_cast<int64_t>(nlist) || cnt <= 0) {
+      task->SetReturnCode(2);
+      CLIO_CO_RETURN;
+    }
+    if (!list_local_[l]) {
+      HLOG(kError,
+           "faiss_ivf: Add misroute — list {} not owned by container {}", l,
+           container_id_);
+      task->SetReturnCode(8);
+      CLIO_CO_RETURN;
+    }
+    const size_t old_sz = static_cast<size_t>(sizes_[l]);
+    const size_t tail = cnt * (code_size + sizeof(int64_t)) +
+        old_sz * sizeof(int64_t);
+    max_tail_bytes = std::max(max_tail_bytes, tail);
+  }
+
+  // One reusable slab sized for the largest grown list, drawn from the
+  // shared slab cache (never per-task Allocate/Free — the dev allocator
+  // does not recycle multi-MB buffers; see the Search slab comment). A
+  // grown list can exceed the search slabs' capacity, in which case the
+  // cache is dropped and re-keyed to the larger size.
+  ctp::ipc::FullPtr<char> slab;
+  {
+    std::lock_guard<std::mutex> lk(slab_mu_);
+    if (slab_bytes_ < max_tail_bytes) {
+      for (auto& s : slab_cache_) {
+        ipc->FreeBuffer(s);
+      }
+      slab_cache_.clear();
+      // Same 2x headroom as Search (re-keys strand segments).
+      slab_bytes_ = static_cast<clio::run::u64>(max_tail_bytes) * 2;
+    }
+    if (!slab_cache_.empty()) {
+      slab = slab_cache_.back();
+      slab_cache_.pop_back();
+    }
+  }
+  if (slab.IsNull()) {
+    slab = ipc->AllocateBuffer(slab_bytes_);
+  }
+  if (slab.IsNull()) {
+    HLOG(kError, "faiss_ivf: Add AllocateBuffer({}) failed", max_tail_bytes);
+    task->SetReturnCode(5);
+    CLIO_CO_RETURN;
+  }
+
+  adding_.store(true, std::memory_order_release);
+  const clio::run::u64 t0 = NowUs();
+  clio::run::u64 add_bytes = 0;
+  clio::run::u64 added = 0;
+  bool failed = false;
+  for (size_t j = 0; j < nseg && !failed; ++j) {
+    const int64_t l = task->list_ids_[j];
+    const size_t cnt =
+        static_cast<size_t>(task->list_offs_[j + 1] - task->list_offs_[j]);
+    const size_t off = static_cast<size_t>(task->list_offs_[j]);
+    const size_t old_sz = static_cast<size_t>(sizes_[l]);
+    const size_t new_sz = old_sz + cnt;
+    const std::string name = "list/" + std::to_string(l);
+    // Tail-only RMW. New blob = codes_old ‖ codes_new ‖ ids_old ‖ ids_new;
+    // bytes before old_sz*code_size are untouched. The changed tail is
+    // [codes_new][ids_old][ids_new] starting at offset old_sz*code_size.
+    // Fetch ids_old straight into its FINAL slab position (no memmove),
+    // splice the new codes/ids around it, put the tail at its offset —
+    // CTE extends the blob in place (block-based ExtendBlob +
+    // ModifyExistingData).
+    const clio::run::u64 tail_off =
+        static_cast<clio::run::u64>(old_sz) * code_size;
+    const clio::run::u64 tail_bytes =
+        static_cast<clio::run::u64>(cnt) * (code_size + sizeof(int64_t)) +
+        static_cast<clio::run::u64>(old_sz) * sizeof(int64_t);
+    if (old_sz > 0) {
+      const clio::run::u64 ids_bytes =
+          static_cast<clio::run::u64>(old_sz) * sizeof(int64_t);
+      int grc = -1;
+      for (int attempt = 0; attempt < 3 && grc != 0; ++attempt) {
+        auto gfut = cte_.AsyncGetBlob(tag_id_, name, tail_off, ids_bytes, 0,
+                                      slab.shm_.template Cast<void>());
+        CLIO_CO_AWAIT(gfut);
+        grc = static_cast<int>(gfut->GetReturnCode());
+        if (grc != 0) {
+          HLOG(kError,
+               "faiss_ivf: Add GetBlob('{}') rc={} attempt {} ({} B)", name,
+               grc, attempt + 1, ids_bytes);
+        }
+      }
+      if (grc != 0) {
+        task->SetReturnCode(5);
+        failed = true;
+        break;
+      }
+      // ids_old to its final slot (dst > src, memmove handles overlap),
+      // then codes_new over the vacated prefix.
+      std::memmove(slab.ptr_ + cnt * code_size, slab.ptr_,
+                   static_cast<size_t>(ids_bytes));
+    }
+    std::memcpy(slab.ptr_, new_codes + off * code_size, cnt * code_size);
+    std::memcpy(slab.ptr_ + cnt * code_size + old_sz * sizeof(int64_t),
+                new_ids + off, cnt * sizeof(int64_t));
+    int prc = -1;
+    for (int attempt = 0; attempt < 3 && prc != 0; ++attempt) {
+      auto pfut = cte_.AsyncPutBlob(tag_id_, name, tail_off, tail_bytes,
+                                    slab.shm_.template Cast<void>());
+      CLIO_CO_AWAIT(pfut);
+      prc = static_cast<int>(pfut->GetReturnCode());
+      if (prc != 0) {
+        HLOG(kError, "faiss_ivf: Add PutBlob('{}') rc={} attempt {} ({} B)",
+             name, prc, attempt + 1, tail_bytes);
+      }
+    }
+    if (prc != 0) {
+      task->SetReturnCode(5);
+      failed = true;
+      break;
+    }
+    sizes_[l] = static_cast<int64_t>(new_sz);
+    ivf_->ntotal += static_cast<faiss::idx_t>(cnt);
+    added += cnt;
+    add_bytes += tail_bytes;
+  }
+  {
+    std::lock_guard<std::mutex> lk(slab_mu_);
+    slab_cache_.push_back(slab);
+  }
+  adding_.store(false, std::memory_order_release);
+
+  stat_adds_ += 1;
+  stat_add_vectors_ += added;
+  stat_add_bytes_ += add_bytes;
+  stat_add_us_ += NowUs() - t0;
+  task->added_ = added;
+  task->ntotal_after_ = static_cast<clio::run::u64>(ivf_->ntotal);
+  if (!failed) {
+    task->SetReturnCode(0);
+    HLOG(kInfo, "faiss_ivf: Add appended {} vectors across {} lists", added,
+         nseg);
+  }
+  CLIO_CO_RETURN;
+  CLIO_TASK_BODY_END
+}
+
 clio::run::TaskResume Runtime::Stats(clio::run::shared_ptr<StatsTask>& task) {
   CLIO_TASK_BODY_BEGIN
   task->searches_ = stat_searches_;
@@ -674,12 +963,26 @@ clio::run::TaskResume Runtime::Stats(clio::run::shared_ptr<StatsTask>& task) {
   task->bytes_fetched_ = stat_bytes_fetched_;
   task->fetch_wait_us_ = stat_fetch_wait_us_;
   task->scan_us_ = stat_scan_us_;
+  task->adds_ = stat_adds_;
+  task->add_vectors_ = stat_add_vectors_;
+  task->add_bytes_ = stat_add_bytes_;
+  task->add_us_ = stat_add_us_;
+  // Node-local disk snapshot: cumulative kernel counters (never reset by
+  // reset_ — the caller computes deltas), summed across containers by
+  // AggregateOut. containers_ = 1 here makes the aggregate count nodes.
+  task->containers_ = 1;
+  ReadDiskstats(DiskDev(), &task->disk_rd_sectors_, &task->disk_wr_sectors_,
+                &task->disk_io_ticks_ms_);
   if (task->reset_ != 0) {
     stat_searches_ = 0;
     stat_lists_fetched_ = 0;
     stat_bytes_fetched_ = 0;
     stat_fetch_wait_us_ = 0;
     stat_scan_us_ = 0;
+    stat_adds_ = 0;
+    stat_add_vectors_ = 0;
+    stat_add_bytes_ = 0;
+    stat_add_us_ = 0;
   }
   task->SetReturnCode(0);
   CLIO_CO_RETURN;
@@ -692,7 +995,7 @@ clio::run::TaskResume Runtime::Monitor(clio::run::shared_ptr<MonitorTask>& task)
   msgpack::sbuffer sbuf;
   msgpack::packer<msgpack::sbuffer> pk(sbuf);
 
-  pk.pack_map(6);
+  pk.pack_map(10);
   pk.pack("opened");
   pk.pack(opened_);
   pk.pack("searches");
@@ -705,6 +1008,14 @@ clio::run::TaskResume Runtime::Monitor(clio::run::shared_ptr<MonitorTask>& task)
   pk.pack(static_cast<uint64_t>(stat_fetch_wait_us_));
   pk.pack("scan_us");
   pk.pack(static_cast<uint64_t>(stat_scan_us_));
+  pk.pack("adds");
+  pk.pack(static_cast<uint64_t>(stat_adds_));
+  pk.pack("add_vectors");
+  pk.pack(static_cast<uint64_t>(stat_add_vectors_));
+  pk.pack("add_bytes");
+  pk.pack(static_cast<uint64_t>(stat_add_bytes_));
+  pk.pack("add_us");
+  pk.pack(static_cast<uint64_t>(stat_add_us_));
 
   task->results_[container_id_] = std::string(sbuf.data(), sbuf.size());
   task->SetReturnCode(0);
@@ -727,6 +1038,15 @@ clio::run::TaskResume Runtime::Destroy(clio::run::shared_ptr<DestroyTask>& task)
   sizes_.clear();
   list_local_.clear();
   opened_ = false;
+  {
+    auto* ipc = CLIO_IPC;
+    std::lock_guard<std::mutex> lk(slab_mu_);
+    for (auto& s : slab_cache_) {
+      ipc->FreeBuffer(s);
+    }
+    slab_cache_.clear();
+    slab_bytes_ = 0;
+  }
 
   HLOG(kDebug, "faiss_ivf: Container destroyed successfully");
   CLIO_CO_RETURN;

@@ -1,0 +1,915 @@
+limit max (/sys/fs/cgroup/system.slice/slurmd.service/memory.max)
+1786180623 pid=3195239 VmRSS: 22827744 kB
+1786180623 pid=3195239 RssAnon: 49224 kB
+1786180623 pid=3195239 RssShmem: 22759432 kB
+1786180623 pid=3195239 VmSwap: 0 kB
+1786180623 ps 3195116 3195116  3728 S    slurm_script
+1786180623 ps 3195218 3195116 19700 S    python3
+1786180623 ps 3195237 3195116  2168 S    bash
+1786180623 ps 3195239 3195116 22827744 Sl clio_run
+1786180623 ps 3195678 3195116  2576 S    slurm_script
+1786180623 ps 3195679 3195116 18968 R    python3
+1786180623 ps 3195687 3195116  6348 R    ps
+1786180623 ps 3195688 3195116  5896 S    awk
+1786180623 cgroup_usage 45459558400
+1786180623 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180623 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180623 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180623 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180623 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180625 pid=3195239 VmRSS: 22827776 kB
+1786180625 pid=3195239 RssAnon: 49256 kB
+1786180625 pid=3195239 RssShmem: 22759432 kB
+1786180625 pid=3195239 VmSwap: 0 kB
+1786180625 ps 3195116 3195116  3728 S    slurm_script
+1786180625 ps 3195218 3195116 19700 S    python3
+1786180625 ps 3195237 3195116  2168 S    bash
+1786180625 ps 3195239 3195116 22827776 Sl clio_run
+1786180625 ps 3195678 3195116  2576 S    slurm_script
+1786180625 ps 3195679 3195116 18968 R    python3
+1786180625 ps 3195696 3195116  6248 R    ps
+1786180625 ps 3195697 3195116  5896 S    awk
+1786180625 cgroup_usage 27943763968
+1786180625 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180625 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180625 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180625 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180625 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180627 pid=3195239 VmRSS: 24308496 kB
+1786180627 pid=3195239 RssAnon: 57612 kB
+1786180627 pid=3195239 RssShmem: 24229528 kB
+1786180627 pid=3195239 VmSwap: 0 kB
+1786180627 pid=3195701 VmRSS: 23224 kB
+1786180627 pid=3195701 RssAnon: 7064 kB
+1786180627 pid=3195701 RssShmem: 540 kB
+1786180627 pid=3195701 VmSwap: 0 kB
+1786180627 ps 3195116 3195116  3768 S    slurm_script
+1786180627 ps 3195218 3195116 19700 S    python3
+1786180627 ps 3195237 3195116  2168 S    bash
+1786180627 ps 3195239 3195116 24538180 Sl clio_run
+1786180627 ps 3195678 3195116  2576 S    slurm_script
+1786180627 ps 3195701 3195116 23224 Sl   bench_ivf_mixed
+1786180627 ps 3195702 3195116  3248 S    tee
+1786180627 ps 3195728 3195116  6276 R    ps
+1786180627 ps 3195729 3195116  5840 S    awk
+1786180627 cgroup_usage 23888089088
+1786180627 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180627 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180627 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180627 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180627 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180630 pid=3195239 VmRSS: 30640376 kB
+1786180630 pid=3195239 RssAnon: 58132 kB
+1786180630 pid=3195239 RssShmem: 30560888 kB
+1786180630 pid=3195239 VmSwap: 0 kB
+1786180630 pid=3195701 VmRSS: 23224 kB
+1786180630 pid=3195701 RssAnon: 7064 kB
+1786180630 pid=3195701 RssShmem: 540 kB
+1786180630 pid=3195701 VmSwap: 0 kB
+1786180630 ps 3195116 3195116  3768 S    slurm_script
+1786180630 ps 3195218 3195116 19700 S    python3
+1786180630 ps 3195237 3195116  2168 S    bash
+1786180630 ps 3195239 3195116 30805496 Sl clio_run
+1786180630 ps 3195678 3195116  2576 S    slurm_script
+1786180630 ps 3195701 3195116 23224 Sl   bench_ivf_mixed
+1786180630 ps 3195702 3195116  3248 S    tee
+1786180630 ps 3195764 3195116  6244 R    ps
+1786180630 ps 3195765 3195116  5820 S    awk
+1786180630 cgroup_usage 24043040768
+1786180630 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180630 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180630 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180630 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180630 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180632 pid=3195239 VmRSS: 37047520 kB
+1786180632 pid=3195239 RssAnon: 59052 kB
+1786180632 pid=3195239 RssShmem: 36967112 kB
+1786180632 pid=3195239 VmSwap: 0 kB
+1786180632 pid=3195701 VmRSS: 23224 kB
+1786180632 pid=3195701 RssAnon: 7064 kB
+1786180632 pid=3195701 RssShmem: 540 kB
+1786180632 pid=3195701 VmSwap: 0 kB
+1786180632 ps 3195116 3195116  3768 S    slurm_script
+1786180632 ps 3195218 3195116 19700 S    python3
+1786180632 ps 3195237 3195116  2168 S    bash
+1786180632 ps 3195239 3195116 37217620 Sl clio_run
+1786180632 ps 3195678 3195116  2576 S    slurm_script
+1786180632 ps 3195701 3195116 23224 Sl   bench_ivf_mixed
+1786180632 ps 3195702 3195116  3248 S    tee
+1786180632 ps 3195775 3195116  6260 R    ps
+1786180632 ps 3195776 3195116  5900 S    awk
+1786180632 cgroup_usage 24126406656
+1786180632 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180632 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180632 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180632 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180632 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180634 pid=3195239 VmRSS: 43611136 kB
+1786180634 pid=3195239 RssAnon: 59584 kB
+1786180634 pid=3195239 RssShmem: 43530196 kB
+1786180634 pid=3195239 VmSwap: 0 kB
+1786180634 pid=3195701 VmRSS: 23224 kB
+1786180634 pid=3195701 RssAnon: 7064 kB
+1786180634 pid=3195701 RssShmem: 540 kB
+1786180634 pid=3195701 VmSwap: 0 kB
+1786180634 ps 3195116 3195116  3768 S    slurm_script
+1786180634 ps 3195218 3195116 19700 S    python3
+1786180634 ps 3195237 3195116  2168 S    bash
+1786180634 ps 3195239 3195116 43784320 Sl clio_run
+1786180634 ps 3195678 3195116  2576 S    slurm_script
+1786180634 ps 3195701 3195116 23224 Sl   bench_ivf_mixed
+1786180634 ps 3195702 3195116  3248 S    tee
+1786180634 ps 3195786 3195116  6284 R    ps
+1786180634 ps 3195787 3195116  5868 S    awk
+1786180634 cgroup_usage 24187305984
+1786180634 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180634 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180634 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180634 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180634 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180636 pid=3195239 VmRSS: 45700220 kB
+1786180636 pid=3195239 RssAnon: 63264 kB
+1786180636 pid=3195239 RssShmem: 45615524 kB
+1786180636 pid=3195239 VmSwap: 0 kB
+1786180636 pid=3195701 VmRSS: 23320 kB
+1786180636 pid=3195701 RssAnon: 7064 kB
+1786180636 pid=3195701 RssShmem: 636 kB
+1786180636 pid=3195701 VmSwap: 0 kB
+1786180636 ps 3195116 3195116  3768 S    slurm_script
+1786180636 ps 3195218 3195116 19700 S    python3
+1786180636 ps 3195237 3195116  2168 S    bash
+1786180636 ps 3195239 3195116 45702092 Sl clio_run
+1786180636 ps 3195678 3195116  2576 S    slurm_script
+1786180636 ps 3195701 3195116 23320 Rl   bench_ivf_mixed
+1786180636 ps 3195702 3195116  3248 S    tee
+1786180636 ps 3195835 3195116  6284 R    ps
+1786180636 ps 3195836 3195116  5836 S    awk
+1786180636 cgroup_usage 24242810880
+1786180636 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180636 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180636 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180636 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180636 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180639 pid=3195239 VmRSS: 45717992 kB
+1786180639 pid=3195239 RssAnon: 63752 kB
+1786180639 pid=3195239 RssShmem: 45632808 kB
+1786180639 pid=3195239 VmSwap: 0 kB
+1786180639 pid=3195701 VmRSS: 23320 kB
+1786180639 pid=3195701 RssAnon: 7064 kB
+1786180639 pid=3195701 RssShmem: 636 kB
+1786180639 pid=3195701 VmSwap: 0 kB
+1786180639 ps 3195116 3195116  3768 S    slurm_script
+1786180639 ps 3195218 3195116 19700 S    python3
+1786180639 ps 3195237 3195116  2168 S    bash
+1786180639 ps 3195239 3195116 45717992 Sl clio_run
+1786180639 ps 3195678 3195116  2576 S    slurm_script
+1786180639 ps 3195701 3195116 23320 Sl   bench_ivf_mixed
+1786180639 ps 3195702 3195116  3248 S    tee
+1786180639 ps 3195868 3195116  6272 R    ps
+1786180639 ps 3195869 3195116  5888 S    awk
+1786180639 cgroup_usage 24258060288
+1786180639 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180639 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180639 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180639 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180639 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180641 pid=3195239 VmRSS: 45733868 kB
+1786180641 pid=3195239 RssAnon: 64652 kB
+1786180641 pid=3195239 RssShmem: 45647784 kB
+1786180641 pid=3195239 VmSwap: 0 kB
+1786180641 pid=3195701 VmRSS: 23320 kB
+1786180641 pid=3195701 RssAnon: 7064 kB
+1786180641 pid=3195701 RssShmem: 636 kB
+1786180641 pid=3195701 VmSwap: 0 kB
+1786180641 ps 3195116 3195116  3768 S    slurm_script
+1786180641 ps 3195218 3195116 19700 S    python3
+1786180641 ps 3195237 3195116  2168 S    bash
+1786180641 ps 3195239 3195116 45733868 Sl clio_run
+1786180641 ps 3195678 3195116  2576 S    slurm_script
+1786180641 ps 3195701 3195116 23320 Sl   bench_ivf_mixed
+1786180641 ps 3195702 3195116  3248 S    tee
+1786180641 ps 3195880 3195116  6248 R    ps
+1786180641 ps 3195881 3195116  6036 S    awk
+1786180641 cgroup_usage 24277647360
+1786180641 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180641 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180641 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180641 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180641 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180643 pid=3195239 VmRSS: 45758960 kB
+1786180643 pid=3195239 RssAnon: 65476 kB
+1786180643 pid=3195239 RssShmem: 45672052 kB
+1786180643 pid=3195239 VmSwap: 0 kB
+1786180643 pid=3195701 VmRSS: 23368 kB
+1786180643 pid=3195701 RssAnon: 7064 kB
+1786180643 pid=3195701 RssShmem: 684 kB
+1786180643 pid=3195701 VmSwap: 0 kB
+1786180643 ps 3195116 3195116  3768 S    slurm_script
+1786180643 ps 3195218 3195116 19700 S    python3
+1786180643 ps 3195237 3195116  2168 S    bash
+1786180643 ps 3195239 3195116 45758960 Sl clio_run
+1786180643 ps 3195678 3195116  2576 S    slurm_script
+1786180643 ps 3195701 3195116 23368 Sl   bench_ivf_mixed
+1786180643 ps 3195702 3195116  3248 S    tee
+1786180643 ps 3195923 3195116  6264 R    ps
+1786180643 ps 3195924 3195116  5920 S    awk
+1786180643 cgroup_usage 24300695552
+1786180643 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180643 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180643 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180643 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180643 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180646 pid=3195239 VmRSS: 45759196 kB
+1786180646 pid=3195239 RssAnon: 65712 kB
+1786180646 pid=3195239 RssShmem: 45672052 kB
+1786180646 pid=3195239 VmSwap: 0 kB
+1786180646 pid=3195701 VmRSS: 23368 kB
+1786180646 pid=3195701 RssAnon: 7064 kB
+1786180646 pid=3195701 RssShmem: 684 kB
+1786180646 pid=3195701 VmSwap: 0 kB
+1786180646 ps 3195116 3195116  3768 S    slurm_script
+1786180646 ps 3195218 3195116 19700 S    python3
+1786180646 ps 3195237 3195116  2168 S    bash
+1786180646 ps 3195239 3195116 45759196 Sl clio_run
+1786180646 ps 3195678 3195116  2576 S    slurm_script
+1786180646 ps 3195701 3195116 23368 Rl   bench_ivf_mixed
+1786180646 ps 3195702 3195116  3248 S    tee
+1786180646 ps 3195933 3195116  6204 R    ps
+1786180646 ps 3195934 3195116  5872 S    awk
+1786180646 cgroup_usage 24301719552
+1786180646 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180646 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180646 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180646 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180646 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180648 pid=3195239 VmRSS: 45760112 kB
+1786180648 pid=3195239 RssAnon: 66628 kB
+1786180648 pid=3195239 RssShmem: 45672052 kB
+1786180648 pid=3195239 VmSwap: 0 kB
+1786180648 pid=3195701 VmRSS: 23368 kB
+1786180648 pid=3195701 RssAnon: 7064 kB
+1786180648 pid=3195701 RssShmem: 684 kB
+1786180648 pid=3195701 VmSwap: 0 kB
+1786180648 ps 3195116 3195116  3768 S    slurm_script
+1786180648 ps 3195218 3195116 19700 S    python3
+1786180648 ps 3195237 3195116  2168 S    bash
+1786180648 ps 3195239 3195116 45760112 Sl clio_run
+1786180648 ps 3195678 3195116  2576 S    slurm_script
+1786180648 ps 3195701 3195116 23368 Rl   bench_ivf_mixed
+1786180648 ps 3195702 3195116  3248 S    tee
+1786180648 ps 3195944 3195116  6260 R    ps
+1786180648 ps 3195945 3195116  5888 S    awk
+1786180648 cgroup_usage 24302096384
+1786180648 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180648 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180648 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180648 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180648 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180650 pid=3195239 VmRSS: 45760856 kB
+1786180650 pid=3195239 RssAnon: 67372 kB
+1786180650 pid=3195239 RssShmem: 45672052 kB
+1786180650 pid=3195239 VmSwap: 0 kB
+1786180650 pid=3195701 VmRSS: 23368 kB
+1786180650 pid=3195701 RssAnon: 7064 kB
+1786180650 pid=3195701 RssShmem: 684 kB
+1786180650 pid=3195701 VmSwap: 0 kB
+1786180650 ps 3195116 3195116  3768 S    slurm_script
+1786180650 ps 3195218 3195116 19700 S    python3
+1786180650 ps 3195237 3195116  2168 S    bash
+1786180650 ps 3195239 3195116 45760856 Sl clio_run
+1786180650 ps 3195678 3195116  2576 S    slurm_script
+1786180650 ps 3195701 3195116 23368 Sl   bench_ivf_mixed
+1786180650 ps 3195702 3195116  3248 S    tee
+1786180650 ps 3195976 3195116  6292 R    ps
+1786180650 ps 3195977 3195116  5848 S    awk
+1786180650 cgroup_usage 24302190592
+1786180650 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180650 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180650 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180650 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180650 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180652 pid=3195239 VmRSS: 46900828 kB
+1786180652 pid=3195239 RssAnon: 67644 kB
+1786180652 pid=3195239 RssShmem: 46811752 kB
+1786180652 pid=3195239 VmSwap: 0 kB
+1786180652 pid=3195701 VmRSS: 853340 kB
+1786180652 pid=3195701 RssAnon: 836800 kB
+1786180652 pid=3195701 RssShmem: 920 kB
+1786180652 pid=3195701 VmSwap: 0 kB
+1786180652 ps 3195116 3195116  3768 S    slurm_script
+1786180652 ps 3195218 3195116 19700 S    python3
+1786180652 ps 3195237 3195116  2168 S    bash
+1786180652 ps 3195239 3195116 46901224 Sl clio_run
+1786180652 ps 3195678 3195116  2576 S    slurm_script
+1786180652 ps 3195701 3195116 891356 Sl  bench_ivf_mixed
+1786180652 ps 3195702 3195116  3248 S    tee
+1786180652 ps 3196009 3195116  6268 R    ps
+1786180652 ps 3196010 3195116  5876 S    awk
+1786180652 cgroup_usage 26698366976
+1786180652 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180652 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180652 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180652 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180652 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180655 pid=3195239 VmRSS: 47277716 kB
+1786180655 pid=3195239 RssAnon: 67656 kB
+1786180655 pid=3195239 RssShmem: 47188628 kB
+1786180655 pid=3195239 VmSwap: 0 kB
+1786180655 pid=3195701 VmRSS: 1672736 kB
+1786180655 pid=3195701 RssAnon: 1655472 kB
+1786180655 pid=3195701 RssShmem: 1092 kB
+1786180655 pid=3195701 VmSwap: 0 kB
+1786180655 ps 3195116 3195116  3768 S    slurm_script
+1786180655 ps 3195218 3195116 19700 S    python3
+1786180655 ps 3195237 3195116  2168 S    bash
+1786180655 ps 3195239 3195116 47278376 Sl clio_run
+1786180655 ps 3195678 3195116  2576 S    slurm_script
+1786180655 ps 3195701 3195116 1672736 Sl bench_ivf_mixed
+1786180655 ps 3195702 3195116  3248 S    tee
+1786180655 ps 3196028 3195116  6264 R    ps
+1786180655 ps 3196029 3195116  5880 S    awk
+1786180655 cgroup_usage 27877830656
+1786180655 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180655 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180655 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180655 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180655 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180657 pid=3195239 VmRSS: 47443632 kB
+1786180657 pid=3195239 RssAnon: 67656 kB
+1786180657 pid=3195239 RssShmem: 47354544 kB
+1786180657 pid=3195239 VmSwap: 0 kB
+1786180657 pid=3195701 VmRSS: 1673392 kB
+1786180657 pid=3195701 RssAnon: 1655912 kB
+1786180657 pid=3195701 RssShmem: 1308 kB
+1786180657 pid=3195701 VmSwap: 0 kB
+1786180657 ps 3195116 3195116  3768 S    slurm_script
+1786180657 ps 3195218 3195116 19700 S    python3
+1786180657 ps 3195237 3195116  2168 S    bash
+1786180657 ps 3195239 3195116 47452608 Sl clio_run
+1786180657 ps 3195678 3195116  2576 S    slurm_script
+1786180657 ps 3195701 3195116 1673392 Sl bench_ivf_mixed
+1786180657 ps 3195702 3195116  3248 S    tee
+1786180657 ps 3196038 3195116  6268 R    ps
+1786180657 ps 3196039 3195116  5884 S    awk
+1786180657 cgroup_usage 28057747456
+1786180657 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180657 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180657 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180657 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180657 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180659 pid=3195239 VmRSS: 47577084 kB
+1786180659 pid=3195239 RssAnon: 67656 kB
+1786180659 pid=3195239 RssShmem: 47487996 kB
+1786180659 pid=3195239 VmSwap: 0 kB
+1786180659 pid=3195701 VmRSS: 1674452 kB
+1786180659 pid=3195701 RssAnon: 1656812 kB
+1786180659 pid=3195701 RssShmem: 1468 kB
+1786180659 pid=3195701 VmSwap: 0 kB
+1786180659 ps 3195116 3195116  3768 S    slurm_script
+1786180659 ps 3195218 3195116 19700 S    python3
+1786180659 ps 3195237 3195116  2168 S    bash
+1786180659 ps 3195239 3195116 47577084 Sl clio_run
+1786180659 ps 3195678 3195116  2576 S    slurm_script
+1786180659 ps 3195701 3195116 1674452 Sl bench_ivf_mixed
+1786180659 ps 3195702 3195116  3248 S    tee
+1786180659 ps 3196049 3195116  6268 R    ps
+1786180659 ps 3196050 3195116  6072 S    awk
+1786180659 cgroup_usage 28182081536
+1786180659 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180659 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180659 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180659 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180659 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180661 pid=3195239 VmRSS: 47618184 kB
+1786180661 pid=3195239 RssAnon: 67664 kB
+1786180661 pid=3195239 RssShmem: 47529088 kB
+1786180661 pid=3195239 VmSwap: 0 kB
+1786180661 pid=3195701 VmRSS: 1674664 kB
+1786180661 pid=3195701 RssAnon: 1656812 kB
+1786180661 pid=3195701 RssShmem: 1680 kB
+1786180661 pid=3195701 VmSwap: 0 kB
+1786180661 ps 3195116 3195116  3768 S    slurm_script
+1786180661 ps 3195218 3195116 19700 S    python3
+1786180661 ps 3195237 3195116  2168 S    bash
+1786180661 ps 3195239 3195116 47625420 Sl clio_run
+1786180661 ps 3195678 3195116  2576 S    slurm_script
+1786180661 ps 3195701 3195116 1674664 Sl bench_ivf_mixed
+1786180661 ps 3195702 3195116  3248 S    tee
+1786180661 ps 3196078 3195116  6260 R    ps
+1786180661 ps 3196079 3195116  5848 S    awk
+1786180661 cgroup_usage 28232564736
+1786180661 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180661 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180661 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180661 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180661 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180664 pid=3195239 VmRSS: 47698296 kB
+1786180664 pid=3195239 RssAnon: 67664 kB
+1786180664 pid=3195239 RssShmem: 47609200 kB
+1786180664 pid=3195239 VmSwap: 0 kB
+1786180664 pid=3195701 VmRSS: 1674960 kB
+1786180664 pid=3195701 RssAnon: 1656820 kB
+1786180664 pid=3195701 RssShmem: 1968 kB
+1786180664 pid=3195701 VmSwap: 0 kB
+1786180664 ps 3195116 3195116  3768 S    slurm_script
+1786180664 ps 3195218 3195116 19700 S    python3
+1786180664 ps 3195237 3195116  2168 S    bash
+1786180664 ps 3195239 3195116 47698528 Sl clio_run
+1786180664 ps 3195678 3195116  2576 S    slurm_script
+1786180664 ps 3195701 3195116 1674960 Sl bench_ivf_mixed
+1786180664 ps 3195702 3195116  3248 S    tee
+1786180664 ps 3196089 3195116  6224 R    ps
+1786180664 ps 3196090 3195116  5884 S    awk
+1786180664 cgroup_usage 28307234816
+1786180664 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180664 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180664 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180664 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180664 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180666 pid=3195239 VmRSS: 47741564 kB
+1786180666 pid=3195239 RssAnon: 67664 kB
+1786180666 pid=3195239 RssShmem: 47652468 kB
+1786180666 pid=3195239 VmSwap: 0 kB
+1786180666 pid=3195701 VmRSS: 1675156 kB
+1786180666 pid=3195701 RssAnon: 1656832 kB
+1786180666 pid=3195701 RssShmem: 2132 kB
+1786180666 pid=3195701 VmSwap: 0 kB
+1786180666 ps 3195116 3195116  3768 S    slurm_script
+1786180666 ps 3195218 3195116 19700 S    python3
+1786180666 ps 3195237 3195116  2168 S    bash
+1786180666 ps 3195239 3195116 47741564 Sl clio_run
+1786180666 ps 3195678 3195116  2576 S    slurm_script
+1786180666 ps 3195701 3195116 1675156 Sl bench_ivf_mixed
+1786180666 ps 3195702 3195116  3248 S    tee
+1786180666 ps 3196099 3195116  6292 R    ps
+1786180666 ps 3196100 3195116  5860 S    awk
+1786180666 cgroup_usage 28351758336
+1786180666 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180666 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180666 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180666 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180666 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180668 pid=3195239 VmRSS: 47767180 kB
+1786180668 pid=3195239 RssAnon: 67664 kB
+1786180668 pid=3195239 RssShmem: 47678084 kB
+1786180668 pid=3195239 VmSwap: 0 kB
+1786180668 pid=3195701 VmRSS: 1675368 kB
+1786180668 pid=3195701 RssAnon: 1656832 kB
+1786180668 pid=3195701 RssShmem: 2344 kB
+1786180668 pid=3195701 VmSwap: 0 kB
+1786180668 ps 3195116 3195116  3768 S    slurm_script
+1786180668 ps 3195218 3195116 19700 S    python3
+1786180668 ps 3195237 3195116  2168 S    bash
+1786180668 ps 3195239 3195116 47767824 Sl clio_run
+1786180668 ps 3195678 3195116  2576 S    slurm_script
+1786180668 ps 3195701 3195116 1675368 Sl bench_ivf_mixed
+1786180668 ps 3195702 3195116  3248 S    tee
+1786180668 ps 3196110 3195116  6264 R    ps
+1786180668 ps 3196111 3195116  6040 S    awk
+1786180668 cgroup_usage 28378435584
+1786180668 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180668 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180668 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180668 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180668 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180670 pid=3195239 VmRSS: 47821164 kB
+1786180670 pid=3195239 RssAnon: 67664 kB
+1786180670 pid=3195239 RssShmem: 47732068 kB
+1786180670 pid=3195239 VmSwap: 0 kB
+1786180670 pid=3195701 VmRSS: 1675588 kB
+1786180670 pid=3195701 RssAnon: 1656832 kB
+1786180670 pid=3195701 RssShmem: 2564 kB
+1786180670 pid=3195701 VmSwap: 0 kB
+1786180670 ps 3195116 3195116  3768 S    slurm_script
+1786180670 ps 3195218 3195116 19700 S    python3
+1786180670 ps 3195237 3195116  2168 S    bash
+1786180670 ps 3195239 3195116 47821164 Sl clio_run
+1786180670 ps 3195678 3195116  2576 S    slurm_script
+1786180670 ps 3195701 3195116 1675588 Sl bench_ivf_mixed
+1786180670 ps 3195702 3195116  3248 S    tee
+1786180670 ps 3196142 3195116  6280 R    ps
+1786180670 ps 3196143 3195116  5872 S    awk
+1786180670 cgroup_usage 28433948672
+1786180670 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180670 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180670 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180670 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180670 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180672 pid=3195239 VmRSS: 47858060 kB
+1786180672 pid=3195239 RssAnon: 67664 kB
+1786180672 pid=3195239 RssShmem: 47768964 kB
+1786180672 pid=3195239 VmSwap: 0 kB
+1786180672 pid=3195701 VmRSS: 1675740 kB
+1786180672 pid=3195701 RssAnon: 1656832 kB
+1786180672 pid=3195701 RssShmem: 2716 kB
+1786180672 pid=3195701 VmSwap: 0 kB
+1786180672 ps 3195116 3195116  3768 S    slurm_script
+1786180672 ps 3195218 3195116 19700 S    python3
+1786180672 ps 3195237 3195116  2168 S    bash
+1786180672 ps 3195239 3195116 47858060 Sl clio_run
+1786180672 ps 3195678 3195116  2576 S    slurm_script
+1786180672 ps 3195701 3195116 1675740 Sl bench_ivf_mixed
+1786180672 ps 3195702 3195116  3248 S    tee
+1786180672 ps 3196153 3195116  6264 R    ps
+1786180672 ps 3196154 3195116  5732 S    awk
+1786180672 cgroup_usage 28472000512
+1786180672 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180672 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180672 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180672 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180672 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180675 pid=3195239 VmRSS: 47893028 kB
+1786180675 pid=3195239 RssAnon: 67664 kB
+1786180675 pid=3195239 RssShmem: 47803932 kB
+1786180675 pid=3195239 VmSwap: 0 kB
+1786180675 pid=3195701 VmRSS: 1675740 kB
+1786180675 pid=3195701 RssAnon: 1656832 kB
+1786180675 pid=3195701 RssShmem: 2716 kB
+1786180675 pid=3195701 VmSwap: 0 kB
+1786180675 ps 3195116 3195116  3768 S    slurm_script
+1786180675 ps 3195218 3195116 19700 S    python3
+1786180675 ps 3195237 3195116  2168 S    bash
+1786180675 ps 3195239 3195116 47893028 Sl clio_run
+1786180675 ps 3195678 3195116  2576 S    slurm_script
+1786180675 ps 3195701 3195116 1675740 Sl bench_ivf_mixed
+1786180675 ps 3195702 3195116  3248 S    tee
+1786180675 ps 3196163 3195116  6320 R    ps
+1786180675 ps 3196164 3195116  5808 S    awk
+1786180675 cgroup_usage 28507910144
+1786180675 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180675 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180675 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180675 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180675 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180677 pid=3195239 VmRSS: 47920224 kB
+1786180677 pid=3195239 RssAnon: 67664 kB
+1786180677 pid=3195239 RssShmem: 47831128 kB
+1786180677 pid=3195239 VmSwap: 0 kB
+1786180677 pid=3195701 VmRSS: 1675884 kB
+1786180677 pid=3195701 RssAnon: 1656888 kB
+1786180677 pid=3195701 RssShmem: 2804 kB
+1786180677 pid=3195701 VmSwap: 0 kB
+1786180677 ps 3195116 3195116  3768 S    slurm_script
+1786180677 ps 3195218 3195116 19700 S    python3
+1786180677 ps 3195237 3195116  2168 S    bash
+1786180677 ps 3195239 3195116 47920224 Sl clio_run
+1786180677 ps 3195678 3195116  2576 S    slurm_script
+1786180677 ps 3195701 3195116 1675884 Rl bench_ivf_mixed
+1786180677 ps 3195702 3195116  3248 S    tee
+1786180677 ps 3196173 3195116  6280 R    ps
+1786180677 ps 3196174 3195116  5872 S    awk
+1786180677 cgroup_usage 28535984128
+1786180677 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180677 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180677 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180677 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180677 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180679 pid=3195239 VmRSS: 47962248 kB
+1786180679 pid=3195239 RssAnon: 67664 kB
+1786180679 pid=3195239 RssShmem: 47873152 kB
+1786180679 pid=3195239 VmSwap: 0 kB
+1786180679 pid=3195701 VmRSS: 1675884 kB
+1786180679 pid=3195701 RssAnon: 1656888 kB
+1786180679 pid=3195701 RssShmem: 2804 kB
+1786180679 pid=3195701 VmSwap: 0 kB
+1786180679 ps 3195116 3195116  3768 S    slurm_script
+1786180679 ps 3195218 3195116 19700 S    python3
+1786180679 ps 3195237 3195116  2168 S    bash
+1786180679 ps 3195239 3195116 47962248 Sl clio_run
+1786180679 ps 3195678 3195116  2576 S    slurm_script
+1786180679 ps 3195701 3195116 1675884 Sl bench_ivf_mixed
+1786180679 ps 3195702 3195116  3248 S    tee
+1786180679 ps 3196184 3195116  6280 R    ps
+1786180679 ps 3196185 3195116  5864 S    awk
+1786180679 cgroup_usage 28579237888
+1786180679 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180679 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180679 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180679 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180679 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180681 pid=3195239 VmRSS: 47977072 kB
+1786180681 pid=3195239 RssAnon: 67848 kB
+1786180681 pid=3195239 RssShmem: 47887792 kB
+1786180681 pid=3195239 VmSwap: 0 kB
+1786180681 pid=3195701 VmRSS: 1675884 kB
+1786180681 pid=3195701 RssAnon: 1656888 kB
+1786180681 pid=3195701 RssShmem: 2804 kB
+1786180681 pid=3195701 VmSwap: 0 kB
+1786180681 ps 3195116 3195116  3768 S    slurm_script
+1786180681 ps 3195218 3195116 19700 S    python3
+1786180681 ps 3195237 3195116  2168 S    bash
+1786180681 ps 3195239 3195116 47977072 Sl clio_run
+1786180681 ps 3195678 3195116  2576 S    slurm_script
+1786180681 ps 3195701 3195116 1675884 Sl bench_ivf_mixed
+1786180681 ps 3195702 3195116  3248 S    tee
+1786180681 ps 3196215 3195116  6288 R    ps
+1786180681 ps 3196216 3195116  5848 S    awk
+1786180681 cgroup_usage 28594253824
+1786180681 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180681 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180681 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180681 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180681 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180684 pid=3195239 VmRSS: 47988772 kB
+1786180684 pid=3195239 RssAnon: 67848 kB
+1786180684 pid=3195239 RssShmem: 47899492 kB
+1786180684 pid=3195239 VmSwap: 0 kB
+1786180684 pid=3195701 VmRSS: 1675884 kB
+1786180684 pid=3195701 RssAnon: 1656888 kB
+1786180684 pid=3195701 RssShmem: 2804 kB
+1786180684 pid=3195701 VmSwap: 0 kB
+1786180684 ps 3195116 3195116  3768 S    slurm_script
+1786180684 ps 3195218 3195116 19700 S    python3
+1786180684 ps 3195237 3195116  2168 S    bash
+1786180684 ps 3195239 3195116 47988772 Sl clio_run
+1786180684 ps 3195678 3195116  2576 S    slurm_script
+1786180684 ps 3195701 3195116 1675884 Sl bench_ivf_mixed
+1786180684 ps 3195702 3195116  3248 S    tee
+1786180684 ps 3196226 3195116  6264 R    ps
+1786180684 ps 3196227 3195116  5904 S    awk
+1786180684 cgroup_usage 28606304256
+1786180684 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180684 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180684 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180684 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180684 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180686 pid=3195239 VmRSS: 48009720 kB
+1786180686 pid=3195239 RssAnon: 67848 kB
+1786180686 pid=3195239 RssShmem: 47920440 kB
+1786180686 pid=3195239 VmSwap: 0 kB
+1786180686 pid=3195701 VmRSS: 1675884 kB
+1786180686 pid=3195701 RssAnon: 1656888 kB
+1786180686 pid=3195701 RssShmem: 2804 kB
+1786180686 pid=3195701 VmSwap: 0 kB
+1786180686 ps 3195116 3195116  3768 S    slurm_script
+1786180686 ps 3195218 3195116 19700 S    python3
+1786180686 ps 3195237 3195116  2168 S    bash
+1786180686 ps 3195239 3195116 48009720 Sl clio_run
+1786180686 ps 3195678 3195116  2576 S    slurm_script
+1786180686 ps 3195701 3195116 1675884 Sl bench_ivf_mixed
+1786180686 ps 3195702 3195116  3248 S    tee
+1786180686 ps 3196236 3195116  6260 R    ps
+1786180686 ps 3196237 3195116  5856 S    awk
+1786180686 cgroup_usage 28627836928
+1786180686 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180686 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180686 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180686 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180686 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180688 pid=3195239 VmRSS: 48031120 kB
+1786180688 pid=3195239 RssAnon: 67848 kB
+1786180688 pid=3195239 RssShmem: 47941840 kB
+1786180688 pid=3195239 VmSwap: 0 kB
+1786180688 pid=3195701 VmRSS: 1675924 kB
+1786180688 pid=3195701 RssAnon: 1656928 kB
+1786180688 pid=3195701 RssShmem: 2804 kB
+1786180688 pid=3195701 VmSwap: 0 kB
+1786180688 ps 3195116 3195116  3768 S    slurm_script
+1786180688 ps 3195218 3195116 19700 S    python3
+1786180688 ps 3195237 3195116  2168 S    bash
+1786180688 ps 3195239 3195116 48031120 Sl clio_run
+1786180688 ps 3195678 3195116  2576 S    slurm_script
+1786180688 ps 3195701 3195116 1675924 Sl bench_ivf_mixed
+1786180688 ps 3195702 3195116  3248 S    tee
+1786180688 ps 3196247 3195116  6256 R    ps
+1786180688 ps 3196248 3195116  5872 S    awk
+1786180688 cgroup_usage 28649570304
+1786180688 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180688 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180688 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180688 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180688 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180690 pid=3195239 VmRSS: 48039904 kB
+1786180690 pid=3195239 RssAnon: 67848 kB
+1786180690 pid=3195239 RssShmem: 47950624 kB
+1786180690 pid=3195239 VmSwap: 0 kB
+1786180690 pid=3195701 VmRSS: 1675924 kB
+1786180690 pid=3195701 RssAnon: 1656928 kB
+1786180690 pid=3195701 RssShmem: 2804 kB
+1786180690 pid=3195701 VmSwap: 0 kB
+1786180690 ps 3195116 3195116  3768 S    slurm_script
+1786180690 ps 3195218 3195116 19700 S    python3
+1786180690 ps 3195237 3195116  2168 S    bash
+1786180690 ps 3195239 3195116 48039904 Sl clio_run
+1786180690 ps 3195678 3195116  2576 S    slurm_script
+1786180690 ps 3195701 3195116 1675924 Sl bench_ivf_mixed
+1786180690 ps 3195702 3195116  3248 S    tee
+1786180690 ps 3196272 3195116  6256 R    ps
+1786180690 ps 3196273 3195116  6072 S    awk
+1786180690 cgroup_usage 28657664000
+1786180690 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180690 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180690 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180690 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180690 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180693 pid=3195239 VmRSS: 48056476 kB
+1786180693 pid=3195239 RssAnon: 67848 kB
+1786180693 pid=3195239 RssShmem: 47967196 kB
+1786180693 pid=3195239 VmSwap: 0 kB
+1786180693 pid=3195701 VmRSS: 1675924 kB
+1786180693 pid=3195701 RssAnon: 1656928 kB
+1786180693 pid=3195701 RssShmem: 2804 kB
+1786180693 pid=3195701 VmSwap: 0 kB
+1786180693 ps 3195116 3195116  3768 S    slurm_script
+1786180693 ps 3195218 3195116 19700 S    python3
+1786180693 ps 3195237 3195116  2168 S    bash
+1786180693 ps 3195239 3195116 48056476 Sl clio_run
+1786180693 ps 3195678 3195116  2576 S    slurm_script
+1786180693 ps 3195701 3195116 1675924 Sl bench_ivf_mixed
+1786180693 ps 3195702 3195116  3248 S    tee
+1786180693 ps 3196284 3195116  6264 R    ps
+1786180693 ps 3196285 3195116  5900 S    awk
+1786180693 cgroup_usage 28675325952
+1786180693 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180693 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180693 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180693 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180693 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180695 pid=3195239 VmRSS: 48067884 kB
+1786180695 pid=3195239 RssAnon: 67848 kB
+1786180695 pid=3195239 RssShmem: 47978604 kB
+1786180695 pid=3195239 VmSwap: 0 kB
+1786180695 pid=3195701 VmRSS: 1675924 kB
+1786180695 pid=3195701 RssAnon: 1656928 kB
+1786180695 pid=3195701 RssShmem: 2804 kB
+1786180695 pid=3195701 VmSwap: 0 kB
+1786180695 ps 3195116 3195116  3768 S    slurm_script
+1786180695 ps 3195218 3195116 19700 S    python3
+1786180695 ps 3195237 3195116  2168 S    bash
+1786180695 ps 3195239 3195116 48067884 Sl clio_run
+1786180695 ps 3195678 3195116  2576 S    slurm_script
+1786180695 ps 3195701 3195116 1675924 Sl bench_ivf_mixed
+1786180695 ps 3195702 3195116  3248 S    tee
+1786180695 ps 3196294 3195116  6232 R    ps
+1786180695 ps 3196295 3195116  5880 S    awk
+1786180695 cgroup_usage 28687069184
+1786180695 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180695 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180695 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180695 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180695 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180697 pid=3195239 VmRSS: 48081148 kB
+1786180697 pid=3195239 RssAnon: 67848 kB
+1786180697 pid=3195239 RssShmem: 47991868 kB
+1786180697 pid=3195239 VmSwap: 0 kB
+1786180697 pid=3195701 VmRSS: 1675924 kB
+1786180697 pid=3195701 RssAnon: 1656928 kB
+1786180697 pid=3195701 RssShmem: 2804 kB
+1786180697 pid=3195701 VmSwap: 0 kB
+1786180697 ps 3195116 3195116  3768 S    slurm_script
+1786180697 ps 3195218 3195116 19700 S    python3
+1786180697 ps 3195237 3195116  2168 S    bash
+1786180697 ps 3195239 3195116 48081148 Sl clio_run
+1786180697 ps 3195678 3195116  2576 S    slurm_script
+1786180697 ps 3195701 3195116 1675924 Sl bench_ivf_mixed
+1786180697 ps 3195702 3195116  3248 S    tee
+1786180697 ps 3196304 3195116  6240 R    ps
+1786180697 ps 3196305 3195116  6064 S    awk
+1786180697 cgroup_usage 28700983296
+1786180697 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180697 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180697 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180697 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180697 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180699 pid=3195239 VmRSS: 48096600 kB
+1786180699 pid=3195239 RssAnon: 67848 kB
+1786180699 pid=3195239 RssShmem: 48007320 kB
+1786180699 pid=3195239 VmSwap: 0 kB
+1786180699 pid=3195701 VmRSS: 1675924 kB
+1786180699 pid=3195701 RssAnon: 1656928 kB
+1786180699 pid=3195701 RssShmem: 2804 kB
+1786180699 pid=3195701 VmSwap: 0 kB
+1786180699 ps 3195116 3195116  3768 S    slurm_script
+1786180699 ps 3195218 3195116 19700 S    python3
+1786180699 ps 3195237 3195116  2168 S    bash
+1786180699 ps 3195239 3195116 48096728 Sl clio_run
+1786180699 ps 3195678 3195116  2576 S    slurm_script
+1786180699 ps 3195701 3195116 1675924 Sl bench_ivf_mixed
+1786180699 ps 3195702 3195116  3248 S    tee
+1786180699 ps 3196315 3195116  6240 R    ps
+1786180699 ps 3196316 3195116  5852 S    awk
+1786180699 cgroup_usage 28716752896
+1786180699 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180699 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180699 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180699 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180699 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180701 pid=3195239 VmRSS: 48102264 kB
+1786180701 pid=3195239 RssAnon: 67848 kB
+1786180701 pid=3195239 RssShmem: 48012984 kB
+1786180701 pid=3195239 VmSwap: 0 kB
+1786180701 pid=3195701 VmRSS: 1675948 kB
+1786180701 pid=3195701 RssAnon: 1656952 kB
+1786180701 pid=3195701 RssShmem: 2804 kB
+1786180701 pid=3195701 VmSwap: 0 kB
+1786180701 ps 3195116 3195116  3768 S    slurm_script
+1786180701 ps 3195218 3195116 19700 S    python3
+1786180701 ps 3195237 3195116  2168 S    bash
+1786180701 ps 3195239 3195116 48102264 Sl clio_run
+1786180701 ps 3195678 3195116  2576 S    slurm_script
+1786180701 ps 3195701 3195116 1675948 Sl bench_ivf_mixed
+1786180701 ps 3195702 3195116  3248 S    tee
+1786180701 ps 3196342 3195116  6280 R    ps
+1786180701 ps 3196343 3195116  5852 S    awk
+1786180701 cgroup_usage 28722515968
+1786180701 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180701 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180701 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180701 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180701 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180704 pid=3195239 VmRSS: 48106992 kB
+1786180704 pid=3195239 RssAnon: 67848 kB
+1786180704 pid=3195239 RssShmem: 48017712 kB
+1786180704 pid=3195239 VmSwap: 0 kB
+1786180704 pid=3195701 VmRSS: 1675948 kB
+1786180704 pid=3195701 RssAnon: 1656952 kB
+1786180704 pid=3195701 RssShmem: 2804 kB
+1786180704 pid=3195701 VmSwap: 0 kB
+1786180704 ps 3195116 3195116  3768 S    slurm_script
+1786180704 ps 3195218 3195116 19700 S    python3
+1786180704 ps 3195237 3195116  2168 S    bash
+1786180704 ps 3195239 3195116 48106992 Sl clio_run
+1786180704 ps 3195678 3195116  2576 S    slurm_script
+1786180704 ps 3195701 3195116 1675948 Sl bench_ivf_mixed
+1786180704 ps 3195702 3195116  3248 S    tee
+1786180704 ps 3196353 3195116  6340 R    ps
+1786180704 ps 3196354 3195116  5856 S    awk
+1786180704 cgroup_usage 28727226368
+1786180704 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180704 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180704 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180704 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180704 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180706 pid=3195239 VmRSS: 48114168 kB
+1786180706 pid=3195239 RssAnon: 67848 kB
+1786180706 pid=3195239 RssShmem: 48024888 kB
+1786180706 pid=3195239 VmSwap: 0 kB
+1786180706 pid=3195701 VmRSS: 1675948 kB
+1786180706 pid=3195701 RssAnon: 1656952 kB
+1786180706 pid=3195701 RssShmem: 2804 kB
+1786180706 pid=3195701 VmSwap: 0 kB
+1786180706 ps 3195116 3195116  3768 S    slurm_script
+1786180706 ps 3195218 3195116 19700 S    python3
+1786180706 ps 3195237 3195116  2168 S    bash
+1786180706 ps 3195239 3195116 48114168 Sl clio_run
+1786180706 ps 3195678 3195116  2576 S    slurm_script
+1786180706 ps 3195701 3195116 1675948 Sl bench_ivf_mixed
+1786180706 ps 3195702 3195116  3248 S    tee
+1786180706 ps 3196363 3195116  6260 R    ps
+1786180706 ps 3196364 3195116  5848 S    awk
+1786180706 cgroup_usage 28734357504
+1786180706 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180706 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180706 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180706 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180706 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180708 pid=3195239 VmRSS: 48122504 kB
+1786180708 pid=3195239 RssAnon: 67848 kB
+1786180708 pid=3195239 RssShmem: 48033224 kB
+1786180708 pid=3195239 VmSwap: 0 kB
+1786180708 pid=3195701 VmRSS: 1675948 kB
+1786180708 pid=3195701 RssAnon: 1656952 kB
+1786180708 pid=3195701 RssShmem: 2804 kB
+1786180708 pid=3195701 VmSwap: 0 kB
+1786180708 ps 3195116 3195116  3768 S    slurm_script
+1786180708 ps 3195218 3195116 19700 S    python3
+1786180708 ps 3195237 3195116  2168 S    bash
+1786180708 ps 3195239 3195116 48122504 Sl clio_run
+1786180708 ps 3195678 3195116  2576 S    slurm_script
+1786180708 ps 3195701 3195116 1675948 Sl bench_ivf_mixed
+1786180708 ps 3195702 3195116  3248 S    tee
+1786180708 ps 3196374 3195116  6292 R    ps
+1786180708 ps 3196375 3195116  5832 S    awk
+1786180708 cgroup_usage 28743069696
+1786180708 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180708 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180708 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180708 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180708 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180710 pid=3195239 VmRSS: 48125880 kB
+1786180710 pid=3195239 RssAnon: 67848 kB
+1786180710 pid=3195239 RssShmem: 48036600 kB
+1786180710 pid=3195239 VmSwap: 0 kB
+1786180710 pid=3195701 VmRSS: 1675952 kB
+1786180710 pid=3195701 RssAnon: 1656956 kB
+1786180710 pid=3195701 RssShmem: 2804 kB
+1786180710 pid=3195701 VmSwap: 0 kB
+1786180710 ps 3195116 3195116  3768 S    slurm_script
+1786180710 ps 3195218 3195116 19700 S    python3
+1786180710 ps 3195237 3195116  2168 S    bash
+1786180710 ps 3195239 3195116 48126092 Sl clio_run
+1786180710 ps 3195678 3195116  2576 S    slurm_script
+1786180710 ps 3195701 3195116 1675952 Sl bench_ivf_mixed
+1786180710 ps 3195702 3195116  3248 S    tee
+1786180710 ps 3196393 3195116  6264 R    ps
+1786180710 ps 3196394 3195116  5876 S    awk
+1786180710 cgroup_usage 28744847360
+1786180710 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:low 0
+1786180710 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:high 0
+1786180710 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:max 0
+1786180710 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom 0
+1786180710 memev /sys/fs/cgroup/system.slice/slurmd.service/memory.events:oom_kill 2
+1786180713 pid=3195239 VmRSS: 48142628 kB
+1786180713 pid=3195239 RssAnon: 67848 kB
+1786180713 pid=3195239 RssShmem: 48053348 kB
+1786180713 pid=3195239 VmSwap: 0 kB

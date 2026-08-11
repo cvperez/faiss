@@ -40,16 +40,32 @@ void drain_slot(PutSlot& s) {
 
 } // namespace
 
-size_t IngestIvfToCte(
-        const faiss::InvertedLists* src,
+size_t IngestIvfShardsToCte(
+        const std::vector<const faiss::InvertedLists*>& srcs,
         const std::string& tag_name,
-        size_t batch) {
+        size_t batch,
+        const std::function<bool(int64_t)>& list_filter,
+        bool write_sizes) {
+    FAISS_THROW_IF_NOT_MSG(!srcs.empty(), "CTE ingest: no source shards");
     FAISS_THROW_IF_NOT_MSG(
             EnsureIOWarpClient(), "IOWarp client init failed");
     auto* cte = CLIO_CTE_CLIENT;
 
-    const size_t nlist = src->nlist;
-    const size_t code_size = src->code_size;
+    const size_t nlist = srcs[0]->nlist;
+    const size_t code_size = srcs[0]->code_size;
+    for (const auto* src : srcs) {
+        FAISS_THROW_IF_NOT_MSG(
+                src->nlist == nlist && src->code_size == code_size,
+                "CTE ingest: shard nlist/code_size mismatch");
+    }
+
+    auto combined_size = [&](size_t l) {
+        size_t sz = 0;
+        for (const auto* src : srcs) {
+            sz += src->list_size(l);
+        }
+        return sz;
+    };
 
     auto tag_fut = cte->AsyncGetOrCreateTag(tag_name);
     tag_fut.Wait();
@@ -61,8 +77,14 @@ size_t IngestIvfToCte(
     // FreeBuffer relied on).
     size_t max_bytes = 0;
     for (size_t l = 0; l < nlist; ++l) {
-        const size_t sz = src->list_size(l);
+        if (list_filter && !list_filter(static_cast<int64_t>(l))) {
+            continue;
+        }
+        const size_t sz = combined_size(l);
         max_bytes = std::max(max_bytes, sz * (code_size + sizeof(idx_t)));
+    }
+    if (max_bytes == 0) {
+        max_bytes = 1;  // filter selected nothing on this node
     }
     const size_t ring_n = std::max<size_t>(1, std::min<size_t>(batch, 8));
     std::vector<PutSlot> ring(ring_n);
@@ -75,7 +97,10 @@ size_t IngestIvfToCte(
     size_t put_bytes = 0;
     size_t next = 0;
     for (size_t l = 0; l < nlist; ++l) {
-        size_t sz = src->list_size(l);
+        if (list_filter && !list_filter(static_cast<int64_t>(l))) {
+            continue;
+        }
+        size_t sz = combined_size(l);
         if (sz == 0) {
             continue;
         }
@@ -85,14 +110,22 @@ size_t IngestIvfToCte(
         if (s.busy) {
             drain_slot(s);
         }
-        {
+        // Codes of every shard back-to-back, then ids of every shard: the
+        // blob keeps the single codes||ids split Search parses at
+        // base + sz*code_size.
+        size_t coff = 0;
+        size_t ioff = sz * code_size;
+        for (const auto* src : srcs) {
+            size_t r = src->list_size(l);
+            if (r == 0) {
+                continue;
+            }
             faiss::InvertedLists::ScopedCodes codes(src, l);
             faiss::InvertedLists::ScopedIds ids(src, l);
-            std::memcpy(s.buf.ptr_, codes.get(), sz * code_size);
-            std::memcpy(
-                    s.buf.ptr_ + sz * code_size,
-                    ids.get(),
-                    sz * sizeof(idx_t));
+            std::memcpy(s.buf.ptr_ + coff, codes.get(), r * code_size);
+            std::memcpy(s.buf.ptr_ + ioff, ids.get(), r * sizeof(idx_t));
+            coff += r * code_size;
+            ioff += r * sizeof(idx_t);
         }
         ctp::ipc::ShmPtr<> sp = s.buf.shm_.template Cast<void>();
         std::string name = "list/" + std::to_string(l);
@@ -107,13 +140,16 @@ size_t IngestIvfToCte(
         CLIO_IPC->FreeBuffer(s.buf);
     }
 
-    // "sizes" blob last: its presence signals a completed ingest.
-    {
+    // "sizes" blob last: its presence signals a completed ingest. In an
+    // owner-local multi-node ingest only rank 0 writes it (unfiltered
+    // contents — the shards give every list's size locally); the caller
+    // must sequence it AFTER all ranks' list puts.
+    if (write_sizes) {
         size_t bytes = nlist * sizeof(idx_t);
         auto buf = CLIO_IPC->AllocateBuffer(bytes);
         auto* dst = reinterpret_cast<idx_t*>(buf.ptr_);
         for (size_t l = 0; l < nlist; ++l) {
-            dst[l] = static_cast<idx_t>(src->list_size(l));
+            dst[l] = static_cast<idx_t>(combined_size(l));
         }
         ctp::ipc::ShmPtr<> sp = buf.shm_.template Cast<void>();
         auto f = cte->AsyncPutBlob(tag_id, "sizes", 0, bytes, sp);
@@ -123,6 +159,13 @@ size_t IngestIvfToCte(
         CLIO_IPC->FreeBuffer(buf);
     }
     return put_bytes;
+}
+
+size_t IngestIvfToCte(
+        const faiss::InvertedLists* src,
+        const std::string& tag_name,
+        size_t batch) {
+    return IngestIvfShardsToCte({src}, tag_name, batch);
 }
 
 } // namespace faiss_iowarp

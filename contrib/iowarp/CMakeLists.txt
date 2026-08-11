@@ -188,12 +188,22 @@ iowarp_target(bench_ivf_qps)
 target_link_libraries(bench_ivf_qps PRIVATE iowarp_cte ${FAISS_LINK_TARGET}
     OpenMP::OpenMP_CXX)
 
+# Mixed 80/20 read/write benchmark (performance study, Exp 2).
+add_executable(bench_ivf_mixed benchmarks/bench_ivf_mixed.cpp)
+iowarp_target(bench_ivf_mixed)
+target_link_libraries(bench_ivf_mixed PRIVATE iowarp_cte ${FAISS_LINK_TARGET}
+    OpenMP::OpenMP_CXX)
+
 # faiss_ivf ChiMod (optional subdirectory; needs the same wheel/header setup).
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/chimod/CMakeLists.txt"
    AND NOT IOWARP_SKIP_CHIMOD)
     add_subdirectory(chimod)
-    target_compile_definitions(bench_ivf_qps PRIVATE HAVE_FAISS_IVF_CHIMOD)
-    target_include_directories(bench_ivf_qps PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/chimod/include")
-    target_link_libraries(bench_ivf_qps PRIVATE clio_faiss_ivf_client)
+    # ivf_to_iowarp uses the chimod headers only for the inline
+    # ListOwnerContainer hash (owner-local multi-node ingest).
+    foreach(_bench bench_ivf_qps bench_ivf_mixed ivf_to_iowarp)
+        target_compile_definitions(${_bench} PRIVATE HAVE_FAISS_IVF_CHIMOD)
+        target_include_directories(${_bench} PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/chimod/include")
+        target_link_libraries(${_bench} PRIVATE clio_faiss_ivf_client)
+    endforeach()
 endif()

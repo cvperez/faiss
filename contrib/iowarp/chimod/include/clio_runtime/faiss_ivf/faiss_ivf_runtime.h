@@ -16,6 +16,7 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -63,6 +64,28 @@ class Runtime : public clio::run::Container {
   std::atomic<clio::run::u64> stat_bytes_fetched_{0};   // bytes read from CTE
   std::atomic<clio::run::u64> stat_fetch_wait_us_{0};   // time waiting on CTE reads
   std::atomic<clio::run::u64> stat_scan_us_{0};         // time scanning codes
+  std::atomic<clio::run::u64> stat_adds_{0};            // AddTasks processed
+  std::atomic<clio::run::u64> stat_add_vectors_{0};     // vectors appended
+  std::atomic<clio::run::u64> stat_add_bytes_{0};       // bytes written by adds
+  std::atomic<clio::run::u64> stat_add_us_{0};          // time inside Add
+
+  // Add/Search exclusion tripwire. The exp2 bench guarantees exclusion
+  // client-side (drains searches before AddTasks, mirroring the mmap
+  // study's write windows); this flag turns a violated guarantee into a
+  // loud rc=9 on Search instead of a silent torn read of sizes_/blobs.
+  std::atomic<bool> adding_{false};
+
+  // Search-slab cache. Per-search AllocateBuffer/FreeBuffer of the list
+  // slabs is fatal at high search rates: the dev allocator does not
+  // recycle multi-MB buffers, so exp2's per-query searches (~540 searches
+  // x 64 slabs in 25 s) grew the daemon 10->43 GB and the OOM killer took
+  // it. Retired slabs are pushed here and reused by later searches; all
+  // cached slabs share capacity slab_bytes_ — a search needing more
+  // (bigger volume / grown lists) drops the cache and re-allocates.
+  // Guarded by a plain mutex: the critical sections contain no co_await.
+  std::mutex slab_mu_;
+  std::vector<ctp::ipc::FullPtr<char>> slab_cache_;
+  clio::run::u64 slab_bytes_ = 0;
 
   // Client for making calls to this ChiMod
   Client client_;
@@ -98,6 +121,9 @@ class Runtime : public clio::run::Container {
 
   /** Handle Search task */
   clio::run::TaskResume Search(clio::run::shared_ptr<SearchTask>& task);
+
+  /** Handle Add task */
+  clio::run::TaskResume Add(clio::run::shared_ptr<AddTask>& task);
 
   /** Handle Stats task */
   clio::run::TaskResume Stats(clio::run::shared_ptr<StatsTask>& task);

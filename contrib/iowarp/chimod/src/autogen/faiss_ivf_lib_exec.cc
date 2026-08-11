@@ -64,6 +64,12 @@ clio::run::TaskResume Runtime::Run(clio::run::u32 method, clio::run::shared_ptr<
       CLIO_CO_AWAIT(Search(typed_task));
       break;
     }
+    case Method::kAdd: {
+      // Cast task handle to specific type (in-place reinterpret)
+      auto& typed_task = task_ptr.template Cast<AddTask>();
+      CLIO_CO_AWAIT(Add(typed_task));
+      break;
+    }
     case Method::kStats: {
       // Cast task handle to specific type (in-place reinterpret)
       auto& typed_task = task_ptr.template Cast<StatsTask>();
@@ -107,6 +113,11 @@ void Runtime::SaveTask(clio::run::u32 method, clio::run::SaveTaskArchive& archiv
       archive << *typed_task;
       break;
     }
+    case Method::kAdd: {
+      auto& typed_task = task_ptr.template Cast<AddTask>();
+      archive << *typed_task;
+      break;
+    }
     case Method::kStats: {
       auto& typed_task = task_ptr.template Cast<StatsTask>();
       archive << *typed_task;
@@ -144,6 +155,11 @@ void Runtime::LoadTask(clio::run::u32 method, clio::run::LoadTaskArchive& archiv
     }
     case Method::kSearch: {
       auto& typed_task = task_ptr.template Cast<SearchTask>();
+      archive >> *typed_task;
+      break;
+    }
+    case Method::kAdd: {
+      auto& typed_task = task_ptr.template Cast<AddTask>();
       archive >> *typed_task;
       break;
     }
@@ -200,6 +216,12 @@ void Runtime::LocalLoadTask(clio::run::u32 method, clio::run::DefaultLoadArchive
       archive >> *typed_task;
       break;
     }
+    case Method::kAdd: {
+      auto& typed_task = task_ptr.template Cast<AddTask>();
+      // Use archive operator which respects msg_type
+      archive >> *typed_task;
+      break;
+    }
     case Method::kStats: {
       auto& typed_task = task_ptr.template Cast<StatsTask>();
       // Use archive operator which respects msg_type
@@ -250,6 +272,12 @@ void Runtime::LocalSaveTask(clio::run::u32 method, clio::run::DefaultSaveArchive
     }
     case Method::kSearch: {
       auto& typed_task = task_ptr.template Cast<SearchTask>();
+      // Use archive operator which respects msg_type
+      archive << *typed_task;
+      break;
+    }
+    case Method::kAdd: {
+      auto& typed_task = task_ptr.template Cast<AddTask>();
       // Use archive operator which respects msg_type
       archive << *typed_task;
       break;
@@ -329,6 +357,17 @@ clio::run::shared_ptr<clio::run::Task> Runtime::NewCopyTask(clio::run::u32 metho
       }
       break;
     }
+    case Method::kAdd: {
+      // Allocate new task
+      auto new_task_ptr = ipc_manager->NewTask<AddTask>();
+      if (!new_task_ptr.IsNull()) {
+        // Copy task fields (includes base Task fields)
+        auto& task_typed = orig_task_ptr.template Cast<AddTask>();
+        new_task_ptr->Copy(ctp::ipc::FullPtr<AddTask>(task_typed.get()));
+        return new_task_ptr.template Cast<clio::run::Task>();
+      }
+      break;
+    }
     case Method::kStats: {
       // Allocate new task
       auto new_task_ptr = ipc_manager->NewTask<StatsTask>();
@@ -382,6 +421,10 @@ clio::run::shared_ptr<clio::run::Task> Runtime::NewTask(clio::run::u32 method) {
       auto new_task_ptr = ipc_manager->NewTask<SearchTask>();
       return new_task_ptr.template Cast<clio::run::Task>();
     }
+    case Method::kAdd: {
+      auto new_task_ptr = ipc_manager->NewTask<AddTask>();
+      return new_task_ptr.template Cast<clio::run::Task>();
+    }
     case Method::kStats: {
       auto new_task_ptr = ipc_manager->NewTask<StatsTask>();
       return new_task_ptr.template Cast<clio::run::Task>();
@@ -418,6 +461,11 @@ void Runtime::AggregateOut(clio::run::u32 method, clio::run::shared_ptr<clio::ru
     }
     case Method::kSearch: {
       auto& typed_task = orig_task.template Cast<SearchTask>();
+      typed_task->AggregateOut(ctp::ipc::FullPtr<clio::run::Task>(replica_task.get()));
+      break;
+    }
+    case Method::kAdd: {
+      auto& typed_task = orig_task.template Cast<AddTask>();
       typed_task->AggregateOut(ctp::ipc::FullPtr<clio::run::Task>(replica_task.get()));
       break;
     }
@@ -458,6 +506,11 @@ void Runtime::AggregateIn(clio::run::u32 method, clio::run::shared_ptr<clio::run
     }
     case Method::kSearch: {
       auto& typed_task = agg_task.template Cast<SearchTask>();
+      typed_task->AggregateIn(ctp::ipc::FullPtr<clio::run::Task>(member_task.get()));
+      break;
+    }
+    case Method::kAdd: {
+      auto& typed_task = agg_task.template Cast<AddTask>();
       typed_task->AggregateIn(ctp::ipc::FullPtr<clio::run::Task>(member_task.get()));
       break;
     }

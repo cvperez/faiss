@@ -1,0 +1,3 @@
+ts,phase,nvme_rd_mb_s,nvme_wr_mb_s,nvme_active_pct,cte_file_tier_gb,devshm_used_gb,clio_rss_gb,mem_avail_gb,nfs_rd_mb_s
+1786281114,setup,0.00,0.00,0.0,0.000,0.002,0.000,44.990,0.00
+1786281119,setup,0.00,0.00,0.0,0.000,0.002,0.000,44.990,0.01

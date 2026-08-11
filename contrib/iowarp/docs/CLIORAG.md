@@ -307,13 +307,11 @@ plot script, prefix-parameterized).
 
 ### 7.2 Results
 
-Populated by the campaign as cells complete; figures land in
-`benchmarks/results/performance_study/` as `perf_study_exp{1,2}_panel_{a,b}`,
-`perf_study_active_time_*`, `perf_study_disk_throughput_*`. Raw per-cell
-records: `perf_study_exp{1,2}_nb{N}M_n{K}.json`. First data points
-(validation cells, nb44M): n1 owner-route 61.6 QPS cold / ~62 warm at
-nprobe 128 with **zero disk activity** (fully RAM-tier-resident) and ~24
-QPS single-query closed-loop at concurrency 4; per-query p50 ≈ 150 ms.
+The study's results live in their own report,
+`benchmarks/results/performance_study/PERF_STUDY_RESULTS.md` (same format
+as the mmap study's `ondisk_step4_results.md`), alongside the figures
+(`perf_study_*`) and the raw per-cell records
+(`perf_study_exp{1,2}_nb{N}M_n{K}.json`).
 
 ## 8. Relationship to the earlier campaigns
 
